@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
-	"github.com/peerclaw/peerclaw-go/protocol"
+	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-core/protocol"
 )
 
 func newTestService(t *testing.T) *Service {

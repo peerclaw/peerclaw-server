@@ -3,8 +3,8 @@ package bridge
 import (
 	"context"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
-	"github.com/peerclaw/peerclaw-go/envelope"
+	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-core/envelope"
 )
 
 // ProtocolBridge defines the interface for protocol-specific adapters.

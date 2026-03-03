@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
-	"github.com/peerclaw/peerclaw-go/envelope"
-	"github.com/peerclaw/peerclaw-go/protocol"
+	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-core/envelope"
+	"github.com/peerclaw/peerclaw-core/protocol"
 )
 
 // Adapter implements the ProtocolBridge interface for Google A2A protocol.

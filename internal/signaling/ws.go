@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/peerclaw/peerclaw-go/signaling"
+	"github.com/peerclaw/peerclaw-core/signaling"
 	"nhooyr.io/websocket"
 )
 

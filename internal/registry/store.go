@@ -3,7 +3,7 @@ package registry
 import (
 	"context"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
+	"github.com/peerclaw/peerclaw-core/agentcard"
 )
 
 // ListFilter specifies criteria for listing agents.

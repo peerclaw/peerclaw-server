@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
-	"github.com/peerclaw/peerclaw-go/protocol"
+	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/router"

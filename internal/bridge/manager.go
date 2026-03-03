@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
-	"github.com/peerclaw/peerclaw-go/envelope"
+	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-core/envelope"
 )
 
 // Manager manages the lifecycle of protocol bridges and routes messages between them.

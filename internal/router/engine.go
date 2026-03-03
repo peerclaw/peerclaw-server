@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"sort"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
+	"github.com/peerclaw/peerclaw-core/agentcard"
 )
 
 // Engine provides intelligent routing decisions based on capabilities,

@@ -3,8 +3,8 @@ package router
 import (
 	"testing"
 
-	"github.com/peerclaw/peerclaw-go/agentcard"
-	"github.com/peerclaw/peerclaw-go/protocol"
+	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-core/protocol"
 )
 
 func TestTable_AddAndGetRoutes(t *testing.T) {

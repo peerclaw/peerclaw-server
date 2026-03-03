@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	pcidentity "github.com/peerclaw/peerclaw-go/identity"
+	pcidentity "github.com/peerclaw/peerclaw-core/identity"
 )
 
 // Verifier validates agent identity and authorization.

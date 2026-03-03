@@ -5,7 +5,7 @@ go 1.24.1
 require (
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.34
-	github.com/peerclaw/peerclaw-go v0.0.0
+	github.com/peerclaw/peerclaw-core v0.0.0
 	google.golang.org/grpc v1.79.1
 	gopkg.in/yaml.v3 v3.0.1
 	nhooyr.io/websocket v1.8.17
@@ -19,4 +19,4 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 )
 
-replace github.com/peerclaw/peerclaw-go => ../go
+replace github.com/peerclaw/peerclaw-core => ../core
