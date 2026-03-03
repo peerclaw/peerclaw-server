@@ -50,7 +50,7 @@ go build -o peerclawd ./cmd/peerclawd
 ### Docker
 
 ```dockerfile
-FROM golang:1.24-alpine AS build
+FROM golang:1.26-alpine AS build
 RUN apk add --no-cache gcc musl-dev
 WORKDIR /src
 COPY . .
@@ -121,16 +121,18 @@ signaling:
 
 ```json
 {
-  "type": "offer | answer | ice_candidate | ping | pong",
+  "type": "offer | answer | ice_candidate | config | ping | pong",
   "from": "agent-id",
   "to": "target-agent-id",
   "sdp": "...",
   "candidate": "...",
+  "x25519_public_key": "...",
+  "ice_servers": [{"urls": ["turn:turn.example.com:3478"], "username": "...", "credential": "..."}],
   "timestamp": "2025-01-01T00:00:00Z"
 }
 ```
 
-信令服务器自动填充 `from` 字段并转发到目标 Agent。
+信令服务器自动填充 `from` 字段并转发到目标 Agent。连接建立后，Server 自动推送 `config` 消息，携带 TURN 服务器配置（如已配置）。`offer` / `answer` 消息中可携带 `x25519_public_key` 字段用于建立端到端加密会话。
 
 ## License
 
