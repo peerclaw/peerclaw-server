@@ -1,0 +1,30 @@
+server:
+  http_addr: ":8080"
+  grpc_addr: ":9090"
+
+database:
+  dsn: "peerclaw.db"
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+
+logging:
+  level: "info"     # debug, info, warn, error
+  format: "text"    # text, json
+
+bridge:
+  a2a:
+    enabled: true
+  acp:
+    enabled: true
+  mcp:
+    enabled: true
+
+signaling:
+  enabled: true
+  turn:
+    urls: []
+    username: ""
+    credential: ""
