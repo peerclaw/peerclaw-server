@@ -76,7 +76,16 @@ func main() {
 	// Initialize signaling hub.
 	var sigHub *signaling.Hub
 	if cfg.Signaling.Enabled {
-		sigHub = signaling.NewHub(logger)
+		var turnCfg *signaling.TURNConfig
+		if len(cfg.Signaling.TURN.URLs) > 0 {
+			turnCfg = &signaling.TURNConfig{
+				URLs:       cfg.Signaling.TURN.URLs,
+				Username:   cfg.Signaling.TURN.Username,
+				Credential: cfg.Signaling.TURN.Credential,
+			}
+			logger.Info("TURN servers configured", "urls", cfg.Signaling.TURN.URLs)
+		}
+		sigHub = signaling.NewHub(logger, turnCfg)
 		logger.Info("WebSocket signaling enabled")
 	}
 

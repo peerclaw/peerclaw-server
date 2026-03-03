@@ -11,21 +11,31 @@ import (
 	"nhooyr.io/websocket"
 )
 
+// TURNConfig holds TURN server credentials for ICE negotiation.
+type TURNConfig struct {
+	URLs       []string
+	Username   string
+	Credential string
+}
+
 // Hub manages WebSocket connections for signaling between agents.
 type Hub struct {
-	mu    sync.RWMutex
-	conns map[string]*websocket.Conn // agentID -> connection
-	logger *slog.Logger
+	mu         sync.RWMutex
+	conns      map[string]*websocket.Conn // agentID -> connection
+	logger     *slog.Logger
+	turnConfig *TURNConfig
 }
 
 // NewHub creates a new signaling hub.
-func NewHub(logger *slog.Logger) *Hub {
+// turnCfg may be nil if no TURN servers are configured.
+func NewHub(logger *slog.Logger, turnCfg *TURNConfig) *Hub {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &Hub{
-		conns:  make(map[string]*websocket.Conn),
-		logger: logger,
+		conns:      make(map[string]*websocket.Conn),
+		logger:     logger,
+		turnConfig: turnCfg,
 	}
 }
 
@@ -55,6 +65,28 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 	h.mu.Unlock()
 
 	h.logger.Info("agent connected to signaling", "agent_id", agentID)
+
+	// Push ICE server configuration if TURN is configured.
+	if h.turnConfig != nil && len(h.turnConfig.URLs) > 0 {
+		configMsg := signaling.SignalMessage{
+			Type: signaling.MessageTypeConfig,
+			ICEServers: []signaling.ICEServerConfig{
+				{
+					URLs:       h.turnConfig.URLs,
+					Username:   h.turnConfig.Username,
+					Credential: h.turnConfig.Credential,
+				},
+			},
+		}
+		data, err := json.Marshal(configMsg)
+		if err != nil {
+			h.logger.Error("marshal config message", "error", err)
+		} else if err := conn.Write(r.Context(), websocket.MessageText, data); err != nil {
+			h.logger.Error("send config message", "agent_id", agentID, "error", err)
+		} else {
+			h.logger.Debug("sent ICE server config", "agent_id", agentID)
+		}
+	}
 
 	defer func() {
 		h.mu.Lock()

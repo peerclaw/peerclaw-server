@@ -1,6 +1,6 @@
 module github.com/peerclaw/peerclaw-server
 
-go 1.24.1
+go 1.26
 
 require (
 	github.com/google/uuid v1.6.0

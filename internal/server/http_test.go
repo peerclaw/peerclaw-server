@@ -25,7 +25,7 @@ func newTestHTTPServer(t *testing.T) *HTTPServer {
 	table := router.NewTable()
 	eng := router.NewEngine(table, nil)
 	brg := bridge.NewManager(nil)
-	sigHub := signaling.NewHub(nil)
+	sigHub := signaling.NewHub(nil, nil)
 
 	return NewHTTPServer(":0", reg, eng, brg, sigHub, nil)
 }
