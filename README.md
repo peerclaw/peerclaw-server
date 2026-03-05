@@ -111,7 +111,38 @@ signaling:
 | `POST` | `/api/v1/discover` | 按能力/协议发现 Agent |
 | `GET` | `/api/v1/routes` | 查看路由表 |
 | `GET` | `/api/v1/routes/resolve` | 解析路由（`target_id`、`protocol`） |
+| `POST` | `/api/v1/bridge/send` | 通过协议桥接发送消息到外部 Agent |
 | `GET` | `/api/v1/health` | 健康检查 |
+
+## 协议端点
+
+PeerClaw Server 同时作为 A2A / MCP / ACP 协议的网关，外部 Agent 可直接通过标准协议端点与 PeerClaw 网络交互。
+
+### A2A (Google Agent-to-Agent)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/a2a` | JSON-RPC 端点（message/send, tasks/get, tasks/cancel） |
+| `GET` | `/.well-known/agent.json` | A2A Agent Card |
+| `GET` | `/a2a/tasks/{id}` | 查询 Task 状态 |
+
+### MCP (Model Context Protocol)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/mcp` | Streamable HTTP 端点（initialize, tools/*, resources/*, prompts/*） |
+| `GET` | `/mcp` | SSE 流（服务端推送） |
+
+### ACP (Agent Communication Protocol)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/acp/agents` | 列出可用 Agent |
+| `GET` | `/acp/agents/{name}` | 获取 Agent Manifest |
+| `POST` | `/acp/runs` | 创建 Run（同步/异步） |
+| `GET` | `/acp/runs/{run_id}` | 查询 Run 状态 |
+| `POST` | `/acp/runs/{run_id}/cancel` | 取消 Run |
+| `GET` | `/acp/ping` | ACP 健康检查 |
 
 ## WebSocket 信令
 
@@ -121,7 +152,7 @@ signaling:
 
 ```json
 {
-  "type": "offer | answer | ice_candidate | config | ping | pong",
+  "type": "offer | answer | ice_candidate | config | ping | pong | bridge_message",
   "from": "agent-id",
   "to": "target-agent-id",
   "sdp": "...",
@@ -132,7 +163,7 @@ signaling:
 }
 ```
 
-信令服务器自动填充 `from` 字段并转发到目标 Agent。连接建立后，Server 自动推送 `config` 消息，携带 TURN 服务器配置（如已配置）。`offer` / `answer` 消息中可携带 `x25519_public_key` 字段用于建立端到端加密会话。
+信令服务器自动填充 `from` 字段并转发到目标 Agent。连接建立后，Server 自动推送 `config` 消息，携带 TURN 服务器配置（如已配置）。`offer` / `answer` 消息中可携带 `x25519_public_key` 字段用于建立端到端加密会话。`bridge_message` 类型用于投递协议桥接消息（外部 Agent → PeerClaw Server → PeerClaw Agent），`payload` 字段携带 Envelope JSON。
 
 ## License
 
