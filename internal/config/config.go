@@ -18,6 +18,7 @@ type Config struct {
 	Observability ObservabilityConfig `yaml:"observability"`
 	RateLimit     RateLimitConfig     `yaml:"rate_limit"`
 	AuditLog      AuditLogConfig      `yaml:"audit_log"`
+	Federation    FederationConfig    `yaml:"federation"`
 }
 
 // ServerConfig holds HTTP and gRPC server settings.
@@ -93,6 +94,23 @@ type AuditLogConfig struct {
 	Output  string `yaml:"output"`  // "stdout" or "file:/path"
 }
 
+// FederationConfig holds server federation settings.
+type FederationConfig struct {
+	Enabled    bool             `yaml:"enabled"`
+	NodeName   string           `yaml:"node_name"`
+	Peers      []FederationPeer `yaml:"peers"`
+	DNSEnabled bool             `yaml:"dns_enabled"`
+	DNSDomain  string           `yaml:"dns_domain"`
+	AuthToken  string           `yaml:"auth_token"`
+}
+
+// FederationPeer holds connection details for a federated peer server.
+type FederationPeer struct {
+	Name    string `yaml:"name"`
+	Address string `yaml:"address"`
+	Token   string `yaml:"token"`
+}
+
 // DefaultConfig returns a configuration with sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
@@ -136,6 +154,9 @@ func DefaultConfig() *Config {
 		AuditLog: AuditLogConfig{
 			Enabled: true,
 			Output:  "stdout",
+		},
+		Federation: FederationConfig{
+			Enabled: false,
 		},
 	}
 }

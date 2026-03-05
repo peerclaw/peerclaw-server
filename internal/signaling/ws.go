@@ -251,3 +251,11 @@ func (h *Hub) ConnectedAgents() int {
 	defer h.mu.RUnlock()
 	return len(h.conns)
 }
+
+// HasAgent returns true if the given agent ID has an active WebSocket connection.
+func (h *Hub) HasAgent(agentID string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	_, ok := h.conns[agentID]
+	return ok
+}

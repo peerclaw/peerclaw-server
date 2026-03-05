@@ -15,6 +15,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/bridge/acp"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/mcp"
 	"github.com/peerclaw/peerclaw-server/internal/config"
+	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/router"
@@ -110,6 +111,30 @@ func main() {
 		)
 	}
 
+	// Initialize federation.
+	var fedService *federation.FederationService
+	if cfg.Federation.Enabled {
+		fedService = federation.New(cfg.Federation.NodeName, cfg.Federation.AuthToken, logger)
+		for _, p := range cfg.Federation.Peers {
+			fedService.AddPeer(p.Name, p.Address, p.Token)
+		}
+
+		// DNS-based peer discovery.
+		if cfg.Federation.DNSEnabled && cfg.Federation.DNSDomain != "" {
+			dnsPeers, err := federation.DiscoverPeers(cfg.Federation.DNSDomain)
+			if err != nil {
+				logger.Warn("federation DNS discovery failed", "error", err)
+			} else {
+				for _, p := range dnsPeers {
+					fedService.AddPeer(p.Name, p.Address, p.Token)
+				}
+				logger.Info("federation DNS peers discovered", "count", len(dnsPeers))
+			}
+		}
+
+		logger.Info("federation enabled", "node_name", cfg.Federation.NodeName, "peers", len(cfg.Federation.Peers))
+	}
+
 	// Initialize audit logger.
 	auditLogger, err := audit.NewFromConfig(cfg.AuditLog)
 	if err != nil {
@@ -142,6 +167,9 @@ func main() {
 	httpServer.SetStore(store)
 	httpServer.SetAudit(auditLogger)
 	httpServer.SetMetrics(otelMetrics)
+	if fedService != nil {
+		httpServer.SetFederation(fedService)
+	}
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)
 		sigHub.SetMetrics(otelMetrics)
@@ -198,6 +226,9 @@ func main() {
 	// Graceful shutdown.
 	grpcServer.Stop()
 	httpServer.Stop()
+	if fedService != nil {
+		fedService.Close()
+	}
 	bridgeManager.Close()
 	logger.Info("PeerClaw gateway stopped")
 }

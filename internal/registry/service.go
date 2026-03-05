@@ -129,3 +129,9 @@ func (s *Service) Discover(ctx context.Context, capabilities []string, proto str
 	}
 	return s.store.FindByCapabilities(ctx, capabilities, proto, maxResults)
 }
+
+// DiscoverFederated finds agents by capabilities, including federated peers.
+// For now, same as Discover. Federation integration adds remote results at the HTTP layer.
+func (s *Service) DiscoverFederated(ctx context.Context, capabilities []string, proto string, maxResults int) ([]*agentcard.Card, error) {
+	return s.Discover(ctx, capabilities, proto, maxResults)
+}

@@ -8,8 +8,10 @@ import (
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/protocol"
+	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
+	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/router"
@@ -27,16 +29,17 @@ type HTTPServerConfig struct {
 
 // HTTPServer provides the REST API gateway for PeerClaw.
 type HTTPServer struct {
-	mux      *http.ServeMux
-	server   *http.Server
-	registry *registry.Service
-	engine   *router.Engine
-	bridges  *bridge.Manager
-	sigHub   *signaling.Hub
-	logger   *slog.Logger
-	store    registry.Store
-	audit    *audit.Logger
-	metrics  *observability.Metrics
+	mux        *http.ServeMux
+	server     *http.Server
+	registry   *registry.Service
+	engine     *router.Engine
+	bridges    *bridge.Manager
+	sigHub     *signaling.Hub
+	logger     *slog.Logger
+	store      registry.Store
+	audit      *audit.Logger
+	metrics    *observability.Metrics
+	federation *federation.FederationService
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -101,6 +104,11 @@ func (s *HTTPServer) SetMetrics(m *observability.Metrics) {
 	s.metrics = m
 }
 
+// SetFederation sets the federation service for cross-server communication.
+func (s *HTTPServer) SetFederation(f *federation.FederationService) {
+	s.federation = f
+}
+
 func (s *HTTPServer) routes() {
 	// Core API routes.
 	s.mux.HandleFunc("POST /api/v1/agents", s.handleRegister)
@@ -118,6 +126,10 @@ func (s *HTTPServer) routes() {
 
 	// Bridge send endpoint (PeerClaw agent → external agent).
 	s.mux.HandleFunc("POST /api/v1/bridge/send", s.handleBridgeSend)
+
+	// Federation endpoints.
+	s.mux.HandleFunc("POST /api/v1/federation/signal", s.handleFederationSignal)
+	s.mux.HandleFunc("POST /api/v1/federation/discover", s.handleFederationDiscover)
 
 	// Protocol-specific inbound endpoints.
 	s.registerProtocolRoutes()
@@ -426,6 +438,50 @@ func (s *HTTPServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	resp["components"] = components
 	s.jsonResponse(w, http.StatusOK, resp)
+}
+
+func (s *HTTPServer) handleFederationSignal(w http.ResponseWriter, r *http.Request) {
+	if s.federation == nil {
+		s.jsonError(w, "federation not enabled", http.StatusNotFound)
+		return
+	}
+
+	// Verify auth token.
+	token := r.Header.Get("Authorization")
+	expectedToken := "Bearer " + s.federation.AuthToken()
+	if s.federation.AuthToken() != "" && token != expectedToken {
+		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var msg coresignaling.SignalMessage
+	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	s.federation.HandleIncomingSignal(r.Context(), msg)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *HTTPServer) handleFederationDiscover(w http.ResponseWriter, r *http.Request) {
+	if s.federation == nil {
+		s.jsonError(w, "federation not enabled", http.StatusNotFound)
+		return
+	}
+
+	var req discoverRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	agents, err := s.registry.Discover(r.Context(), req.Capabilities, req.Protocol, req.MaxResults)
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	s.jsonResponse(w, http.StatusOK, map[string]any{"agents": agents})
 }
 
 // --- Helpers ---
