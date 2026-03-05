@@ -50,6 +50,7 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 }
 
 func (s *HTTPServer) routes() {
+	// Core API routes.
 	s.mux.HandleFunc("POST /api/v1/agents", s.handleRegister)
 	s.mux.HandleFunc("GET /api/v1/agents", s.handleListAgents)
 	s.mux.HandleFunc("GET /api/v1/agents/{id}", s.handleGetAgent)
@@ -62,6 +63,71 @@ func (s *HTTPServer) routes() {
 	if s.sigHub != nil {
 		s.mux.HandleFunc("GET /api/v1/signaling", s.sigHub.HandleConnect)
 	}
+
+	// Bridge send endpoint (PeerClaw agent → external agent).
+	s.mux.HandleFunc("POST /api/v1/bridge/send", s.handleBridgeSend)
+
+	// Protocol-specific inbound endpoints.
+	s.registerProtocolRoutes()
+}
+
+func (s *HTTPServer) registerProtocolRoutes() {
+	if s.bridges == nil {
+		return
+	}
+
+	// A2A protocol endpoints.
+	if s.bridges.HasBridge("a2a") {
+		b, _ := s.bridges.GetBridge("a2a")
+		if a2aAdapter, ok := b.(a2aAdapter); ok {
+			s.mux.HandleFunc("POST /a2a", a2aAdapter.HandleMessages)
+			s.mux.HandleFunc("GET /.well-known/agent.json", a2aAdapter.HandleAgentCard)
+			s.mux.HandleFunc("GET /a2a/tasks/{id}", a2aAdapter.HandleGetTask)
+		}
+	}
+
+	// MCP protocol endpoints.
+	if s.bridges.HasBridge("mcp") {
+		b, _ := s.bridges.GetBridge("mcp")
+		if mcpAdapter, ok := b.(mcpAdapter); ok {
+			s.mux.HandleFunc("POST /mcp", mcpAdapter.HandleMCP)
+			s.mux.HandleFunc("GET /mcp", mcpAdapter.HandleMCPStream)
+		}
+	}
+
+	// ACP protocol endpoints.
+	if s.bridges.HasBridge("acp") {
+		b, _ := s.bridges.GetBridge("acp")
+		if acpAdapter, ok := b.(acpAdapter); ok {
+			s.mux.HandleFunc("GET /acp/agents", acpAdapter.HandleListAgents)
+			s.mux.HandleFunc("GET /acp/agents/{name}", acpAdapter.HandleGetAgent)
+			s.mux.HandleFunc("POST /acp/runs", acpAdapter.HandleCreateRun)
+			s.mux.HandleFunc("GET /acp/runs/{run_id}", acpAdapter.HandleGetRun)
+			s.mux.HandleFunc("POST /acp/runs/{run_id}/cancel", acpAdapter.HandleCancelRun)
+			s.mux.HandleFunc("GET /acp/ping", acpAdapter.HandlePing)
+		}
+	}
+}
+
+// Adapter interfaces for type assertions.
+type a2aAdapter interface {
+	HandleMessages(w http.ResponseWriter, r *http.Request)
+	HandleAgentCard(w http.ResponseWriter, r *http.Request)
+	HandleGetTask(w http.ResponseWriter, r *http.Request)
+}
+
+type mcpAdapter interface {
+	HandleMCP(w http.ResponseWriter, r *http.Request)
+	HandleMCPStream(w http.ResponseWriter, r *http.Request)
+}
+
+type acpAdapter interface {
+	HandleListAgents(w http.ResponseWriter, r *http.Request)
+	HandleGetAgent(w http.ResponseWriter, r *http.Request)
+	HandleCreateRun(w http.ResponseWriter, r *http.Request)
+	HandleGetRun(w http.ResponseWriter, r *http.Request)
+	HandleCancelRun(w http.ResponseWriter, r *http.Request)
+	HandlePing(w http.ResponseWriter, r *http.Request)
 }
 
 // Start begins listening and serving HTTP requests.

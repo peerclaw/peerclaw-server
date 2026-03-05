@@ -58,6 +58,8 @@ func (s *SQLiteStore) migrate() error {
 		peerclaw_relay TEXT,
 		peerclaw_priority INTEGER DEFAULT 0,
 		peerclaw_tags  TEXT, -- JSON array
+		skills         TEXT, -- JSON array
+		tools          TEXT, -- JSON array
 		status         TEXT DEFAULT 'online',
 		registered_at  DATETIME NOT NULL,
 		last_heartbeat DATETIME NOT NULL
@@ -75,6 +77,8 @@ func (s *SQLiteStore) Put(ctx context.Context, card *agentcard.Card) error {
 	authParams, _ := json.Marshal(card.Auth.Params)
 	meta, _ := json.Marshal(card.Metadata)
 	tags, _ := json.Marshal(card.PeerClaw.Tags)
+	skills, _ := json.Marshal(card.Skills)
+	tools, _ := json.Marshal(card.Tools)
 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO agents (
@@ -82,8 +86,9 @@ func (s *SQLiteStore) Put(ctx context.Context, card *agentcard.Card) error {
 			endpoint_url, endpoint_host, endpoint_port, endpoint_transport,
 			protocols, auth_type, auth_params, metadata,
 			peerclaw_nat, peerclaw_relay, peerclaw_priority, peerclaw_tags,
+			skills, tools,
 			status, registered_at, last_heartbeat
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			name=excluded.name, description=excluded.description, version=excluded.version,
 			public_key=excluded.public_key, capabilities=excluded.capabilities,
@@ -93,13 +98,14 @@ func (s *SQLiteStore) Put(ctx context.Context, card *agentcard.Card) error {
 			auth_type=excluded.auth_type, auth_params=excluded.auth_params,
 			metadata=excluded.metadata, peerclaw_nat=excluded.peerclaw_nat,
 			peerclaw_relay=excluded.peerclaw_relay, peerclaw_priority=excluded.peerclaw_priority,
-			peerclaw_tags=excluded.peerclaw_tags, status=excluded.status,
-			last_heartbeat=excluded.last_heartbeat
+			peerclaw_tags=excluded.peerclaw_tags, skills=excluded.skills, tools=excluded.tools,
+			status=excluded.status, last_heartbeat=excluded.last_heartbeat
 	`,
 		card.ID, card.Name, card.Description, card.Version, card.PublicKey, string(caps),
 		card.Endpoint.URL, card.Endpoint.Host, card.Endpoint.Port, string(card.Endpoint.Transport),
 		string(protos), card.Auth.Type, string(authParams), string(meta),
 		card.PeerClaw.NATType, card.PeerClaw.RelayPreference, card.PeerClaw.Priority, string(tags),
+		string(skills), string(tools),
 		string(card.Status), card.RegisteredAt.UTC().Format(time.RFC3339),
 		card.LastHeartbeat.UTC().Format(time.RFC3339),
 	)
@@ -112,6 +118,7 @@ func (s *SQLiteStore) Get(ctx context.Context, id string) (*agentcard.Card, erro
 		endpoint_url, endpoint_host, endpoint_port, endpoint_transport,
 		protocols, auth_type, auth_params, metadata,
 		peerclaw_nat, peerclaw_relay, peerclaw_priority, peerclaw_tags,
+		COALESCE(skills, '[]'), COALESCE(tools, '[]'),
 		status, registered_at, last_heartbeat
 		FROM agents WHERE id = ?`, id)
 	return s.scanCard(row)
@@ -173,6 +180,7 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 		endpoint_url, endpoint_host, endpoint_port, endpoint_transport,
 		protocols, auth_type, auth_params, metadata,
 		peerclaw_nat, peerclaw_relay, peerclaw_priority, peerclaw_tags,
+		COALESCE(skills, '[]'), COALESCE(tools, '[]'),
 		status, registered_at, last_heartbeat
 		FROM agents %s ORDER BY registered_at DESC LIMIT ? OFFSET ?`, where)
 
@@ -243,6 +251,7 @@ func (s *SQLiteStore) FindByCapabilities(ctx context.Context, capabilities []str
 		endpoint_url, endpoint_host, endpoint_port, endpoint_transport,
 		protocols, auth_type, auth_params, metadata,
 		peerclaw_nat, peerclaw_relay, peerclaw_priority, peerclaw_tags,
+		COALESCE(skills, '[]'), COALESCE(tools, '[]'),
 		status, registered_at, last_heartbeat
 		FROM agents %s ORDER BY peerclaw_priority DESC LIMIT ?`, where)
 
@@ -274,7 +283,7 @@ type scanner interface {
 
 func (s *SQLiteStore) scanCard(row *sql.Row) (*agentcard.Card, error) {
 	card := &agentcard.Card{}
-	var caps, protos, authParams, meta, tags string
+	var caps, protos, authParams, meta, tags, skills, tools string
 	var status, transport, regAt, hbAt string
 
 	err := row.Scan(
@@ -282,6 +291,7 @@ func (s *SQLiteStore) scanCard(row *sql.Row) (*agentcard.Card, error) {
 		&card.Endpoint.URL, &card.Endpoint.Host, &card.Endpoint.Port, &transport,
 		&protos, &card.Auth.Type, &authParams, &meta,
 		&card.PeerClaw.NATType, &card.PeerClaw.RelayPreference, &card.PeerClaw.Priority, &tags,
+		&skills, &tools,
 		&status, &regAt, &hbAt,
 	)
 	if err != nil {
@@ -290,13 +300,13 @@ func (s *SQLiteStore) scanCard(row *sql.Row) (*agentcard.Card, error) {
 		}
 		return nil, err
 	}
-	s.unmarshalCard(card, caps, protos, authParams, meta, tags, status, transport, regAt, hbAt)
+	s.unmarshalCard(card, caps, protos, authParams, meta, tags, skills, tools, status, transport, regAt, hbAt)
 	return card, nil
 }
 
 func (s *SQLiteStore) scanCardFromRows(rows *sql.Rows) (*agentcard.Card, error) {
 	card := &agentcard.Card{}
-	var caps, protos, authParams, meta, tags string
+	var caps, protos, authParams, meta, tags, skills, tools string
 	var status, transport, regAt, hbAt string
 
 	err := rows.Scan(
@@ -304,21 +314,24 @@ func (s *SQLiteStore) scanCardFromRows(rows *sql.Rows) (*agentcard.Card, error) 
 		&card.Endpoint.URL, &card.Endpoint.Host, &card.Endpoint.Port, &transport,
 		&protos, &card.Auth.Type, &authParams, &meta,
 		&card.PeerClaw.NATType, &card.PeerClaw.RelayPreference, &card.PeerClaw.Priority, &tags,
+		&skills, &tools,
 		&status, &regAt, &hbAt,
 	)
 	if err != nil {
 		return nil, err
 	}
-	s.unmarshalCard(card, caps, protos, authParams, meta, tags, status, transport, regAt, hbAt)
+	s.unmarshalCard(card, caps, protos, authParams, meta, tags, skills, tools, status, transport, regAt, hbAt)
 	return card, nil
 }
 
-func (s *SQLiteStore) unmarshalCard(card *agentcard.Card, caps, protos, authParams, meta, tags, status, transport, regAt, hbAt string) {
+func (s *SQLiteStore) unmarshalCard(card *agentcard.Card, caps, protos, authParams, meta, tags, skills, tools, status, transport, regAt, hbAt string) {
 	json.Unmarshal([]byte(caps), &card.Capabilities)
 	json.Unmarshal([]byte(protos), &card.Protocols)
 	json.Unmarshal([]byte(authParams), &card.Auth.Params)
 	json.Unmarshal([]byte(meta), &card.Metadata)
 	json.Unmarshal([]byte(tags), &card.PeerClaw.Tags)
+	json.Unmarshal([]byte(skills), &card.Skills)
+	json.Unmarshal([]byte(tools), &card.Tools)
 	card.Status = agentcard.AgentStatus(status)
 	card.Endpoint.Transport = protocol.Transport(transport)
 	card.RegisteredAt, _ = time.Parse(time.RFC3339, regAt)

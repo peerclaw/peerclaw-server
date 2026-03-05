@@ -3,6 +3,7 @@ package signaling
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -141,6 +142,35 @@ func (h *Hub) Forward(ctx context.Context, msg signaling.SignalMessage) {
 	if err := target.Write(ctx, websocket.MessageText, data); err != nil {
 		h.logger.Error("forward signal message", "from", msg.From, "to", msg.To, "error", err)
 	}
+}
+
+// DeliverEnvelope sends a bridge_message to a connected agent via WebSocket.
+func (h *Hub) DeliverEnvelope(ctx context.Context, agentID string, envPayload json.RawMessage) error {
+	h.mu.RLock()
+	conn, ok := h.conns[agentID]
+	h.mu.RUnlock()
+
+	if !ok {
+		return fmt.Errorf("agent %s not connected", agentID)
+	}
+
+	msg := signaling.SignalMessage{
+		Type:    signaling.MessageTypeBridgeMessage,
+		To:      agentID,
+		Payload: envPayload,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal bridge message: %w", err)
+	}
+
+	if err := conn.Write(ctx, websocket.MessageText, data); err != nil {
+		return fmt.Errorf("deliver bridge message: %w", err)
+	}
+
+	h.logger.Debug("delivered bridge message", "agent_id", agentID)
+	return nil
 }
 
 // ConnectedAgents returns the number of currently connected agents.

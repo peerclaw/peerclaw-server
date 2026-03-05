@@ -1,10 +1,15 @@
 package acp
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"strings"
+	"sync"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
@@ -14,18 +19,25 @@ import (
 // Adapter implements the ProtocolBridge interface for IBM ACP protocol.
 // ACP uses REST/HTTP-based communication.
 type Adapter struct {
-	logger *slog.Logger
-	inbox  chan *envelope.Envelope
+	logger   *slog.Logger
+	inbox    chan *envelope.Envelope
+	client   *http.Client
+	runs     sync.Map // runID → *Run
+	sessions sync.Map // sessionID → *Session
 }
 
 // New creates a new ACP adapter.
-func New(logger *slog.Logger) *Adapter {
+func New(logger *slog.Logger, client *http.Client) *Adapter {
 	if logger == nil {
 		logger = slog.Default()
+	}
+	if client == nil {
+		client = http.DefaultClient
 	}
 	return &Adapter{
 		logger: logger,
 		inbox:  make(chan *envelope.Envelope, 100),
+		client: client,
 	}
 }
 
@@ -33,9 +45,71 @@ func (a *Adapter) Protocol() string {
 	return string(protocol.ProtocolACP)
 }
 
+// Send delivers an envelope to a remote ACP agent.
 func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
-	// TODO: Implement REST API call to ACP-compatible agent.
-	a.logger.Info("acp send", "dest", env.Destination, "type", env.MessageType)
+	endpoint := env.Metadata["acp.endpoint"]
+	if endpoint == "" {
+		return fmt.Errorf("acp: missing acp.endpoint in metadata")
+	}
+
+	createReq := EnvelopeToCreateRun(env)
+
+	body, err := json.Marshal(createReq)
+	if err != nil {
+		return fmt.Errorf("acp: marshal request: %w", err)
+	}
+
+	url := strings.TrimRight(endpoint, "/") + "/runs"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("acp: new http request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	httpResp, err := a.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("acp: http post: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return fmt.Errorf("acp: read response: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("acp: unexpected status %d: %s", httpResp.StatusCode, string(respBody))
+	}
+
+	var run Run
+	if err := json.Unmarshal(respBody, &run); err != nil {
+		return fmt.Errorf("acp: unmarshal run: %w", err)
+	}
+
+	// Store run and track session.
+	a.runs.Store(run.RunID, &run)
+	if run.SessionID != "" {
+		a.trackSession(run.SessionID, run.RunID)
+	}
+
+	a.logger.Info("acp send complete",
+		"dest", env.Destination,
+		"run_id", run.RunID,
+		"status", run.Status,
+	)
+
+	// Push response envelope if status is terminal or awaiting input.
+	switch run.Status {
+	case RunStatusCompleted, RunStatusFailed, RunStatusAwaiting:
+		respEnv := RunToEnvelope(&run, env.Destination, env.Source)
+		respEnv.TraceID = env.TraceID
+		select {
+		case a.inbox <- respEnv:
+		default:
+			a.logger.Warn("acp inbox full, dropping response")
+		}
+	}
+
 	return nil
 }
 
@@ -43,16 +117,53 @@ func (a *Adapter) Receive(ctx context.Context) (<-chan *envelope.Envelope, error
 	return a.inbox, nil
 }
 
+// Handshake fetches the agent manifest from the ACP endpoint.
 func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
-	// TODO: Implement ACP agent discovery handshake.
-	a.logger.Info("acp handshake", "agent", card.ID, "url", card.Endpoint.URL)
+	if card.Endpoint.URL == "" {
+		return fmt.Errorf("acp: agent has no endpoint URL")
+	}
+
+	agentName := card.Name
+	url := strings.TrimRight(card.Endpoint.URL, "/") + "/agents/" + agentName
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("acp: create request: %w", err)
+	}
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("acp: fetch manifest: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("acp: manifest status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("acp: read manifest: %w", err)
+	}
+
+	var manifest AgentManifest
+	if err := json.Unmarshal(body, &manifest); err != nil {
+		return fmt.Errorf("acp: unmarshal manifest: %w", err)
+	}
+
+	a.logger.Info("acp handshake complete",
+		"agent", card.ID,
+		"remote_name", manifest.Name,
+		"capabilities", len(manifest.Metadata.Capabilities),
+	)
 	return nil
 }
 
+// Translate converts an envelope from ACP format to another protocol.
 func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetProtocol string) (*envelope.Envelope, error) {
 	if targetProtocol == string(protocol.ProtocolACP) {
 		return env, nil
 	}
+
 	translated := &envelope.Envelope{
 		ID:          env.ID,
 		Source:      env.Source,
@@ -60,17 +171,60 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 		Protocol:    protocol.Protocol(targetProtocol),
 		MessageType: env.MessageType,
 		ContentType: "application/json",
-		Metadata:    env.Metadata,
+		Metadata:    copyMetadata(env.Metadata),
 		Timestamp:   env.Timestamp,
 		TTL:         env.TTL,
 		TraceID:     env.TraceID,
 	}
-	wrapper := map[string]any{
-		"original_protocol": protocol.ProtocolACP,
-		"payload":           json.RawMessage(env.Payload),
+
+	switch targetProtocol {
+	case string(protocol.ProtocolA2A):
+		// ACP message → A2A message format.
+		var msg Message
+		if err := json.Unmarshal(env.Payload, &msg); err == nil && len(msg.Parts) > 0 {
+			a2aMsg := map[string]any{
+				"role": msg.Role,
+				"parts": []map[string]string{
+					{"text": msg.Parts[0].Content},
+				},
+			}
+			translated.Payload, _ = json.Marshal(a2aMsg)
+		} else {
+			translated.Payload = env.Payload
+		}
+
+	case string(protocol.ProtocolMCP):
+		// ACP message → MCP tool call.
+		var msg Message
+		if err := json.Unmarshal(env.Payload, &msg); err == nil && len(msg.Parts) > 0 {
+			toolCall := map[string]any{
+				"name":      env.Metadata["mcp.tool_name"],
+				"arguments": map[string]string{"text": msg.Parts[0].Content},
+			}
+			translated.Payload, _ = json.Marshal(toolCall)
+			translated.Metadata["mcp.method"] = "tools/call"
+		} else {
+			translated.Payload = env.Payload
+		}
+
+	default:
+		wrapper := map[string]any{
+			"original_protocol": protocol.ProtocolACP,
+			"payload":           json.RawMessage(env.Payload),
+		}
+		translated.Payload, _ = json.Marshal(wrapper)
 	}
-	translated.Payload, _ = json.Marshal(wrapper)
+
 	return translated, nil
+}
+
+// GetRun retrieves a tracked run by ID.
+func (a *Adapter) GetRun(runID string) (*Run, bool) {
+	v, ok := a.runs.Load(runID)
+	if !ok {
+		return nil, false
+	}
+	return v.(*Run), true
 }
 
 func (a *Adapter) Close() error {
@@ -86,4 +240,21 @@ func (a *Adapter) InjectMessage(env *envelope.Envelope) error {
 	default:
 		return fmt.Errorf("acp inbox full")
 	}
+}
+
+func (a *Adapter) trackSession(sessionID, runID string) {
+	v, _ := a.sessions.LoadOrStore(sessionID, &Session{ID: sessionID})
+	sess := v.(*Session)
+	sess.RunIDs = append(sess.RunIDs, runID)
+}
+
+func copyMetadata(m map[string]string) map[string]string {
+	if m == nil {
+		return make(map[string]string)
+	}
+	cp := make(map[string]string, len(m))
+	for k, v := range m {
+		cp[k] = v
+	}
+	return cp
 }

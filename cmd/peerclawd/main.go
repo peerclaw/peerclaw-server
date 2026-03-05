@@ -64,13 +64,13 @@ func main() {
 
 	// Register protocol bridges.
 	if cfg.Bridge.A2A.Enabled {
-		bridgeManager.RegisterBridge(a2a.New(logger))
+		bridgeManager.RegisterBridge(a2a.New(logger, nil))
 	}
 	if cfg.Bridge.ACP.Enabled {
-		bridgeManager.RegisterBridge(acp.New(logger))
+		bridgeManager.RegisterBridge(acp.New(logger, nil))
 	}
 	if cfg.Bridge.MCP.Enabled {
-		bridgeManager.RegisterBridge(mcp.New(logger))
+		bridgeManager.RegisterBridge(mcp.New(logger, nil))
 	}
 
 	// Initialize signaling hub.

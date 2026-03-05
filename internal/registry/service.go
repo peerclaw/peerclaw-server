@@ -32,6 +32,8 @@ type RegisterRequest struct {
 	Version      string
 	PublicKey    string
 	Capabilities []string
+	Skills       []agentcard.Skill
+	Tools        []agentcard.Tool
 	Endpoint     agentcard.Endpoint
 	Protocols    []protocol.Protocol
 	Auth         agentcard.AuthInfo
@@ -64,6 +66,8 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*agentcard
 		Version:       req.Version,
 		PublicKey:     req.PublicKey,
 		Capabilities:  req.Capabilities,
+		Skills:        req.Skills,
+		Tools:         req.Tools,
 		Endpoint:      req.Endpoint,
 		Protocols:     req.Protocols,
 		Auth:          req.Auth,

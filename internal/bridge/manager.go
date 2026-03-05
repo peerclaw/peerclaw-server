@@ -42,6 +42,14 @@ func (m *Manager) RegisterBridge(b ProtocolBridge) error {
 	return nil
 }
 
+// HasBridge returns true if a bridge is registered for the given protocol.
+func (m *Manager) HasBridge(proto string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, ok := m.bridges[proto]
+	return ok
+}
+
 // GetBridge returns the bridge for a given protocol.
 func (m *Manager) GetBridge(protocol string) (ProtocolBridge, error) {
 	m.mu.RLock()
