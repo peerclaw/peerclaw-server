@@ -8,11 +8,22 @@ import (
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/protocol"
+	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
+	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/router"
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
+	"go.opentelemetry.io/otel/trace"
 )
+
+// HTTPServerConfig holds optional settings for the HTTP server.
+type HTTPServerConfig struct {
+	RateLimiter  *IPRateLimiter
+	MaxBodyBytes int64 // 0 means no limit
+	Metrics      *observability.Metrics
+	Tracer       trace.Tracer
+}
 
 // HTTPServer provides the REST API gateway for PeerClaw.
 type HTTPServer struct {
@@ -23,10 +34,13 @@ type HTTPServer struct {
 	bridges  *bridge.Manager
 	sigHub   *signaling.Hub
 	logger   *slog.Logger
+	store    registry.Store
+	audit    *audit.Logger
+	metrics  *observability.Metrics
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
-func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *bridge.Manager, sigHub *signaling.Hub, logger *slog.Logger) *HTTPServer {
+func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *bridge.Manager, sigHub *signaling.Hub, logger *slog.Logger, opts *HTTPServerConfig) *HTTPServer {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -38,15 +52,53 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 		sigHub:   sigHub,
 		logger:   logger,
 	}
+	s.routes()
+
+	// Build middleware chain.
+	middlewares := []Middleware{
+		RecoveryMiddleware(logger),
+		RequestIDMiddleware(),
+		LoggingMiddleware(logger),
+	}
+
+	if opts != nil {
+		if opts.Tracer != nil {
+			middlewares = append(middlewares, TracingMiddleware(opts.Tracer))
+		}
+		if opts.Metrics != nil {
+			middlewares = append(middlewares, MetricsMiddleware(opts.Metrics))
+		}
+		if opts.RateLimiter != nil {
+			middlewares = append(middlewares, RateLimitMiddleware(opts.RateLimiter, logger))
+		}
+		if opts.MaxBodyBytes > 0 {
+			middlewares = append(middlewares, MaxBodyMiddleware(opts.MaxBodyBytes))
+		}
+	}
+
 	s.server = &http.Server{
 		Addr:         addr,
-		Handler:      s.mux,
+		Handler:      Chain(s.mux, middlewares...),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	s.routes()
 	return s
+}
+
+// SetStore sets the Store for health checks to report database status.
+func (s *HTTPServer) SetStore(store registry.Store) {
+	s.store = store
+}
+
+// SetAudit sets the audit logger for recording audit events.
+func (s *HTTPServer) SetAudit(a *audit.Logger) {
+	s.audit = a
+}
+
+// SetMetrics sets the metrics instruments for observability.
+func (s *HTTPServer) SetMetrics(m *observability.Metrics) {
+	s.metrics = m
 }
 
 func (s *HTTPServer) routes() {
@@ -220,6 +272,14 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 	// Update routing table.
 	s.engine.UpdateFromCard(card)
 
+	// Audit log.
+	if s.audit != nil {
+		s.audit.LogRegistration(r.Context(), card.ID, card.Name, r.RemoteAddr)
+	}
+	if s.metrics != nil {
+		s.metrics.RegisteredAgents.Add(r.Context(), 1)
+	}
+
 	s.jsonResponse(w, http.StatusCreated, card)
 }
 
@@ -255,6 +315,15 @@ func (s *HTTPServer) handleDeregister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.engine.RemoveAgent(id)
+
+	// Audit log.
+	if s.audit != nil {
+		s.audit.LogDeregistration(r.Context(), id, r.RemoteAddr)
+	}
+	if s.metrics != nil {
+		s.metrics.RegisteredAgents.Add(r.Context(), -1)
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -326,7 +395,37 @@ func (s *HTTPServer) handleResolveRoute(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *HTTPServer) handleHealth(w http.ResponseWriter, r *http.Request) {
-	s.jsonResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+	resp := map[string]any{
+		"status": "ok",
+	}
+
+	components := map[string]string{}
+
+	// Database health.
+	if s.store != nil {
+		if _, err := s.store.List(r.Context(), registry.ListFilter{PageSize: 1}); err != nil {
+			components["database"] = "error"
+			resp["status"] = "degraded"
+		} else {
+			components["database"] = "ok"
+		}
+	}
+
+	// Signaling health.
+	if s.sigHub != nil {
+		components["signaling"] = "ok"
+		resp["connected_agents"] = s.sigHub.ConnectedAgents()
+	}
+
+	// Registered agents count.
+	if s.store != nil {
+		if result, err := s.store.List(r.Context(), registry.ListFilter{PageSize: 1}); err == nil {
+			resp["registered_agents"] = result.TotalCount
+		}
+	}
+
+	resp["components"] = components
+	s.jsonResponse(w, http.StatusOK, resp)
 }
 
 // --- Helpers ---

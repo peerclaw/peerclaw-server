@@ -1,0 +1,176 @@
+package server
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"runtime/debug"
+	"strconv"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/peerclaw/peerclaw-server/internal/observability"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
+)
+
+// Middleware is a standard HTTP middleware function.
+type Middleware func(http.Handler) http.Handler
+
+// Chain wraps a handler with the given middlewares.
+// Middlewares are applied in reverse order so the first middleware in the list
+// is the outermost wrapper (executed first on request, last on response).
+func Chain(handler http.Handler, mws ...Middleware) http.Handler {
+	for i := len(mws) - 1; i >= 0; i-- {
+		handler = mws[i](handler)
+	}
+	return handler
+}
+
+type contextKey string
+
+const requestIDKey contextKey = "request_id"
+
+// RequestIDFromContext extracts the request ID from a context.
+func RequestIDFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(requestIDKey).(string); ok {
+		return v
+	}
+	return ""
+}
+
+// RecoveryMiddleware recovers from panics in downstream handlers,
+// logs the stack trace, and returns 500 Internal Server Error.
+func RecoveryMiddleware(logger *slog.Logger) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if rec := recover(); rec != nil {
+					stack := debug.Stack()
+					logger.Error("panic recovered",
+						"error", fmt.Sprintf("%v", rec),
+						"stack", string(stack),
+						"method", r.Method,
+						"path", r.URL.Path,
+						"request_id", RequestIDFromContext(r.Context()),
+					)
+					http.Error(w, "internal server error", http.StatusInternalServerError)
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RequestIDMiddleware injects a unique request ID into the request context
+// and sets the X-Request-ID response header. If the request already carries
+// an X-Request-ID header, that value is reused.
+func RequestIDMiddleware() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			id := r.Header.Get("X-Request-ID")
+			if id == "" {
+				id = uuid.New().String()
+			}
+			ctx := context.WithValue(r.Context(), requestIDKey, id)
+			w.Header().Set("X-Request-ID", id)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// LoggingMiddleware logs each HTTP request with method, path, status code,
+// duration, and request ID.
+func LoggingMiddleware(logger *slog.Logger) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+			next.ServeHTTP(sw, r)
+			logger.Info("http request",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", sw.status,
+				"duration_ms", time.Since(start).Milliseconds(),
+				"request_id", RequestIDFromContext(r.Context()),
+			)
+		})
+	}
+}
+
+// MaxBodyMiddleware limits the size of request bodies.
+func MaxBodyMiddleware(maxBytes int64) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Body != nil {
+				r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// TracingMiddleware creates a span for each HTTP request with method and status attributes.
+func TracingMiddleware(tracer trace.Tracer) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, span := tracer.Start(r.Context(), r.Method+" "+r.URL.Path)
+			defer span.End()
+
+			sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+			next.ServeHTTP(sw, r.WithContext(ctx))
+
+			span.SetAttributes(
+				attribute.String("http.method", r.Method),
+				attribute.String("http.url", r.URL.Path),
+				attribute.Int("http.status_code", sw.status),
+			)
+		})
+	}
+}
+
+// MetricsMiddleware records HTTP request count, duration, and active requests.
+func MetricsMiddleware(metrics *observability.Metrics) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			metrics.HTTPActiveRequests.Add(r.Context(), 1)
+
+			sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+			next.ServeHTTP(sw, r)
+
+			duration := time.Since(start).Seconds()
+			attrs := metric.WithAttributes(
+				attribute.String("http.method", r.Method),
+				attribute.String("http.status_code", strconv.Itoa(sw.status)),
+			)
+			metrics.HTTPActiveRequests.Add(r.Context(), -1)
+			metrics.HTTPRequestsTotal.Add(r.Context(), 1, attrs)
+			metrics.HTTPRequestDuration.Record(r.Context(), duration, attrs)
+		})
+	}
+}
+
+// statusWriter wraps http.ResponseWriter to capture the status code.
+type statusWriter struct {
+	http.ResponseWriter
+	status      int
+	wroteHeader bool
+}
+
+func (sw *statusWriter) WriteHeader(code int) {
+	if !sw.wroteHeader {
+		sw.status = code
+		sw.wroteHeader = true
+	}
+	sw.ResponseWriter.WriteHeader(code)
+}
+
+func (sw *statusWriter) Write(b []byte) (int, error) {
+	if !sw.wroteHeader {
+		sw.wroteHeader = true
+	}
+	return sw.ResponseWriter.Write(b)
+}

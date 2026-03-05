@@ -7,16 +7,20 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/acp"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/mcp"
 	"github.com/peerclaw/peerclaw-server/internal/config"
+	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/router"
 	"github.com/peerclaw/peerclaw-server/internal/server"
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -48,10 +52,25 @@ func main() {
 	}
 	logger := slog.New(handler)
 
-	// Initialize store.
-	store, err := registry.NewSQLiteStore(cfg.Database.DSN)
+	// Initialize OpenTelemetry.
+	otelProvider, err := observability.Init(context.Background(), cfg.Observability, logger)
 	if err != nil {
-		logger.Error("failed to open database", "error", err)
+		logger.Error("failed to initialize OpenTelemetry", "error", err)
+		os.Exit(1)
+	}
+	defer otelProvider.Shutdown(context.Background())
+
+	// Initialize metrics.
+	otelMetrics, err := observability.NewMetrics(observability.Meter("peerclaw-gateway"))
+	if err != nil {
+		logger.Error("failed to create metrics", "error", err)
+		os.Exit(1)
+	}
+
+	// Initialize store.
+	store, err := registry.NewStore(cfg.Database.Driver, cfg.Database.DSN)
+	if err != nil {
+		logger.Error("failed to open database", "error", err, "driver", cfg.Database.Driver)
 		os.Exit(1)
 	}
 	defer store.Close()
@@ -85,16 +104,75 @@ func main() {
 			}
 			logger.Info("TURN servers configured", "urls", cfg.Signaling.TURN.URLs)
 		}
-		sigHub = signaling.NewHub(logger, turnCfg)
-		logger.Info("WebSocket signaling enabled")
+		sigHub = signaling.NewHub(logger, turnCfg, cfg.RateLimit.MaxConnections)
+		logger.Info("WebSocket signaling enabled",
+			"max_connections", cfg.RateLimit.MaxConnections,
+		)
 	}
 
-	// Start servers.
-	httpServer := server.NewHTTPServer(cfg.Server.HTTPAddr, regService, routeEngine, bridgeManager, sigHub, logger)
-	grpcServer := server.NewGRPCServer(cfg.Server.GRPCAddr, logger)
+	// Initialize audit logger.
+	auditLogger, err := audit.NewFromConfig(cfg.AuditLog)
+	if err != nil {
+		logger.Error("failed to create audit logger", "error", err)
+		os.Exit(1)
+	}
+
+	// Configure HTTP server options.
+	httpOpts := &server.HTTPServerConfig{
+		Metrics: otelMetrics,
+		Tracer:  observability.Tracer("peerclaw-http"),
+	}
+	if cfg.RateLimit.Enabled {
+		rl := server.NewIPRateLimiter(cfg.RateLimit.RequestsPerSec, cfg.RateLimit.BurstSize)
+		stopCleanup := rl.StartCleanup(time.Minute)
+		defer stopCleanup()
+		httpOpts.RateLimiter = rl
+		httpOpts.MaxBodyBytes = int64(cfg.RateLimit.MaxMessageBytes)
+		logger.Info("rate limiting enabled",
+			"requests_per_sec", cfg.RateLimit.RequestsPerSec,
+			"burst", cfg.RateLimit.BurstSize,
+		)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Start servers.
+	httpServer := server.NewHTTPServer(cfg.Server.HTTPAddr, regService, routeEngine, bridgeManager, sigHub, logger, httpOpts)
+	httpServer.SetStore(store)
+	httpServer.SetAudit(auditLogger)
+	httpServer.SetMetrics(otelMetrics)
+	if sigHub != nil {
+		sigHub.SetAudit(auditLogger)
+		sigHub.SetMetrics(otelMetrics)
+
+		// Configure signaling broker.
+		if cfg.Redis.Addr != "" {
+			redisClient := goredis.NewClient(&goredis.Options{
+				Addr:     cfg.Redis.Addr,
+				Password: cfg.Redis.Password,
+				DB:       cfg.Redis.DB,
+			})
+			// Test connection; fall back to local if Redis is unavailable.
+			if err := redisClient.Ping(ctx).Err(); err != nil {
+				logger.Warn("Redis unavailable, using local signaling broker", "error", err)
+				sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
+			} else {
+				broker := signaling.NewRedisBroker(redisClient, sigHub, logger)
+				if _, err := broker.Subscribe(ctx); err != nil {
+					logger.Error("Redis subscribe failed", "error", err)
+					redisClient.Close()
+					sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
+				} else {
+					sigHub.SetBroker(broker)
+					logger.Info("Redis signaling broker enabled", "addr", cfg.Redis.Addr)
+				}
+			}
+		} else {
+			sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
+		}
+	}
+	grpcServer := server.NewGRPCServer(cfg.Server.GRPCAddr, logger)
 
 	errCh := make(chan error, 2)
 	go func() { errCh <- httpServer.Start() }()

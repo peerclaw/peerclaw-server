@@ -9,12 +9,15 @@ import (
 
 // Config holds all configuration for the PeerClaw gateway.
 type Config struct {
-	Server    ServerConfig    `yaml:"server"`
-	Database  DatabaseConfig  `yaml:"database"`
-	Redis     RedisConfig     `yaml:"redis"`
-	Logging   LoggingConfig   `yaml:"logging"`
-	Bridge    BridgeConfig    `yaml:"bridge"`
-	Signaling SignalingConfig `yaml:"signaling"`
+	Server        ServerConfig        `yaml:"server"`
+	Database      DatabaseConfig      `yaml:"database"`
+	Redis         RedisConfig         `yaml:"redis"`
+	Logging       LoggingConfig       `yaml:"logging"`
+	Bridge        BridgeConfig        `yaml:"bridge"`
+	Signaling     SignalingConfig     `yaml:"signaling"`
+	Observability ObservabilityConfig `yaml:"observability"`
+	RateLimit     RateLimitConfig     `yaml:"rate_limit"`
+	AuditLog      AuditLogConfig      `yaml:"audit_log"`
 }
 
 // ServerConfig holds HTTP and gRPC server settings.
@@ -23,9 +26,10 @@ type ServerConfig struct {
 	GRPCAddr string `yaml:"grpc_addr"`
 }
 
-// DatabaseConfig holds SQLite settings.
+// DatabaseConfig holds database settings.
 type DatabaseConfig struct {
-	DSN string `yaml:"dsn"`
+	Driver string `yaml:"driver"` // "sqlite" (default) or "postgres"
+	DSN    string `yaml:"dsn"`
 }
 
 // RedisConfig holds Redis connection settings.
@@ -66,6 +70,29 @@ type TURNConfig struct {
 	Credential string   `yaml:"credential"`
 }
 
+// ObservabilityConfig holds OpenTelemetry settings.
+type ObservabilityConfig struct {
+	Enabled        bool    `yaml:"enabled"`          // default false
+	OTLPEndpoint   string  `yaml:"otlp_endpoint"`    // e.g. "localhost:4317"
+	ServiceName    string  `yaml:"service_name"`     // default "peerclaw-gateway"
+	TracesSampling float64 `yaml:"traces_sampling"`  // default 0.1
+}
+
+// RateLimitConfig holds rate limiting settings.
+type RateLimitConfig struct {
+	Enabled         bool    `yaml:"enabled"`           // default true
+	RequestsPerSec  float64 `yaml:"requests_per_sec"`  // default 100
+	BurstSize       int     `yaml:"burst_size"`        // default 200
+	MaxConnections  int     `yaml:"max_connections"`   // WebSocket, default 1000
+	MaxMessageBytes int     `yaml:"max_message_bytes"` // default 1MB
+}
+
+// AuditLogConfig holds audit logging settings.
+type AuditLogConfig struct {
+	Enabled bool   `yaml:"enabled"` // default true
+	Output  string `yaml:"output"`  // "stdout" or "file:/path"
+}
+
 // DefaultConfig returns a configuration with sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
@@ -74,7 +101,8 @@ func DefaultConfig() *Config {
 			GRPCAddr: ":9090",
 		},
 		Database: DatabaseConfig{
-			DSN: "peerclaw.db",
+			Driver: "sqlite",
+			DSN:    "peerclaw.db",
 		},
 		Redis: RedisConfig{
 			Addr: "localhost:6379",
@@ -91,6 +119,23 @@ func DefaultConfig() *Config {
 		},
 		Signaling: SignalingConfig{
 			Enabled: true,
+		},
+		Observability: ObservabilityConfig{
+			Enabled:        false,
+			OTLPEndpoint:   "localhost:4317",
+			ServiceName:    "peerclaw-gateway",
+			TracesSampling: 0.1,
+		},
+		RateLimit: RateLimitConfig{
+			Enabled:         true,
+			RequestsPerSec:  100,
+			BurstSize:       200,
+			MaxConnections:  1000,
+			MaxMessageBytes: 1 << 20, // 1MB
+		},
+		AuditLog: AuditLogConfig{
+			Enabled: true,
+			Output:  "stdout",
 		},
 	}
 }

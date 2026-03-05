@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
@@ -81,10 +82,20 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send via bridge manager.
+	bridgeStart := time.Now()
 	if err := s.bridges.Send(r.Context(), env); err != nil {
 		s.logger.Error("bridge send failed", "error", err, "proto", proto, "dest", req.Destination)
 		s.jsonError(w, "bridge send failed: "+err.Error(), http.StatusBadGateway)
 		return
+	}
+
+	// Audit log and metrics.
+	if s.audit != nil {
+		s.audit.LogBridgeSend(r.Context(), req.Source, req.Destination, proto)
+	}
+	if s.metrics != nil {
+		s.metrics.BridgeMessagesTotal.Add(r.Context(), 1)
+		s.metrics.BridgeMessageDuration.Record(r.Context(), time.Since(bridgeStart).Seconds())
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]any{

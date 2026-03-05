@@ -72,10 +72,11 @@ server:
   grpc_addr: ":9090"
 
 database:
-  dsn: "peerclaw.db"          # SQLite 数据库路径
+  driver: "sqlite"             # sqlite (default) 或 postgres
+  dsn: "peerclaw.db"           # SQLite 路径或 PostgreSQL DSN
 
 redis:
-  addr: "localhost:6379"       # 用于水平扩展（Phase 4）
+  addr: "localhost:6379"       # Redis 地址（跨节点信令）
   password: ""
   db: 0
 
@@ -97,7 +98,41 @@ signaling:
     urls: []
     username: ""
     credential: ""
+
+observability:
+  enabled: false               # 启用 OpenTelemetry
+  otlp_endpoint: "localhost:4317"
+  service_name: "peerclaw-gateway"
+  traces_sampling: 0.1         # 采样率 (0.0 - 1.0)
+
+rate_limit:
+  enabled: true
+  requests_per_sec: 100        # 每 IP 每秒请求数
+  burst_size: 200              # 令牌桶突发大小
+  max_connections: 1000        # WebSocket 最大连接数
+  max_message_bytes: 1048576   # 请求体大小限制 (1MB)
+
+audit_log:
+  enabled: true
+  output: "stdout"             # "stdout" 或 "file:/var/log/peerclaw-audit.log"
 ```
+
+### PostgreSQL 配置示例
+
+```yaml
+database:
+  driver: "postgres"
+  dsn: "postgres://user:pass@localhost:5432/peerclaw?sslmode=disable"
+```
+
+### Redis 跨节点信令
+
+当配置了 Redis 地址且连接成功时，信令消息自动通过 Redis Pub/Sub 跨节点分发。
+Redis 不可用时自动回退到本地单节点模式。
+
+### OpenTelemetry
+
+启用后通过 OTLP gRPC 推送 traces 和 metrics 到 collector。Grafana dashboard 模板位于 `docs/grafana/peerclaw-overview.json`。
 
 ## REST API
 

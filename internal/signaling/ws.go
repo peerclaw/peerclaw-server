@@ -9,6 +9,8 @@ import (
 	"sync"
 
 	"github.com/peerclaw/peerclaw-core/signaling"
+	"github.com/peerclaw/peerclaw-server/internal/audit"
+	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"nhooyr.io/websocket"
 )
 
@@ -25,11 +27,16 @@ type Hub struct {
 	conns      map[string]*websocket.Conn // agentID -> connection
 	logger     *slog.Logger
 	turnConfig *TURNConfig
+	maxConns   int // 0 means unlimited
+	audit      *audit.Logger
+	metrics    *observability.Metrics
+	broker     Broker
 }
 
 // NewHub creates a new signaling hub.
 // turnCfg may be nil if no TURN servers are configured.
-func NewHub(logger *slog.Logger, turnCfg *TURNConfig) *Hub {
+// maxConns limits the total number of WebSocket connections (0 = unlimited).
+func NewHub(logger *slog.Logger, turnCfg *TURNConfig, maxConns int) *Hub {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -37,6 +44,49 @@ func NewHub(logger *slog.Logger, turnCfg *TURNConfig) *Hub {
 		conns:      make(map[string]*websocket.Conn),
 		logger:     logger,
 		turnConfig: turnCfg,
+		maxConns:   maxConns,
+	}
+}
+
+// SetAudit sets the audit logger for recording signaling events.
+func (h *Hub) SetAudit(a *audit.Logger) {
+	h.audit = a
+}
+
+// SetMetrics sets the metrics instruments for observability.
+func (h *Hub) SetMetrics(m *observability.Metrics) {
+	h.metrics = m
+}
+
+// SetBroker sets the signaling broker for message distribution.
+// When set, Forward() delegates to the broker instead of delivering directly.
+func (h *Hub) SetBroker(b Broker) {
+	h.broker = b
+}
+
+// DeliverLocal delivers a signal message to a locally connected agent.
+// This is called by brokers to deliver messages that should be sent on this node.
+func (h *Hub) DeliverLocal(ctx context.Context, msg signaling.SignalMessage) {
+	h.mu.RLock()
+	target, ok := h.conns[msg.To]
+	h.mu.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		h.logger.Error("marshal signal message for local delivery", "error", err)
+		return
+	}
+
+	if err := target.Write(ctx, websocket.MessageText, data); err != nil {
+		h.logger.Error("local deliver signal message", "from", msg.From, "to", msg.To, "error", err)
+		return
+	}
+	if h.metrics != nil {
+		h.metrics.SignalingMessagesTotal.Add(ctx, 1)
 	}
 }
 
@@ -47,6 +97,23 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 	if agentID == "" {
 		http.Error(w, "missing agent_id parameter", http.StatusBadRequest)
 		return
+	}
+
+	// Check connection limit before accepting.
+	if h.maxConns > 0 {
+		h.mu.RLock()
+		_, alreadyConnected := h.conns[agentID]
+		currentCount := len(h.conns)
+		h.mu.RUnlock()
+
+		if !alreadyConnected && currentCount >= h.maxConns {
+			h.logger.Warn("WebSocket connection limit reached",
+				"max", h.maxConns,
+				"agent_id", agentID,
+			)
+			http.Error(w, "too many connections", http.StatusServiceUnavailable)
+			return
+		}
 	}
 
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
@@ -66,6 +133,12 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 	h.mu.Unlock()
 
 	h.logger.Info("agent connected to signaling", "agent_id", agentID)
+	if h.audit != nil {
+		h.audit.LogSignalingConnect(r.Context(), agentID, r.RemoteAddr)
+	}
+	if h.metrics != nil {
+		h.metrics.SignalingConnections.Add(r.Context(), 1)
+	}
 
 	// Push ICE server configuration if TURN is configured.
 	if h.turnConfig != nil && len(h.turnConfig.URLs) > 0 {
@@ -97,6 +170,12 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 		h.mu.Unlock()
 		conn.Close(websocket.StatusNormalClosure, "")
 		h.logger.Info("agent disconnected from signaling", "agent_id", agentID)
+		if h.audit != nil {
+			h.audit.LogSignalingDisconnect(r.Context(), agentID)
+		}
+		if h.metrics != nil {
+			h.metrics.SignalingConnections.Add(r.Context(), -1)
+		}
 	}()
 
 	// Read loop: forward messages to target agents.
@@ -123,25 +202,18 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 }
 
 // Forward sends a signal message to the target agent.
+// When a broker is set, messages are published through the broker for
+// cross-node delivery. Otherwise, messages are delivered locally.
 func (h *Hub) Forward(ctx context.Context, msg signaling.SignalMessage) {
-	h.mu.RLock()
-	target, ok := h.conns[msg.To]
-	h.mu.RUnlock()
-
-	if !ok {
-		h.logger.Warn("target agent not connected", "from", msg.From, "to", msg.To)
+	if h.broker != nil {
+		if err := h.broker.Publish(ctx, msg); err != nil {
+			h.logger.Error("broker publish failed", "from", msg.From, "to", msg.To, "error", err)
+		}
 		return
 	}
 
-	data, err := json.Marshal(msg)
-	if err != nil {
-		h.logger.Error("marshal signal message", "error", err)
-		return
-	}
-
-	if err := target.Write(ctx, websocket.MessageText, data); err != nil {
-		h.logger.Error("forward signal message", "from", msg.From, "to", msg.To, "error", err)
-	}
+	// Direct local delivery (no broker).
+	h.DeliverLocal(ctx, msg)
 }
 
 // DeliverEnvelope sends a bridge_message to a connected agent via WebSocket.
