@@ -1,12 +1,15 @@
-.PHONY: build test lint run clean proto fmt vet
+.PHONY: build test lint run clean proto fmt vet dashboard
 
 BINARY := peerclawd
 BUILD_DIR := bin
 GO := go
 GOFLAGS := -v
 
-build:
-	$(GO) build $(GOFLAGS) -o $(BUILD_DIR)/$(BINARY) ./cmd/peerclawd
+dashboard:
+	cd web/dashboard && npm install && npm run build
+
+build: dashboard
+	CGO_ENABLED=1 $(GO) build $(GOFLAGS) -o $(BUILD_DIR)/$(BINARY) ./cmd/peerclawd
 
 run: build
 	./$(BUILD_DIR)/$(BINARY) -config configs/peerclaw.example.yaml

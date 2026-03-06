@@ -1,0 +1,6 @@
+# Build output
+bin/
+
+# Dashboard build artifacts (embedded at build time)
+internal/server/dashboard_dist/
+!internal/server/dashboard_dist/.gitkeep

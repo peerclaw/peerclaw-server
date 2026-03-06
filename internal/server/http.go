@@ -165,6 +165,12 @@ func (s *HTTPServer) routes() {
 
 	// Protocol-specific inbound endpoints.
 	s.registerProtocolRoutes()
+
+	// Dashboard stats API (public).
+	s.mux.HandleFunc("GET /api/v1/dashboard/stats", s.handleDashboardStats)
+
+	// Dashboard SPA (catch-all, registered last).
+	s.mux.Handle("GET /", DashboardHandler())
 }
 
 func (s *HTTPServer) registerProtocolRoutes() {
