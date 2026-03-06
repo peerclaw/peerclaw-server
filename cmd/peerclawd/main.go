@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -144,8 +145,9 @@ func main() {
 
 	// Configure HTTP server options.
 	httpOpts := &server.HTTPServerConfig{
-		Metrics: otelMetrics,
-		Tracer:  observability.Tracer("peerclaw-http"),
+		Metrics:     otelMetrics,
+		Tracer:      observability.Tracer("peerclaw-http"),
+		CORSOrigins: cfg.Server.CORSOrigins,
 	}
 	if cfg.RateLimit.Enabled {
 		rl := server.NewIPRateLimiter(cfg.RateLimit.RequestsPerSec, cfg.RateLimit.BurstSize)
@@ -202,9 +204,20 @@ func main() {
 	}
 	grpcServer := server.NewGRPCServer(cfg.Server.GRPCAddr, logger)
 
+	var wg sync.WaitGroup
 	errCh := make(chan error, 2)
-	go func() { errCh <- httpServer.Start() }()
-	go func() { errCh <- grpcServer.Start() }()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		errCh <- httpServer.Start()
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		errCh <- grpcServer.Start()
+	}()
 
 	logger.Info("PeerClaw gateway started",
 		"http", cfg.Server.HTTPAddr,
@@ -223,9 +236,16 @@ func main() {
 	case <-ctx.Done():
 	}
 
-	// Graceful shutdown.
+	// Graceful shutdown: cancel context to signal all goroutines, then
+	// stop the servers and wait for goroutines to finish.
+	cancel()
 	grpcServer.Stop()
 	httpServer.Stop()
+
+	// Wait for server goroutines to complete before tearing down
+	// remaining services, ensuring a clean shutdown.
+	wg.Wait()
+
 	if fedService != nil {
 		fedService.Close()
 	}

@@ -8,11 +8,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/peerclaw/peerclaw-server/internal/security"
+
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
 )
+
+func init() {
+	security.AllowLocalhost = true
+}
 
 func TestAdapterProtocol(t *testing.T) {
 	a := New(nil, nil)

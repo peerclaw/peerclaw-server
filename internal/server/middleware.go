@@ -153,6 +153,58 @@ func MetricsMiddleware(metrics *observability.Metrics) Middleware {
 	}
 }
 
+// CORSMiddleware sets CORS headers and handles OPTIONS preflight requests.
+// If allowedOrigins is empty, no origins are allowed. If allowedOrigins
+// contains "*", all origins are allowed. Otherwise the request Origin must
+// appear in allowedOrigins to receive CORS headers.
+func CORSMiddleware(allowedOrigins []string) Middleware {
+	allowAll := false
+	originSet := make(map[string]struct{}, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		if o == "*" {
+			allowAll = true
+		}
+		originSet[o] = struct{}{}
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Determine whether this origin is allowed.
+			allowed := false
+			if allowAll {
+				allowed = true
+			} else if len(originSet) > 0 {
+				_, allowed = originSet[origin]
+			}
+
+			if !allowed {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Set the allowed origin (mirror the exact origin rather than "*"
+			// so credentials can work).
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-PeerClaw-Signature, X-PeerClaw-PublicKey")
+
+			// Handle preflight.
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // statusWriter wraps http.ResponseWriter to capture the status code.
 type statusWriter struct {
 	http.ResponseWriter

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -19,12 +20,19 @@ type Config struct {
 	RateLimit     RateLimitConfig     `yaml:"rate_limit"`
 	AuditLog      AuditLogConfig      `yaml:"audit_log"`
 	Federation    FederationConfig    `yaml:"federation"`
+	Auth          AuthConfig          `yaml:"auth"`
+}
+
+// AuthConfig holds authentication settings.
+type AuthConfig struct {
+	Required bool `yaml:"required"` // When true, reject unauthenticated requests. Default false for transition.
 }
 
 // ServerConfig holds HTTP and gRPC server settings.
 type ServerConfig struct {
-	HTTPAddr string `yaml:"http_addr"`
-	GRPCAddr string `yaml:"grpc_addr"`
+	HTTPAddr    string   `yaml:"http_addr"`
+	GRPCAddr    string   `yaml:"grpc_addr"`
+	CORSOrigins []string `yaml:"cors_origins"`
 }
 
 // DatabaseConfig holds database settings.
@@ -176,5 +184,45 @@ func Load(path string) (*Config, error) {
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
+
+	cfg.resolveSecrets()
+
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
+}
+
+// resolveSecrets resolves ${ENV_VAR} references in sensitive config fields.
+func (c *Config) resolveSecrets() {
+	c.Redis.Password = resolveEnv(c.Redis.Password)
+	c.Database.DSN = resolveEnv(c.Database.DSN)
+	c.Signaling.TURN.Credential = resolveEnv(c.Signaling.TURN.Credential)
+	c.Federation.AuthToken = resolveEnv(c.Federation.AuthToken)
+	for i := range c.Federation.Peers {
+		c.Federation.Peers[i].Token = resolveEnv(c.Federation.Peers[i].Token)
+	}
+}
+
+// resolveEnv replaces ${ENV_VAR} with the value of the environment variable.
+// If the value doesn't match the pattern, it's returned as-is (backwards compatible).
+func resolveEnv(val string) string {
+	if !strings.HasPrefix(val, "${") || !strings.HasSuffix(val, "}") {
+		return val
+	}
+	envName := val[2 : len(val)-1]
+	if envVal, ok := os.LookupEnv(envName); ok {
+		return envVal
+	}
+	return val
+}
+
+// validate checks configuration for invalid or dangerous settings.
+func (c *Config) validate() error {
+	// Federation requires an auth token when enabled.
+	if c.Federation.Enabled && c.Federation.AuthToken == "" {
+		return fmt.Errorf("federation.auth_token is required when federation is enabled")
+	}
+	return nil
 }

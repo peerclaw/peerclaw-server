@@ -10,11 +10,19 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
+	"github.com/peerclaw/peerclaw-server/internal/security"
 )
+
+const maxResponseBodySize = 10 << 20 // 10MB
+
+// DefaultRunMaxAge is the default TTL for tracked runs.
+const DefaultRunMaxAge = 1 * time.Hour
 
 // Adapter implements the ProtocolBridge interface for IBM ACP protocol.
 // ACP uses REST/HTTP-based communication.
@@ -23,6 +31,7 @@ type Adapter struct {
 	inbox    chan *envelope.Envelope
 	client   *http.Client
 	runs     sync.Map // runID → *Run
+	runCount atomic.Int64
 	sessions sync.Map // sessionID → *Session
 }
 
@@ -60,6 +69,9 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	}
 
 	url := strings.TrimRight(endpoint, "/") + "/runs"
+	if err := security.ValidateURL(url); err != nil {
+		return fmt.Errorf("acp: SSRF blocked: %w", err)
+	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("acp: new http request: %w", err)
@@ -72,7 +84,7 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	}
 	defer httpResp.Body.Close()
 
-	respBody, err := io.ReadAll(httpResp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {
 		return fmt.Errorf("acp: read response: %w", err)
 	}
@@ -87,7 +99,11 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	}
 
 	// Store run and track session.
-	a.runs.Store(run.RunID, &run)
+	if _, loaded := a.runs.LoadOrStore(run.RunID, &run); loaded {
+		a.runs.Store(run.RunID, &run) // update existing
+	} else {
+		a.runCount.Add(1)
+	}
 	if run.SessionID != "" {
 		a.trackSession(run.SessionID, run.RunID)
 	}
@@ -125,6 +141,9 @@ func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
 
 	agentName := card.Name
 	url := strings.TrimRight(card.Endpoint.URL, "/") + "/agents/" + agentName
+	if err := security.ValidateURL(url); err != nil {
+		return fmt.Errorf("acp: SSRF blocked: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("acp: create request: %w", err)
@@ -140,7 +159,7 @@ func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
 		return fmt.Errorf("acp: manifest status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
 	if err != nil {
 		return fmt.Errorf("acp: read manifest: %w", err)
 	}
@@ -177,6 +196,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 		TraceID:     env.TraceID,
 	}
 
+	var marshalErr error
 	switch targetProtocol {
 	case string(protocol.ProtocolA2A):
 		// ACP message → A2A message format.
@@ -188,7 +208,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 					{"text": msg.Parts[0].Content},
 				},
 			}
-			translated.Payload, _ = json.Marshal(a2aMsg)
+			translated.Payload, marshalErr = json.Marshal(a2aMsg)
 		} else {
 			translated.Payload = env.Payload
 		}
@@ -201,7 +221,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 				"name":      env.Metadata["mcp.tool_name"],
 				"arguments": map[string]string{"text": msg.Parts[0].Content},
 			}
-			translated.Payload, _ = json.Marshal(toolCall)
+			translated.Payload, marshalErr = json.Marshal(toolCall)
 			translated.Metadata["mcp.method"] = "tools/call"
 		} else {
 			translated.Payload = env.Payload
@@ -212,7 +232,11 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 			"original_protocol": protocol.ProtocolACP,
 			"payload":           json.RawMessage(env.Payload),
 		}
-		translated.Payload, _ = json.Marshal(wrapper)
+		translated.Payload, marshalErr = json.Marshal(wrapper)
+	}
+
+	if marshalErr != nil {
+		return nil, fmt.Errorf("acp translate: marshal payload: %w", marshalErr)
 	}
 
 	return translated, nil
@@ -246,6 +270,57 @@ func (a *Adapter) trackSession(sessionID, runID string) {
 	v, _ := a.sessions.LoadOrStore(sessionID, &Session{ID: sessionID})
 	sess := v.(*Session)
 	sess.RunIDs = append(sess.RunIDs, runID)
+}
+
+// StartCleanup launches a background goroutine that periodically removes expired runs and sessions.
+func (a *Adapter) StartCleanup(ctx context.Context, maxAge time.Duration) {
+	if maxAge == 0 {
+		maxAge = DefaultRunMaxAge
+	}
+	go func() {
+		ticker := time.NewTicker(maxAge / 2)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.cleanExpired(maxAge)
+			}
+		}
+	}()
+}
+
+func (a *Adapter) cleanExpired(maxAge time.Duration) {
+	cutoff := time.Now().Add(-maxAge)
+	a.runs.Range(func(key, value any) bool {
+		run := value.(*Run)
+		if t, err := time.Parse(time.RFC3339, run.CreatedAt); err == nil && t.Before(cutoff) {
+			a.runs.Delete(key)
+			a.runCount.Add(-1)
+		}
+		return true
+	})
+	// Clean orphaned sessions by checking if all their runs have been removed.
+	a.sessions.Range(func(key, value any) bool {
+		sess := value.(*Session)
+		hasActiveRun := false
+		for _, rid := range sess.RunIDs {
+			if _, ok := a.runs.Load(rid); ok {
+				hasActiveRun = true
+				break
+			}
+		}
+		if !hasActiveRun {
+			a.sessions.Delete(key)
+		}
+		return true
+	})
+}
+
+// RunCount returns the current number of tracked runs.
+func (a *Adapter) RunCount() int64 {
+	return a.runCount.Load()
 }
 
 func copyMetadata(m map[string]string) map[string]string {

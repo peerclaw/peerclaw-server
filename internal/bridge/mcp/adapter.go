@@ -10,12 +10,20 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
+	"github.com/peerclaw/peerclaw-server/internal/security"
 )
+
+const maxResponseBodySize = 10 << 20 // 10MB
+
+// DefaultSessionMaxAge is the default TTL for MCP sessions.
+const DefaultSessionMaxAge = 2 * time.Hour
 
 // MCPSession holds state for an active MCP session.
 type MCPSession struct {
@@ -23,15 +31,17 @@ type MCPSession struct {
 	ServerCaps  ServerCaps
 	Endpoint    string
 	Initialized bool
+	CreatedAt   time.Time
 }
 
 // Adapter implements the ProtocolBridge interface for MCP (Streamable HTTP).
 type Adapter struct {
-	logger   *slog.Logger
-	inbox    chan *envelope.Envelope
-	client   *http.Client
-	sessions sync.Map // endpoint → *MCPSession
-	version  string
+	logger       *slog.Logger
+	inbox        chan *envelope.Envelope
+	client       *http.Client
+	sessions     sync.Map // endpoint → *MCPSession
+	sessionCount atomic.Int64
+	version      string
 }
 
 // New creates a new MCP adapter.
@@ -203,13 +213,18 @@ func (a *Adapter) getOrInitSession(ctx context.Context, endpoint string) (*MCPSe
 		ServerCaps:  initResult.Capabilities,
 		Endpoint:    endpoint,
 		Initialized: true,
+		CreatedAt:   time.Now(),
 	}
 
 	// Send notifications/initialized.
 	notif, _ := jsonrpc.NewNotification("notifications/initialized", nil)
 	a.doPost(ctx, endpoint, notif, session.SessionID) //nolint:errcheck
 
-	a.sessions.Store(endpoint, session)
+	if _, loaded := a.sessions.LoadOrStore(endpoint, session); loaded {
+		a.sessions.Store(endpoint, session) // update existing
+	} else {
+		a.sessionCount.Add(1)
+	}
 
 	a.logger.Info("mcp session initialized",
 		"endpoint", endpoint,
@@ -237,6 +252,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 		TraceID:     env.TraceID,
 	}
 
+	var marshalErr error
 	switch targetProtocol {
 	case string(protocol.ProtocolA2A):
 		// MCP tool result → A2A message with text parts.
@@ -250,7 +266,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 				"role":  "agent",
 				"parts": parts,
 			}
-			translated.Payload, _ = json.Marshal(msg)
+			translated.Payload, marshalErr = json.Marshal(msg)
 		} else {
 			translated.Payload = env.Payload
 		}
@@ -266,14 +282,18 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 				},
 			},
 		}
-		translated.Payload, _ = json.Marshal(acpMsg)
+		translated.Payload, marshalErr = json.Marshal(acpMsg)
 
 	default:
 		wrapper := map[string]any{
 			"original_protocol": protocol.ProtocolMCP,
 			"payload":           json.RawMessage(env.Payload),
 		}
-		translated.Payload, _ = json.Marshal(wrapper)
+		translated.Payload, marshalErr = json.Marshal(wrapper)
+	}
+
+	if marshalErr != nil {
+		return nil, fmt.Errorf("mcp translate: marshal payload: %w", marshalErr)
 	}
 
 	return translated, nil
@@ -305,6 +325,9 @@ func (a *Adapter) InjectMessage(env *envelope.Envelope) error {
 
 func (a *Adapter) doPost(ctx context.Context, endpoint string, msg any, sessionID string) ([]byte, error) {
 	url := strings.TrimRight(endpoint, "/")
+	if err := security.ValidateURL(url); err != nil {
+		return nil, fmt.Errorf("mcp: SSRF blocked: %w", err)
+	}
 
 	body, err := json.Marshal(msg)
 	if err != nil {
@@ -327,7 +350,7 @@ func (a *Adapter) doPost(ctx context.Context, endpoint string, msg any, sessionI
 	}
 	defer httpResp.Body.Close()
 
-	respBody, err := io.ReadAll(httpResp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {
 		return nil, fmt.Errorf("mcp: read response: %w", err)
 	}
@@ -345,6 +368,42 @@ func (a *Adapter) doPost(ctx context.Context, endpoint string, msg any, sessionI
 	}
 
 	return respBody, nil
+}
+
+// StartCleanup launches a background goroutine that periodically removes expired sessions.
+func (a *Adapter) StartCleanup(ctx context.Context, maxAge time.Duration) {
+	if maxAge == 0 {
+		maxAge = DefaultSessionMaxAge
+	}
+	go func() {
+		ticker := time.NewTicker(maxAge / 2)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.cleanExpired(maxAge)
+			}
+		}
+	}()
+}
+
+func (a *Adapter) cleanExpired(maxAge time.Duration) {
+	cutoff := time.Now().Add(-maxAge)
+	a.sessions.Range(func(key, value any) bool {
+		session := value.(*MCPSession)
+		if !session.CreatedAt.IsZero() && session.CreatedAt.Before(cutoff) {
+			a.sessions.Delete(key)
+			a.sessionCount.Add(-1)
+		}
+		return true
+	})
+}
+
+// SessionCount returns the current number of tracked sessions.
+func (a *Adapter) SessionCount() int64 {
+	return a.sessionCount.Load()
 }
 
 func copyMetadata(m map[string]string) map[string]string {

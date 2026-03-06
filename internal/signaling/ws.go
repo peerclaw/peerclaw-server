@@ -7,9 +7,11 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
+	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"nhooyr.io/websocket"
 )
@@ -21,16 +23,27 @@ type TURNConfig struct {
 	Credential string
 }
 
+// authFrame is the authentication message sent by the client after WebSocket upgrade.
+type authFrame struct {
+	AgentID   string `json:"agent_id"`
+	Timestamp int64  `json:"timestamp"`
+	Signature string `json:"signature"`
+	PublicKey string `json:"public_key"`
+}
+
 // Hub manages WebSocket connections for signaling between agents.
 type Hub struct {
-	mu         sync.RWMutex
-	conns      map[string]*websocket.Conn // agentID -> connection
-	logger     *slog.Logger
-	turnConfig *TURNConfig
-	maxConns   int // 0 means unlimited
-	audit      *audit.Logger
-	metrics    *observability.Metrics
-	broker     Broker
+	mu           sync.RWMutex
+	conns        map[string]*websocket.Conn // agentID -> connection
+	logger       *slog.Logger
+	turnConfig   *TURNConfig
+	maxConns     int // 0 means unlimited
+	audit        *audit.Logger
+	metrics      *observability.Metrics
+	broker       Broker
+	verifier     *identity.Verifier
+	authRequired bool
+	authTimeout  time.Duration // default 5s
 }
 
 // NewHub creates a new signaling hub.
@@ -41,11 +54,22 @@ func NewHub(logger *slog.Logger, turnCfg *TURNConfig, maxConns int) *Hub {
 		logger = slog.Default()
 	}
 	return &Hub{
-		conns:      make(map[string]*websocket.Conn),
-		logger:     logger,
-		turnConfig: turnCfg,
-		maxConns:   maxConns,
+		conns:       make(map[string]*websocket.Conn),
+		logger:      logger,
+		turnConfig:  turnCfg,
+		maxConns:    maxConns,
+		authTimeout: 5 * time.Second,
 	}
+}
+
+// SetVerifier sets the identity verifier for WebSocket authentication.
+func (h *Hub) SetVerifier(v *identity.Verifier) {
+	h.verifier = v
+}
+
+// SetAuthRequired enables mandatory authentication for WebSocket connections.
+func (h *Hub) SetAuthRequired(required bool) {
+	h.authRequired = required
 }
 
 // SetAudit sets the audit logger for recording signaling events.
@@ -119,9 +143,24 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		InsecureSkipVerify: true,
 	})
+	if err == nil {
+		// Limit individual message size to 64KB.
+		conn.SetReadLimit(64 * 1024)
+	}
 	if err != nil {
 		h.logger.Error("websocket accept failed", "error", err)
 		return
+	}
+
+	// Authenticate the WebSocket connection.
+	if h.authRequired && h.verifier != nil {
+		authedID, authErr := h.authenticateConn(r.Context(), conn, agentID)
+		if authErr != nil {
+			h.logger.Warn("websocket auth failed", "agent_id", agentID, "error", authErr)
+			conn.Close(websocket.StatusPolicyViolation, "authentication failed")
+			return
+		}
+		agentID = authedID
 	}
 
 	h.mu.Lock()
@@ -178,6 +217,9 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	// Rate limiter: 10 messages/sec, burst 20.
+	msgLimiter := newMessageLimiter(10, 20)
+
 	// Read loop: forward messages to target agents.
 	for {
 		_, data, err := conn.Read(r.Context())
@@ -190,6 +232,13 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Enforce message rate limit.
+		if !msgLimiter.allow() {
+			h.logger.Warn("websocket rate limit exceeded, closing", "agent_id", agentID)
+			conn.Close(websocket.StatusPolicyViolation, "rate limit exceeded")
+			return
+		}
+
 		var msg signaling.SignalMessage
 		if err := json.Unmarshal(data, &msg); err != nil {
 			h.logger.Warn("invalid signal message", "agent_id", agentID, "error", err)
@@ -199,6 +248,51 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 		msg.From = agentID
 		h.Forward(r.Context(), msg)
 	}
+}
+
+// authenticateConn waits for an auth frame from the client within the auth timeout.
+func (h *Hub) authenticateConn(ctx context.Context, conn *websocket.Conn, expectedAgentID string) (string, error) {
+	authCtx, cancel := context.WithTimeout(ctx, h.authTimeout)
+	defer cancel()
+
+	_, data, err := conn.Read(authCtx)
+	if err != nil {
+		return "", fmt.Errorf("read auth frame: %w", err)
+	}
+
+	var frame authFrame
+	if err := json.Unmarshal(data, &frame); err != nil {
+		return "", fmt.Errorf("parse auth frame: %w", err)
+	}
+
+	if frame.AgentID == "" || frame.PublicKey == "" || frame.Signature == "" {
+		return "", fmt.Errorf("incomplete auth frame")
+	}
+
+	if frame.AgentID != expectedAgentID {
+		return "", fmt.Errorf("agent_id mismatch: query=%s, frame=%s", expectedAgentID, frame.AgentID)
+	}
+
+	// Verify timestamp is within 30 seconds to prevent replay.
+	now := time.Now().Unix()
+	if abs64(now-frame.Timestamp) > 30 {
+		return "", fmt.Errorf("auth frame timestamp too old")
+	}
+
+	// Verify signature over "agent_id:timestamp".
+	payload := []byte(fmt.Sprintf("%s:%d", frame.AgentID, frame.Timestamp))
+	if err := h.verifier.VerifySignature(frame.PublicKey, payload, frame.Signature); err != nil {
+		return "", fmt.Errorf("signature verification: %w", err)
+	}
+
+	return frame.AgentID, nil
+}
+
+func abs64(n int64) int64 {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 // Forward sends a signal message to the target agent.
@@ -258,4 +352,46 @@ func (h *Hub) HasAgent(agentID string) bool {
 	defer h.mu.RUnlock()
 	_, ok := h.conns[agentID]
 	return ok
+}
+
+// CloseAll gracefully closes all WebSocket connections.
+func (h *Hub) CloseAll() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for id, conn := range h.conns {
+		conn.Close(websocket.StatusGoingAway, "server shutting down")
+		delete(h.conns, id)
+	}
+}
+
+// messageLimiter is a simple token bucket rate limiter for per-connection use.
+type messageLimiter struct {
+	tokens   float64
+	maxBurst float64
+	rate     float64 // tokens per second
+	lastTime time.Time
+}
+
+func newMessageLimiter(rate float64, burst int) *messageLimiter {
+	return &messageLimiter{
+		tokens:   float64(burst),
+		maxBurst: float64(burst),
+		rate:     rate,
+		lastTime: time.Now(),
+	}
+}
+
+func (l *messageLimiter) allow() bool {
+	now := time.Now()
+	elapsed := now.Sub(l.lastTime).Seconds()
+	l.lastTime = now
+	l.tokens += elapsed * l.rate
+	if l.tokens > l.maxBurst {
+		l.tokens = l.maxBurst
+	}
+	if l.tokens < 1 {
+		return false
+	}
+	l.tokens--
+	return true
 }

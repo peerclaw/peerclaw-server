@@ -1,0 +1,159 @@
+package server
+
+import (
+	"io"
+	"log/slog"
+	"net/http"
+
+	"github.com/peerclaw/peerclaw-server/internal/identity"
+)
+
+// AuthConfig controls authentication behavior.
+type AuthConfig struct {
+	// Required when true rejects unauthenticated requests; when false only logs warnings.
+	Required bool
+	// Verifier validates signatures and API keys.
+	Verifier *identity.Verifier
+}
+
+// AuthMiddleware validates requests using bearer token or Ed25519 signature.
+// Public routes should be registered outside the middleware chain.
+func AuthMiddleware(cfg AuthConfig, logger *slog.Logger) Middleware {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			agentID, ok := authenticate(r, cfg, logger)
+			if !ok {
+				if cfg.Required {
+					http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+					return
+				}
+				// Transition mode: log warning but allow through.
+				logger.Warn("unauthenticated request allowed (auth.required=false)",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"remote", r.RemoteAddr,
+				)
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			ctx := identity.WithAgentID(r.Context(), agentID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// authenticate tries bearer token then signature-based auth.
+// Returns (agentID, true) on success, ("", false) on failure.
+func authenticate(r *http.Request, cfg AuthConfig, logger *slog.Logger) (string, bool) {
+	// Method 1: Bearer token (API key) — requires X-PeerClaw-Agent-ID header.
+	if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+		token, err := identity.ExtractBearerToken(authHeader)
+		if err != nil {
+			logger.Debug("invalid authorization header", "error", err)
+			return "", false
+		}
+		agentID := r.Header.Get("X-PeerClaw-Agent-ID")
+		if agentID == "" {
+			logger.Debug("bearer token present but missing X-PeerClaw-Agent-ID")
+			return "", false
+		}
+		if cfg.Verifier != nil {
+			if err := cfg.Verifier.VerifyAPIKey(agentID, token); err != nil {
+				logger.Debug("API key verification failed", "agent_id", agentID, "error", err)
+				return "", false
+			}
+		}
+		return agentID, true
+	}
+
+	// Method 2: Ed25519 signature — X-PeerClaw-Signature + X-PeerClaw-PublicKey headers.
+	sig := r.Header.Get("X-PeerClaw-Signature")
+	pubKeyStr := r.Header.Get("X-PeerClaw-PublicKey")
+	if sig != "" && pubKeyStr != "" {
+		// Read body for verification, then restore it.
+		var body []byte
+		if r.Body != nil {
+			var err error
+			body, err = io.ReadAll(r.Body)
+			if err != nil {
+				logger.Debug("failed to read body for signature verification", "error", err)
+				return "", false
+			}
+			r.Body = io.NopCloser(newBytesReader(body))
+		}
+
+		if cfg.Verifier != nil {
+			if err := cfg.Verifier.VerifySignature(pubKeyStr, body, sig); err != nil {
+				logger.Debug("signature verification failed", "error", err)
+				return "", false
+			}
+		}
+
+		// Derive agent ID from public key (use the public key string as agent identifier).
+		agentID := r.Header.Get("X-PeerClaw-Agent-ID")
+		if agentID == "" {
+			// Fall back to using public key as agent ID.
+			agentID = pubKeyStr
+		}
+		return agentID, true
+	}
+
+	return "", false
+}
+
+// OwnerOnlyMiddleware ensures the authenticated agent ID matches the {id} path parameter.
+func OwnerOnlyMiddleware(logger *slog.Logger) Middleware {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			pathID := r.PathValue("id")
+			if pathID == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			ctxAgentID, ok := identity.AgentIDFromContext(r.Context())
+			if !ok {
+				// No auth context — let auth middleware handle rejection.
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			if ctxAgentID != pathID {
+				logger.Warn("owner-only access denied",
+					"authenticated_agent", ctxAgentID,
+					"target_agent", pathID,
+				)
+				http.Error(w, `{"error":"forbidden: not the owner"}`, http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// bytesReaderWrapper is a simple bytes.Reader wrapper.
+type bytesReaderWrapper struct {
+	data []byte
+	pos  int
+}
+
+func newBytesReader(data []byte) *bytesReaderWrapper {
+	return &bytesReaderWrapper{data: data}
+}
+
+func (br *bytesReaderWrapper) Read(p []byte) (int, error) {
+	if br.pos >= len(br.data) {
+		return 0, io.EOF
+	}
+	n := copy(p, br.data[br.pos:])
+	br.pos += n
+	return n, nil
+}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
+	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/router"
@@ -25,6 +27,8 @@ type HTTPServerConfig struct {
 	MaxBodyBytes int64 // 0 means no limit
 	Metrics      *observability.Metrics
 	Tracer       trace.Tracer
+	Auth         AuthConfig
+	CORSOrigins  []string
 }
 
 // HTTPServer provides the REST API gateway for PeerClaw.
@@ -40,6 +44,8 @@ type HTTPServer struct {
 	audit      *audit.Logger
 	metrics    *observability.Metrics
 	federation *federation.FederationService
+	verifier   *identity.Verifier
+	authCfg    AuthConfig
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -54,7 +60,16 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 		bridges:  brg,
 		sigHub:   sigHub,
 		logger:   logger,
+		verifier: identity.NewVerifier(),
 	}
+
+	if opts != nil {
+		s.authCfg = opts.Auth
+	}
+	if s.authCfg.Verifier == nil {
+		s.authCfg.Verifier = s.verifier
+	}
+
 	s.routes()
 
 	// Build middleware chain.
@@ -65,6 +80,9 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 	}
 
 	if opts != nil {
+		if len(opts.CORSOrigins) > 0 {
+			middlewares = append(middlewares, CORSMiddleware(opts.CORSOrigins))
+		}
 		if opts.Tracer != nil {
 			middlewares = append(middlewares, TracingMiddleware(opts.Tracer))
 		}
@@ -110,24 +128,38 @@ func (s *HTTPServer) SetFederation(f *federation.FederationService) {
 }
 
 func (s *HTTPServer) routes() {
-	// Core API routes.
-	s.mux.HandleFunc("POST /api/v1/agents", s.handleRegister)
-	s.mux.HandleFunc("GET /api/v1/agents", s.handleListAgents)
-	s.mux.HandleFunc("GET /api/v1/agents/{id}", s.handleGetAgent)
-	s.mux.HandleFunc("DELETE /api/v1/agents/{id}", s.handleDeregister)
-	s.mux.HandleFunc("POST /api/v1/agents/{id}/heartbeat", s.handleHeartbeat)
-	s.mux.HandleFunc("POST /api/v1/discover", s.handleDiscover)
-	s.mux.HandleFunc("GET /api/v1/routes", s.handleGetRoutes)
-	s.mux.HandleFunc("GET /api/v1/routes/resolve", s.handleResolveRoute)
-	s.mux.HandleFunc("GET /api/v1/health", s.handleHealth)
-	if s.sigHub != nil {
-		s.mux.HandleFunc("GET /api/v1/signaling", s.sigHub.HandleConnect)
+	authMW := AuthMiddleware(s.authCfg, s.logger)
+	ownerMW := OwnerOnlyMiddleware(s.logger)
+
+	// wrapAuth applies authentication middleware to a handler.
+	wrapAuth := func(h http.HandlerFunc) http.Handler {
+		return authMW(h)
+	}
+	// wrapOwner applies authentication + owner-only middleware.
+	wrapOwner := func(h http.HandlerFunc) http.Handler {
+		return authMW(ownerMW(h))
 	}
 
-	// Bridge send endpoint (PeerClaw agent → external agent).
-	s.mux.HandleFunc("POST /api/v1/bridge/send", s.handleBridgeSend)
+	// Public routes — no authentication required.
+	s.mux.HandleFunc("GET /api/v1/health", s.handleHealth)
 
-	// Federation endpoints.
+	// Authenticated routes.
+	s.mux.Handle("POST /api/v1/agents", wrapAuth(s.handleRegister))
+	s.mux.Handle("GET /api/v1/agents", wrapAuth(s.handleListAgents))
+	s.mux.Handle("GET /api/v1/agents/{id}", wrapAuth(s.handleGetAgent))
+	s.mux.Handle("POST /api/v1/discover", wrapAuth(s.handleDiscover))
+	s.mux.Handle("GET /api/v1/routes", wrapAuth(s.handleGetRoutes))
+	s.mux.Handle("GET /api/v1/routes/resolve", wrapAuth(s.handleResolveRoute))
+	s.mux.Handle("POST /api/v1/bridge/send", wrapAuth(s.handleBridgeSend))
+	if s.sigHub != nil {
+		s.mux.Handle("GET /api/v1/signaling", wrapAuth(s.sigHub.HandleConnect))
+	}
+
+	// Owner-only routes — authenticated agent must match {id} in path.
+	s.mux.Handle("DELETE /api/v1/agents/{id}", wrapOwner(s.handleDeregister))
+	s.mux.Handle("POST /api/v1/agents/{id}/heartbeat", wrapOwner(s.handleHeartbeat))
+
+	// Federation endpoints (use their own token-based auth).
 	s.mux.HandleFunc("POST /api/v1/federation/signal", s.handleFederationSignal)
 	s.mux.HandleFunc("POST /api/v1/federation/discover", s.handleFederationDiscover)
 
@@ -246,6 +278,11 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateRegisterRequest(&req); err != nil {
+		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	protocols := make([]protocol.Protocol, len(req.Protocols))
 	for i, p := range req.Protocols {
 		protocols[i] = protocol.Protocol(p)
@@ -352,6 +389,11 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateHeartbeatStatus(req.Status); err != nil {
+		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	status := agentcard.AgentStatus(req.Status)
 	if status == "" {
 		status = agentcard.StatusOnline
@@ -446,10 +488,20 @@ func (s *HTTPServer) handleFederationSignal(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Verify auth token.
-	token := r.Header.Get("Authorization")
-	expectedToken := "Bearer " + s.federation.AuthToken()
-	if s.federation.AuthToken() != "" && token != expectedToken {
+	// Reject all federation requests when no auth token is configured.
+	expectedToken := s.federation.AuthToken()
+	if expectedToken == "" {
+		s.jsonError(w, "federation auth token not configured", http.StatusForbidden)
+		return
+	}
+
+	// Extract bearer token and use constant-time comparison.
+	providedToken, err := identity.ExtractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if subtle.ConstantTimeCompare([]byte(providedToken), []byte(expectedToken)) != 1 {
 		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -457,6 +509,12 @@ func (s *HTTPServer) handleFederationSignal(w http.ResponseWriter, r *http.Reque
 	var msg coresignaling.SignalMessage
 	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate that the signal message has a legitimate source.
+	if msg.From == "" {
+		s.jsonError(w, "missing 'from' field in signal message", http.StatusBadRequest)
 		return
 	}
 

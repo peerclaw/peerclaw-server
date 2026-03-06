@@ -10,21 +10,33 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
+	"github.com/peerclaw/peerclaw-server/internal/security"
 )
+
+const maxResponseBodySize = 10 << 20 // 10MB
+
+// MaxTasks is the maximum number of tasks tracked by the adapter.
+const MaxTasks = 10000
+
+// DefaultTaskMaxAge is the default TTL for tracked tasks.
+const DefaultTaskMaxAge = 1 * time.Hour
 
 // Adapter implements the ProtocolBridge interface for Google A2A protocol.
 // A2A uses HTTP with JSON-RPC 2.0 message format.
 type Adapter struct {
-	logger  *slog.Logger
-	inbox   chan *envelope.Envelope
-	client  *http.Client
-	tasks   sync.Map // taskID → *Task
-	version string
+	logger    *slog.Logger
+	inbox     chan *envelope.Envelope
+	client    *http.Client
+	tasks     sync.Map // taskID → *Task
+	taskCount atomic.Int64
+	version   string
 }
 
 // New creates a new A2A adapter.
@@ -52,6 +64,11 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	endpoint := env.Metadata["a2a.endpoint"]
 	if endpoint == "" {
 		return fmt.Errorf("a2a: missing a2a.endpoint in metadata")
+	}
+
+	// SSRF validation.
+	if err := security.ValidateURL(endpoint); err != nil {
+		return fmt.Errorf("a2a: SSRF blocked: %w", err)
 	}
 
 	// Build A2A message from envelope.
@@ -93,7 +110,7 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	}
 	defer httpResp.Body.Close()
 
-	respBody, err := io.ReadAll(httpResp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {
 		return fmt.Errorf("a2a: read response: %w", err)
 	}
@@ -120,7 +137,11 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	if taskID == "" {
 		taskID = task.ID
 	}
-	a.tasks.Store(taskID, &task)
+	if _, loaded := a.tasks.LoadOrStore(taskID, &task); loaded {
+		a.tasks.Store(taskID, &task) // update existing
+	} else {
+		a.taskCount.Add(1)
+	}
 
 	a.logger.Info("a2a send complete",
 		"dest", env.Destination,
@@ -156,6 +177,9 @@ func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
 	}
 
 	url := strings.TrimRight(card.Endpoint.URL, "/") + "/.well-known/agent.json"
+	if err := security.ValidateURL(url); err != nil {
+		return fmt.Errorf("a2a: SSRF blocked: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("a2a: create request: %w", err)
@@ -171,7 +195,7 @@ func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
 		return fmt.Errorf("a2a: agent card status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
 	if err != nil {
 		return fmt.Errorf("a2a: read agent card: %w", err)
 	}
@@ -208,6 +232,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 		TraceID:     env.TraceID,
 	}
 
+	var marshalErr error
 	switch targetProtocol {
 	case string(protocol.ProtocolMCP):
 		// A2A message text → MCP tool call arguments.
@@ -217,7 +242,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 				"name":      env.Metadata["mcp.tool_name"],
 				"arguments": map[string]string{"text": msg.Parts[0].Text},
 			}
-			translated.Payload, _ = json.Marshal(toolCall)
+			translated.Payload, marshalErr = json.Marshal(toolCall)
 			translated.Metadata["mcp.method"] = "tools/call"
 		} else {
 			translated.Payload = env.Payload
@@ -231,7 +256,7 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 				"role":  msg.Role,
 				"parts": msg.Parts,
 			}
-			translated.Payload, _ = json.Marshal(acpMsg)
+			translated.Payload, marshalErr = json.Marshal(acpMsg)
 		} else {
 			translated.Payload = env.Payload
 		}
@@ -241,7 +266,11 @@ func (a *Adapter) Translate(ctx context.Context, env *envelope.Envelope, targetP
 			"original_protocol": protocol.ProtocolA2A,
 			"payload":           json.RawMessage(env.Payload),
 		}
-		translated.Payload, _ = json.Marshal(wrapper)
+		translated.Payload, marshalErr = json.Marshal(wrapper)
+	}
+
+	if marshalErr != nil {
+		return nil, fmt.Errorf("a2a translate: marshal payload: %w", marshalErr)
 	}
 
 	return translated, nil
@@ -269,6 +298,42 @@ func (a *Adapter) InjectMessage(env *envelope.Envelope) error {
 	default:
 		return fmt.Errorf("a2a inbox full")
 	}
+}
+
+// StartCleanup launches a background goroutine that periodically removes expired tasks.
+func (a *Adapter) StartCleanup(ctx context.Context, maxAge time.Duration) {
+	if maxAge == 0 {
+		maxAge = DefaultTaskMaxAge
+	}
+	go func() {
+		ticker := time.NewTicker(maxAge / 2)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.cleanExpired(maxAge)
+			}
+		}
+	}()
+}
+
+func (a *Adapter) cleanExpired(maxAge time.Duration) {
+	cutoff := time.Now().Add(-maxAge)
+	a.tasks.Range(func(key, value any) bool {
+		task := value.(*Task)
+		if t, err := time.Parse(time.RFC3339, task.CreatedAt); err == nil && t.Before(cutoff) {
+			a.tasks.Delete(key)
+			a.taskCount.Add(-1)
+		}
+		return true
+	})
+}
+
+// TaskCount returns the current number of tracked tasks.
+func (a *Adapter) TaskCount() int64 {
+	return a.taskCount.Load()
 }
 
 func copyMetadata(m map[string]string) map[string]string {

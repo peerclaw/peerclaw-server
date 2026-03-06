@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,10 +19,11 @@ type rateLimiterEntry struct {
 
 // IPRateLimiter implements per-IP token bucket rate limiting.
 type IPRateLimiter struct {
-	mu       sync.Mutex
-	limiters map[string]*rateLimiterEntry
-	rate     rate.Limit
-	burst    int
+	mu             sync.Mutex
+	limiters       map[string]*rateLimiterEntry
+	rate           rate.Limit
+	burst          int
+	trustedProxies []*net.IPNet
 }
 
 // NewIPRateLimiter creates a new per-IP rate limiter.
@@ -31,6 +33,37 @@ func NewIPRateLimiter(r float64, burst int) *IPRateLimiter {
 		rate:     rate.Limit(r),
 		burst:    burst,
 	}
+}
+
+// SetTrustedProxies sets CIDR ranges whose X-Forwarded-For headers are trusted.
+func (l *IPRateLimiter) SetTrustedProxies(cidrs []string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.trustedProxies = nil
+	for _, cidr := range cidrs {
+		_, ipNet, err := net.ParseCIDR(cidr)
+		if err == nil {
+			l.trustedProxies = append(l.trustedProxies, ipNet)
+		}
+	}
+}
+
+// isTrustedProxy checks if the given IP is in the trusted proxy list.
+func (l *IPRateLimiter) isTrustedProxy(ip string) bool {
+	l.mu.Lock()
+	proxies := l.trustedProxies
+	l.mu.Unlock()
+
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return false
+	}
+	for _, ipNet := range proxies {
+		if ipNet.Contains(parsed) {
+			return true
+		}
+	}
+	return false
 }
 
 // GetLimiter returns the rate limiter for the given IP, creating one if needed.
@@ -85,7 +118,7 @@ func (l *IPRateLimiter) StartCleanup(interval time.Duration) func() {
 func RateLimitMiddleware(limiter *IPRateLimiter, logger *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := clientIP(r)
+			ip := clientIP(r, limiter)
 			lim := limiter.GetLimiter(ip)
 			if !lim.Allow() {
 				retryAfter := int(1.0 / float64(limiter.rate))
@@ -105,20 +138,29 @@ func RateLimitMiddleware(limiter *IPRateLimiter, logger *slog.Logger) Middleware
 	}
 }
 
-func clientIP(r *http.Request) string {
-	// Check X-Forwarded-For first for reverse proxy setups.
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// First IP in the list is the original client.
-		if i := net.ParseIP(xff); i != nil {
-			return xff
+func clientIP(r *http.Request, limiter *IPRateLimiter) string {
+	remoteHost, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		remoteHost = r.RemoteAddr
+	}
+
+	// Only trust proxy headers if RemoteAddr is from a trusted proxy.
+	if limiter != nil && limiter.isTrustedProxy(remoteHost) {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			// First IP in the comma-separated list is the original client.
+			parts := strings.SplitN(xff, ",", 2)
+			ip := strings.TrimSpace(parts[0])
+			if net.ParseIP(ip) != nil {
+				return ip
+			}
+		}
+		if xri := r.Header.Get("X-Real-IP"); xri != "" {
+			ip := strings.TrimSpace(xri)
+			if net.ParseIP(ip) != nil {
+				return ip
+			}
 		}
 	}
-	if xff := r.Header.Get("X-Real-IP"); xff != "" {
-		return xff
-	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
+
+	return remoteHost
 }

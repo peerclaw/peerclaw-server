@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -325,15 +326,30 @@ func (s *SQLiteStore) scanCardFromRows(rows *sql.Rows) (*agentcard.Card, error) 
 }
 
 func (s *SQLiteStore) unmarshalCard(card *agentcard.Card, caps, protos, authParams, meta, tags, skills, tools, status, transport, regAt, hbAt string) {
-	json.Unmarshal([]byte(caps), &card.Capabilities)
-	json.Unmarshal([]byte(protos), &card.Protocols)
-	json.Unmarshal([]byte(authParams), &card.Auth.Params)
-	json.Unmarshal([]byte(meta), &card.Metadata)
-	json.Unmarshal([]byte(tags), &card.PeerClaw.Tags)
-	json.Unmarshal([]byte(skills), &card.Skills)
-	json.Unmarshal([]byte(tools), &card.Tools)
+	unmarshalField := func(data string, target any, field string) {
+		if data != "" {
+			if err := json.Unmarshal([]byte(data), target); err != nil {
+				slog.Warn("sqlite: unmarshal field", "field", field, "card_id", card.ID, "error", err)
+			}
+		}
+	}
+	unmarshalField(caps, &card.Capabilities, "capabilities")
+	unmarshalField(protos, &card.Protocols, "protocols")
+	unmarshalField(authParams, &card.Auth.Params, "auth_params")
+	unmarshalField(meta, &card.Metadata, "metadata")
+	unmarshalField(tags, &card.PeerClaw.Tags, "tags")
+	unmarshalField(skills, &card.Skills, "skills")
+	unmarshalField(tools, &card.Tools, "tools")
 	card.Status = agentcard.AgentStatus(status)
 	card.Endpoint.Transport = protocol.Transport(transport)
-	card.RegisteredAt, _ = time.Parse(time.RFC3339, regAt)
-	card.LastHeartbeat, _ = time.Parse(time.RFC3339, hbAt)
+	if t, err := time.Parse(time.RFC3339, regAt); err != nil {
+		slog.Warn("sqlite: parse registered_at", "card_id", card.ID, "error", err)
+	} else {
+		card.RegisteredAt = t
+	}
+	if t, err := time.Parse(time.RFC3339, hbAt); err != nil {
+		slog.Warn("sqlite: parse last_heartbeat", "card_id", card.ID, "error", err)
+	} else {
+		card.LastHeartbeat = t
+	}
 }

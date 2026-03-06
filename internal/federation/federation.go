@@ -3,6 +3,7 @@ package federation
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -45,8 +46,15 @@ func New(nodeName, authToken string, logger *slog.Logger) *FederationService {
 		peers:     make(map[string]*FederationPeer),
 		authToken: authToken,
 		logger:    logger,
-		client:    &http.Client{Timeout: 10 * time.Second},
-		stopCh:    make(chan struct{}),
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+			},
+		},
+		stopCh: make(chan struct{}),
 	}
 }
 
@@ -172,7 +180,14 @@ func (fs *FederationService) QueryAgents(ctx context.Context, capabilities []str
 }
 
 // HandleIncomingSignal processes a signal message received from a federated peer.
+// sourcePeer identifies which peer sent this message (empty means unverified).
 func (fs *FederationService) HandleIncomingSignal(ctx context.Context, msg signaling.SignalMessage) {
+	// Validate the From field is non-empty.
+	if msg.From == "" {
+		fs.logger.Warn("rejected federated signal with empty From field")
+		return
+	}
+
 	fs.mu.RLock()
 	handler := fs.onSignal
 	fs.mu.RUnlock()

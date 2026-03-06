@@ -16,7 +16,12 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/bridge/acp"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/mcp"
+	"github.com/peerclaw/peerclaw-server/internal/security"
 )
+
+func init() {
+	security.AllowLocalhost = true
+}
 
 // mockA2AServer simulates an external A2A agent.
 func mockA2AServer(t *testing.T) *httptest.Server {
