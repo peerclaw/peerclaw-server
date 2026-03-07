@@ -4,3 +4,49 @@ bin/
 # Dashboard build artifacts (embedded at build time)
 internal/server/dashboard_dist/
 !internal/server/dashboard_dist/.gitkeep
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Private keys / certificates
+*.pem
+*.key
+*.p12
+*.seed
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Config overrides
+peerclaw.yaml
+!configs/peerclaw.example.yaml
+
+# Dependencies
+vendor/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / Coverage
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# Logs
+*.log

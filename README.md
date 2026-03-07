@@ -10,7 +10,7 @@ Start it with one command. No external dependencies required.
 
 ```bash
 ./peerclawd
-# → PeerClaw gateway started  http=:8080  grpc=:9090
+# → PeerClaw gateway started  http=:8080
 ```
 
 ## What It Does
@@ -48,7 +48,7 @@ RUN CGO_ENABLED=1 go build -o /peerclawd ./cmd/peerclawd
 
 FROM alpine:3.19
 COPY --from=build /peerclawd /usr/local/bin/
-EXPOSE 8080 9090
+EXPOSE 8080
 CMD ["peerclawd"]
 ```
 
@@ -114,7 +114,6 @@ All settings via YAML. Every field has a sensible default — you can start with
 ```yaml
 server:
   http_addr: ":8080"
-  grpc_addr: ":9090"
   cors_origins: []                   # e.g. ["https://dashboard.example.com"]
 
 auth:

@@ -14,7 +14,19 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.26"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build frontend
+        run: |
+          cd web/app
+          npm ci
+          npm run build
+          cp -r dist ../../internal/server/dashboard_dist
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y gcc libsqlite3-dev
@@ -38,7 +50,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.26"
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6

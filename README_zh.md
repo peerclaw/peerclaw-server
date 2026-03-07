@@ -10,7 +10,7 @@ peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证
 
 ```bash
 ./peerclawd
-# → PeerClaw gateway started  http=:8080  grpc=:9090
+# → PeerClaw gateway started  http=:8080
 ```
 
 ## 核心能力
@@ -48,7 +48,7 @@ RUN CGO_ENABLED=1 go build -o /peerclawd ./cmd/peerclawd
 
 FROM alpine:3.19
 COPY --from=build /peerclawd /usr/local/bin/
-EXPOSE 8080 9090
+EXPOSE 8080
 CMD ["peerclawd"]
 ```
 
@@ -114,7 +114,6 @@ curl http://localhost:8080/api/v1/health
 ```yaml
 server:
   http_addr: ":8080"
-  grpc_addr: ":9090"
   cors_origins: []                   # 如 ["https://dashboard.example.com"]
 
 auth:

@@ -1,18 +1,22 @@
 server:
   http_addr: ":8080"
-  grpc_addr: ":9090"
+  cors_origins: []                   # e.g. ["https://dashboard.example.com"]
+
+auth:
+  required: false                    # Set true in production
 
 database:
-  dsn: "peerclaw.db"
+  driver: "sqlite"                   # "sqlite" or "postgres"
+  dsn: "peerclaw.db"                 # SQLite file or PostgreSQL DSN
 
 redis:
   addr: "localhost:6379"
-  password: ""
+  password: ""                       # Use "${REDIS_PASSWORD}" for env var substitution
   db: 0
 
 logging:
-  level: "info"     # debug, info, warn, error
-  format: "text"    # text, json
+  level: "info"                      # debug, info, warn, error
+  format: "text"                     # text, json
 
 bridge:
   a2a:
@@ -25,6 +29,32 @@ bridge:
 signaling:
   enabled: true
   turn:
-    urls: []
+    urls: []                         # e.g. ["turn:turn.example.com:3478"]
     username: ""
-    credential: ""
+    credential: ""                   # Use "${TURN_CREDENTIAL}" for env var
+
+rate_limit:
+  enabled: true
+  requests_per_sec: 100
+  burst_size: 200
+  max_connections: 1000
+
+observability:
+  enabled: false
+  otlp_endpoint: "localhost:4317"
+  service_name: "peerclaw-gateway"
+  traces_sampling: 0.1               # Sample 10% of traces
+
+audit_log:
+  enabled: true
+  output: "stdout"                   # or "file:/var/log/peerclaw-audit.log"
+
+federation:
+  enabled: false
+  node_name: "node-1"
+  auth_token: "${FEDERATION_TOKEN}"  # Required when federation is enabled
+  peers: []
+  # peers:
+  #   - name: "node-2"
+  #     address: "https://node2.example.com"
+  #     token: "${FEDERATION_PEER_TOKEN}"

@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.11.2
 	github.com/mattn/go-sqlite3 v1.14.34
-	github.com/peerclaw/peerclaw-core v0.0.0
+	github.com/peerclaw/peerclaw-core v0.1.0
 	github.com/redis/go-redis/v9 v9.18.0
 	go.opentelemetry.io/otel v1.41.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.41.0
@@ -39,5 +39,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace github.com/peerclaw/peerclaw-core => ../core
