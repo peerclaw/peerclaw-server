@@ -229,6 +229,71 @@ func (s *PostgresStore) UpdateAPIKeyLastUsed(ctx context.Context, keyID string) 
 	return err
 }
 
+func (s *PostgresStore) ListUsers(ctx context.Context, search, role string, limit, offset int) ([]User, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	where := "1=1"
+	var args []interface{}
+	argN := 1
+	if search != "" {
+		where += fmt.Sprintf(" AND (email ILIKE $%d OR display_name ILIKE $%d)", argN, argN+1)
+		args = append(args, "%"+search+"%", "%"+search+"%")
+		argN += 2
+	}
+	if role != "" {
+		where += fmt.Sprintf(" AND role = $%d", argN)
+		args = append(args, role)
+		argN++
+	}
+
+	var total int
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	args = append(args, limit, offset)
+	rows, err := s.db.QueryContext(ctx,
+		fmt.Sprintf("SELECT id, email, password_hash, display_name, role, created_at, updated_at FROM users WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
+		args...,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		users = append(users, u)
+	}
+	return users, total, rows.Err()
+}
+
+func (s *PostgresStore) DeleteUser(ctx context.Context, id string) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
+func (s *PostgresStore) CountUsers(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
 // Close is a no-op since the db is shared.
 func (s *PostgresStore) Close() error {
 	return nil

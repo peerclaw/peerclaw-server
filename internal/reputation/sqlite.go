@@ -163,6 +163,15 @@ func (s *SQLiteStore) SetAgentVerified(ctx context.Context, agentID string) erro
 	return err
 }
 
+// UnsetAgentVerified removes the verified status from an agent.
+func (s *SQLiteStore) UnsetAgentVerified(ctx context.Context, agentID string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE agents SET verified = 0, verified_at = NULL WHERE id = ?`,
+		agentID,
+	)
+	return err
+}
+
 // ListStaleOnlineAgents returns IDs of agents whose status is online but
 // whose last heartbeat is older than the given timeout.
 func (s *SQLiteStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {

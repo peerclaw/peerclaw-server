@@ -242,6 +242,46 @@ func (s *Service) ValidateAPIKey(ctx context.Context, key string) (*User, error)
 	return s.store.GetUserByID(ctx, apiKey.UserID)
 }
 
+// ListUsers returns users with optional search and role filter.
+func (s *Service) ListUsers(ctx context.Context, search, role string, limit, offset int) ([]User, int, error) {
+	return s.store.ListUsers(ctx, search, role, limit, offset)
+}
+
+// UpdateRole updates a user's role after validation.
+func (s *Service) UpdateRole(ctx context.Context, userID, newRole string) (*User, error) {
+	validRoles := map[string]bool{"user": true, "provider": true, "admin": true}
+	if !validRoles[newRole] {
+		return nil, fmt.Errorf("invalid role: %s (must be user, provider, or admin)", newRole)
+	}
+
+	user, err := s.store.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+	user.Role = newRole
+	user.UpdatedAt = time.Now().UTC()
+	if err := s.store.UpdateUser(ctx, user); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+
+	s.logger.Info("user role updated", "user_id", userID, "new_role", newRole)
+	return user, nil
+}
+
+// DeleteUser removes a user by ID.
+func (s *Service) DeleteUser(ctx context.Context, userID string) error {
+	if err := s.store.DeleteUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	s.logger.Info("user deleted", "user_id", userID)
+	return nil
+}
+
+// CountUsers returns the total number of users.
+func (s *Service) CountUsers(ctx context.Context) (int, error) {
+	return s.store.CountUsers(ctx)
+}
+
 // JWTManager returns the JWT manager.
 func (s *Service) JWTManager() *JWTManager {
 	return s.jwt

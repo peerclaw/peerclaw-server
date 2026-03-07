@@ -81,6 +81,15 @@ type Store interface {
 	// UpdateAPIKeyLastUsed updates the last_used timestamp.
 	UpdateAPIKeyLastUsed(ctx context.Context, keyID string) error
 
+	// ListUsers returns users with optional search and role filter, plus total count.
+	ListUsers(ctx context.Context, search, role string, limit, offset int) ([]User, int, error)
+
+	// DeleteUser removes a user by ID.
+	DeleteUser(ctx context.Context, id string) error
+
+	// CountUsers returns the total number of users.
+	CountUsers(ctx context.Context) (int, error)
+
 	// Migrate creates the required tables.
 	Migrate(ctx context.Context) error
 

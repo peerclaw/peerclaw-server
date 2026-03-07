@@ -194,6 +194,28 @@ func UserAuthMiddleware(jwtMgr *userauth.JWTManager, logger *slog.Logger) Middle
 	}
 }
 
+// AdminOnlyMiddleware ensures the authenticated user has the "admin" role.
+// Must be used after UserAuthMiddleware which stores the role in context.
+func AdminOnlyMiddleware(logger *slog.Logger) Middleware {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role, ok := identity.UserRoleFromContext(r.Context())
+			if !ok || role != "admin" {
+				logger.Warn("admin-only access denied",
+					"role", role,
+					"path", r.URL.Path,
+				)
+				http.Error(w, `{"error":"forbidden: admin access required"}`, http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // OptionalUserAuthMiddleware extracts JWT if present but does not require it.
 func OptionalUserAuthMiddleware(jwtMgr *userauth.JWTManager, logger *slog.Logger) Middleware {
 	if logger == nil {

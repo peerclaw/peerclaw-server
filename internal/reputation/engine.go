@@ -125,3 +125,8 @@ func (e *Engine) SetVerified(ctx context.Context, agentID string) error {
 	}
 	return e.RecordEvent(ctx, agentID, EventVerificationPass, "")
 }
+
+// UnsetVerified removes the verified status from an agent.
+func (e *Engine) UnsetVerified(ctx context.Context, agentID string) error {
+	return e.store.UnsetAgentVerified(ctx, agentID)
+}

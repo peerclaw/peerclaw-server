@@ -149,6 +149,15 @@ func (s *PostgresStore) SetAgentVerified(ctx context.Context, agentID string) er
 	return err
 }
 
+// UnsetAgentVerified removes the verified status from an agent.
+func (s *PostgresStore) UnsetAgentVerified(ctx context.Context, agentID string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE agents SET verified = FALSE, verified_at = NULL WHERE id = $1`,
+		agentID,
+	)
+	return err
+}
+
 // ListStaleOnlineAgents returns IDs of agents whose status is online but
 // whose last heartbeat is older than the given timeout.
 func (s *PostgresStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {

@@ -226,6 +226,9 @@ func (s *HTTPServer) routes() {
 	// Review and community routes.
 	s.registerReviewRoutes()
 
+	// Admin routes.
+	s.registerAdminRoutes()
+
 	// Dashboard SPA (catch-all, registered last).
 	s.mux.Handle("GET /", DashboardHandler())
 }

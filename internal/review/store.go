@@ -74,6 +74,33 @@ type Store interface {
 	// SetAgentCategories replaces the category associations for an agent.
 	SetAgentCategories(ctx context.Context, agentID string, categoryIDs []string) error
 
+	// ListReports returns abuse reports with optional status filter and pagination.
+	ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error)
+
+	// GetReport retrieves a single abuse report by ID.
+	GetReport(ctx context.Context, id string) (*AbuseReport, error)
+
+	// UpdateReportStatus updates the status of an abuse report.
+	UpdateReportStatus(ctx context.Context, id, status string) error
+
+	// DeleteReport removes an abuse report by ID.
+	DeleteReport(ctx context.Context, id string) error
+
+	// CreateCategory inserts a new category.
+	CreateCategory(ctx context.Context, category *Category) error
+
+	// UpdateCategory updates an existing category.
+	UpdateCategory(ctx context.Context, category *Category) error
+
+	// DeleteCategory removes a category by ID.
+	DeleteCategory(ctx context.Context, id string) error
+
+	// CountReviews returns the total number of reviews.
+	CountReviews(ctx context.Context) (int, error)
+
+	// CountReports returns the number of abuse reports, optionally filtered by status.
+	CountReports(ctx context.Context, status string) (int, error)
+
 	// Migrate creates the required tables.
 	Migrate(ctx context.Context) error
 

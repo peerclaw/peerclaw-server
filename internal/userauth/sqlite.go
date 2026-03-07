@@ -254,6 +254,71 @@ func (s *SQLiteStore) UpdateAPIKeyLastUsed(ctx context.Context, keyID string) er
 	return err
 }
 
+func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit, offset int) ([]User, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	where := "1=1"
+	var args []interface{}
+	if search != "" {
+		where += " AND (email LIKE ? OR display_name LIKE ?)"
+		args = append(args, "%"+search+"%", "%"+search+"%")
+	}
+	if role != "" {
+		where += " AND role = ?"
+		args = append(args, role)
+	}
+
+	var total int
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	args = append(args, limit, offset)
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT id, email, password_hash, display_name, role, created_at, updated_at FROM users WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		args...,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		var createdAt, updatedAt string
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &createdAt, &updatedAt); err != nil {
+			return nil, 0, err
+		}
+		u.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+		u.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+		users = append(users, u)
+	}
+	return users, total, rows.Err()
+}
+
+func (s *SQLiteStore) DeleteUser(ctx context.Context, id string) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
+func (s *SQLiteStore) CountUsers(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
 // Close is a no-op since the db is shared.
 func (s *SQLiteStore) Close() error {
 	return nil

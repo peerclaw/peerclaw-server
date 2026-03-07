@@ -196,6 +196,139 @@ func (s *PostgresStore) ProviderDashboardStats(ctx context.Context, ownerUserID 
 	return &stats, nil
 }
 
+func (s *PostgresStore) ListAll(ctx context.Context, agentID, userID string, limit, offset int) ([]InvocationRecord, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	where := "1=1"
+	var args []interface{}
+	argN := 1
+	if agentID != "" {
+		where += fmt.Sprintf(" AND agent_id = $%d", argN)
+		args = append(args, agentID)
+		argN++
+	}
+	if userID != "" {
+		where += fmt.Sprintf(" AND user_id = $%d", argN)
+		args = append(args, userID)
+		argN++
+	}
+
+	var total int
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM invocations WHERE "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	args = append(args, limit, offset)
+	rows, err := s.db.QueryContext(ctx,
+		fmt.Sprintf("SELECT id, agent_id, user_id, protocol, status_code, duration_ms, error, ip_address, created_at FROM invocations WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
+		args...,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var records []InvocationRecord
+	for rows.Next() {
+		var r InvocationRecord
+		if err := rows.Scan(&r.ID, &r.AgentID, &r.UserID, &r.Protocol, &r.StatusCode, &r.DurationMs, &r.Error, &r.IPAddress, &r.CreatedAt); err != nil {
+			return nil, 0, err
+		}
+		records = append(records, r)
+	}
+	return records, total, rows.Err()
+}
+
+func (s *PostgresStore) GlobalStats(ctx context.Context, since time.Time) (*AgentInvocationStats, error) {
+	var stats AgentInvocationStats
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*),
+		        SUM(CASE WHEN status_code >= 200 AND status_code < 400 THEN 1 ELSE 0 END),
+		        SUM(CASE WHEN status_code >= 400 OR error != '' THEN 1 ELSE 0 END),
+		        COALESCE(AVG(duration_ms), 0)
+		 FROM invocations WHERE created_at >= $1`,
+		since.UTC(),
+	).Scan(&stats.TotalCalls, &stats.SuccessCalls, &stats.ErrorCalls, &stats.AvgDurationMs)
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
+func (s *PostgresStore) GlobalTimeSeries(ctx context.Context, since time.Time, bucketMinutes int) ([]TimeSeriesPoint, error) {
+	if bucketMinutes <= 0 {
+		bucketMinutes = 60
+	}
+	rows, err := s.db.QueryContext(ctx,
+		fmt.Sprintf(`SELECT
+			date_trunc('hour', created_at) + (EXTRACT(minute FROM created_at)::int / %d * %d) * interval '1 minute' as bucket,
+			COUNT(*),
+			SUM(CASE WHEN status_code >= 200 AND status_code < 400 THEN 1 ELSE 0 END),
+			SUM(CASE WHEN status_code >= 400 OR error != '' THEN 1 ELSE 0 END),
+			COALESCE(AVG(duration_ms), 0)
+		 FROM invocations WHERE created_at >= $1
+		 GROUP BY bucket ORDER BY bucket`, bucketMinutes, bucketMinutes),
+		since.UTC(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var points []TimeSeriesPoint
+	for rows.Next() {
+		var p TimeSeriesPoint
+		if err := rows.Scan(&p.Timestamp, &p.TotalCalls, &p.SuccessCalls, &p.ErrorCalls, &p.AvgDurationMs); err != nil {
+			return nil, err
+		}
+		points = append(points, p)
+	}
+	return points, rows.Err()
+}
+
+func (s *PostgresStore) TopAgents(ctx context.Context, since time.Time, limit int) ([]AgentCallStats, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT i.agent_id, COALESCE(a.name, i.agent_id),
+		        COUNT(*),
+		        SUM(CASE WHEN i.status_code >= 200 AND i.status_code < 400 THEN 1 ELSE 0 END),
+		        SUM(CASE WHEN i.status_code >= 400 OR i.error != '' THEN 1 ELSE 0 END),
+		        COALESCE(AVG(i.duration_ms), 0)
+		 FROM invocations i
+		 LEFT JOIN agents a ON a.id = i.agent_id
+		 WHERE i.created_at >= $1
+		 GROUP BY i.agent_id, a.name
+		 ORDER BY COUNT(*) DESC LIMIT $2`,
+		since.UTC(), limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var stats []AgentCallStats
+	for rows.Next() {
+		var s AgentCallStats
+		if err := rows.Scan(&s.AgentID, &s.AgentName, &s.TotalCalls, &s.SuccessCalls, &s.ErrorCalls, &s.AvgDurationMs); err != nil {
+			return nil, err
+		}
+		stats = append(stats, s)
+	}
+	return stats, rows.Err()
+}
+
+func (s *PostgresStore) CountInvocations(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM invocations").Scan(&count)
+	return count, err
+}
+
 func (s *PostgresStore) Close() error {
 	return nil
 }

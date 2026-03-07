@@ -250,6 +250,139 @@ func (s *PostgresStore) SetAgentCategories(ctx context.Context, agentID string, 
 	return tx.Commit()
 }
 
+func (s *PostgresStore) ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	where := "1=1"
+	var args []interface{}
+	argN := 1
+	if status != "" {
+		where += fmt.Sprintf(" AND status = $%d", argN)
+		args = append(args, status)
+		argN++
+	}
+
+	var total int
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM abuse_reports WHERE "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	args = append(args, limit, offset)
+	rows, err := s.db.QueryContext(ctx,
+		fmt.Sprintf("SELECT id, reporter_id, target_type, target_id, reason, details, status, created_at FROM abuse_reports WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
+		args...,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var reports []AbuseReport
+	for rows.Next() {
+		var r AbuseReport
+		if err := rows.Scan(&r.ID, &r.ReporterID, &r.TargetType, &r.TargetID, &r.Reason, &r.Details, &r.Status, &r.CreatedAt); err != nil {
+			return nil, 0, err
+		}
+		reports = append(reports, r)
+	}
+	return reports, total, rows.Err()
+}
+
+func (s *PostgresStore) GetReport(ctx context.Context, id string) (*AbuseReport, error) {
+	var r AbuseReport
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, reporter_id, target_type, target_id, reason, details, status, created_at
+		 FROM abuse_reports WHERE id = $1`, id,
+	).Scan(&r.ID, &r.ReporterID, &r.TargetType, &r.TargetID, &r.Reason, &r.Details, &r.Status, &r.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("report not found")
+		}
+		return nil, err
+	}
+	return &r, nil
+}
+
+func (s *PostgresStore) UpdateReportStatus(ctx context.Context, id, status string) error {
+	res, err := s.db.ExecContext(ctx, "UPDATE abuse_reports SET status = $1 WHERE id = $2", status, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("report not found")
+	}
+	return nil
+}
+
+func (s *PostgresStore) DeleteReport(ctx context.Context, id string) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM abuse_reports WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("report not found")
+	}
+	return nil
+}
+
+func (s *PostgresStore) CreateCategory(ctx context.Context, category *Category) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO categories (id, name, slug, description, icon, sort_order)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		category.ID, category.Name, category.Slug, category.Description, category.Icon, category.SortOrder,
+	)
+	return err
+}
+
+func (s *PostgresStore) UpdateCategory(ctx context.Context, category *Category) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE categories SET name = $1, slug = $2, description = $3, icon = $4, sort_order = $5 WHERE id = $6`,
+		category.Name, category.Slug, category.Description, category.Icon, category.SortOrder, category.ID,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("category not found")
+	}
+	return nil
+}
+
+func (s *PostgresStore) DeleteCategory(ctx context.Context, id string) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM categories WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("category not found")
+	}
+	return nil
+}
+
+func (s *PostgresStore) CountReviews(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM reviews").Scan(&count)
+	return count, err
+}
+
+func (s *PostgresStore) CountReports(ctx context.Context, status string) (int, error) {
+	var count int
+	if status != "" {
+		err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM abuse_reports WHERE status = $1", status).Scan(&count)
+		return count, err
+	}
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM abuse_reports").Scan(&count)
+	return count, err
+}
+
 // Close is a no-op since the db is shared.
 func (s *PostgresStore) Close() error {
 	return nil

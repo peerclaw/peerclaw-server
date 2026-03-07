@@ -113,3 +113,55 @@ func (s *Service) SubmitReport(ctx context.Context, reporterID, targetType, targ
 func (s *Service) ListCategories(ctx context.Context) ([]Category, error) {
 	return s.store.ListCategories(ctx)
 }
+
+// ListReports returns abuse reports with optional status filter.
+func (s *Service) ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error) {
+	return s.store.ListReports(ctx, status, limit, offset)
+}
+
+// GetReport retrieves a single abuse report by ID.
+func (s *Service) GetReport(ctx context.Context, id string) (*AbuseReport, error) {
+	return s.store.GetReport(ctx, id)
+}
+
+// UpdateReportStatus updates the status of an abuse report.
+func (s *Service) UpdateReportStatus(ctx context.Context, id, status string) error {
+	validStatuses := map[string]bool{"pending": true, "reviewed": true, "dismissed": true, "actioned": true}
+	if !validStatuses[status] {
+		return fmt.Errorf("invalid report status: %s", status)
+	}
+	return s.store.UpdateReportStatus(ctx, id, status)
+}
+
+// DeleteReport removes an abuse report by ID.
+func (s *Service) DeleteReport(ctx context.Context, id string) error {
+	return s.store.DeleteReport(ctx, id)
+}
+
+// CreateCategory creates a new category.
+func (s *Service) CreateCategory(ctx context.Context, category *Category) error {
+	if category.ID == "" {
+		category.ID = uuid.New().String()
+	}
+	return s.store.CreateCategory(ctx, category)
+}
+
+// UpdateCategory updates an existing category.
+func (s *Service) UpdateCategory(ctx context.Context, category *Category) error {
+	return s.store.UpdateCategory(ctx, category)
+}
+
+// DeleteCategory removes a category by ID.
+func (s *Service) DeleteCategory(ctx context.Context, id string) error {
+	return s.store.DeleteCategory(ctx, id)
+}
+
+// CountReviews returns the total number of reviews.
+func (s *Service) CountReviews(ctx context.Context) (int, error) {
+	return s.store.CountReviews(ctx)
+}
+
+// CountReports returns the number of abuse reports, optionally filtered by status.
+func (s *Service) CountReports(ctx context.Context, status string) (int, error) {
+	return s.store.CountReports(ctx, status)
+}

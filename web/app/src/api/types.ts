@@ -217,3 +217,70 @@ export interface ProviderDashboardStats {
     error_rate: number
   }>
 }
+
+// Admin types
+
+export interface AdminDashboardStats {
+  total_users: number
+  total_agents: number
+  connected_agents: number
+  total_invocations: number
+  total_reviews: number
+  pending_reports: number
+  health: {
+    status: string
+    database?: string
+  }
+}
+
+export interface AdminUser {
+  id: string
+  email: string
+  display_name: string
+  role: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminUserListResponse {
+  users: AdminUser[]
+  total: number
+}
+
+export interface AdminAgentDetail {
+  agent: import("./types").Agent
+  owner?: AdminUser
+  reputation_score?: number
+  reputation_events?: import("./types").ReputationEvent[]
+  review_summary?: ReviewSummary
+  invocation_stats?: AgentInvocationStats
+}
+
+export interface AdminReportListResponse {
+  reports: AbuseReport[]
+  total: number
+}
+
+export interface GlobalAnalytics {
+  stats: AgentInvocationStats
+  time_series: Array<{
+    timestamp: string
+    total_calls: number
+    success_calls: number
+    error_calls: number
+    avg_duration_ms: number
+  }>
+  top_agents: Array<{
+    agent_id: string
+    agent_name: string
+    total_calls: number
+    success_calls: number
+    error_calls: number
+    avg_duration_ms: number
+  }>
+}
+
+export interface AdminInvocationListResponse {
+  invocations: InvocationRecord[]
+  total: number
+}

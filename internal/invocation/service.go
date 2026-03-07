@@ -54,3 +54,28 @@ func (s *Service) AgentTimeSeries(ctx context.Context, agentID string, since tim
 func (s *Service) ProviderDashboardStats(ctx context.Context, ownerUserID string) (*AgentInvocationStats, error) {
 	return s.store.ProviderDashboardStats(ctx, ownerUserID)
 }
+
+// ListAll returns all invocations with optional agent/user filters.
+func (s *Service) ListAll(ctx context.Context, agentID, userID string, limit, offset int) ([]InvocationRecord, int, error) {
+	return s.store.ListAll(ctx, agentID, userID, limit, offset)
+}
+
+// GlobalStats returns aggregated stats across all agents.
+func (s *Service) GlobalStats(ctx context.Context, since time.Time) (*AgentInvocationStats, error) {
+	return s.store.GlobalStats(ctx, since)
+}
+
+// GlobalTimeSeries returns time-bucketed invocation data across all agents.
+func (s *Service) GlobalTimeSeries(ctx context.Context, since time.Time, bucketMinutes int) ([]TimeSeriesPoint, error) {
+	return s.store.GlobalTimeSeries(ctx, since, bucketMinutes)
+}
+
+// TopAgents returns the top agents by call count.
+func (s *Service) TopAgents(ctx context.Context, since time.Time, limit int) ([]AgentCallStats, error) {
+	return s.store.TopAgents(ctx, since, limit)
+}
+
+// CountInvocations returns the total number of invocations.
+func (s *Service) CountInvocations(ctx context.Context) (int, error) {
+	return s.store.CountInvocations(ctx)
+}
