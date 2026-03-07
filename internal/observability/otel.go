@@ -73,7 +73,7 @@ func Init(ctx context.Context, cfg config.ObservabilityConfig, logger *slog.Logg
 		otlpmetricgrpc.WithInsecure(),
 	)
 	if err != nil {
-		tp.Shutdown(ctx)
+		_ = tp.Shutdown(ctx)
 		return nil, err
 	}
 

@@ -20,7 +20,7 @@ func init() {
 
 func TestAdapterProtocol(t *testing.T) {
 	a := New(nil, nil)
-	defer a.Close()
+	defer func() { _ = a.Close() }()
 	if a.Protocol() != "acp" {
 		t.Errorf("Protocol() = %q", a.Protocol())
 	}
@@ -46,18 +46,18 @@ func TestAdapterSend(t *testing.T) {
 		}
 
 		var req CreateRunRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		if req.AgentName != "echo" {
 			t.Errorf("AgentName = %q", req.AgentName)
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(run)
+		_ = json.NewEncoder(w).Encode(run)
 	}))
 	defer server.Close()
 
 	adapter := New(nil, server.Client())
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	env := envelope.New("alice", "echo", protocol.ProtocolACP, []byte("do something"))
 	env.Metadata["acp.endpoint"] = server.URL
@@ -91,7 +91,7 @@ func TestAdapterSend(t *testing.T) {
 
 func TestAdapterSendMissingEndpoint(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	env := envelope.New("a", "b", protocol.ProtocolACP, []byte("test"))
 	err := adapter.Send(context.Background(), env)
@@ -118,7 +118,7 @@ func TestAdapterHandshake(t *testing.T) {
 	defer server.Close()
 
 	adapter := New(nil, server.Client())
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	card := &agentcard.Card{
 		ID:       "echo-id",
@@ -134,7 +134,7 @@ func TestAdapterHandshake(t *testing.T) {
 
 func TestAdapterHandshakeNoURL(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	card := &agentcard.Card{ID: "test"}
 	err := adapter.Handshake(context.Background(), card)
@@ -145,7 +145,7 @@ func TestAdapterHandshakeNoURL(t *testing.T) {
 
 func TestAdapterTranslateToA2A(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	msg := Message{
 		Role:  "agent",
@@ -165,7 +165,7 @@ func TestAdapterTranslateToA2A(t *testing.T) {
 
 func TestAdapterTranslateSame(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	env := envelope.New("a", "b", protocol.ProtocolACP, []byte("test"))
 	translated, err := adapter.Translate(context.Background(), env, "acp")
@@ -179,7 +179,7 @@ func TestAdapterTranslateSame(t *testing.T) {
 
 func TestHandleListAgents(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	httpReq := httptest.NewRequest(http.MethodGet, "/acp/agents", nil)
 	w := httptest.NewRecorder()
@@ -199,7 +199,7 @@ func TestHandleListAgents(t *testing.T) {
 
 func TestHandleGetAgent(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	httpReq := httptest.NewRequest(http.MethodGet, "/acp/agents/echo", nil)
 	httpReq.SetPathValue("name", "echo")
@@ -220,7 +220,7 @@ func TestHandleGetAgent(t *testing.T) {
 
 func TestHandleCreateRun(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	req := CreateRunRequest{
 		AgentName: "echo",
@@ -264,7 +264,7 @@ func TestHandleCreateRun(t *testing.T) {
 
 func TestHandleCreateRun_MissingAgent(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	req := CreateRunRequest{Input: []Message{}}
 	body, _ := json.Marshal(req)
@@ -281,7 +281,7 @@ func TestHandleCreateRun_MissingAgent(t *testing.T) {
 
 func TestHandleGetRun(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	run := &Run{RunID: "run-1", Status: RunStatusCompleted, AgentName: "echo"}
 	adapter.runs.Store("run-1", run)
@@ -305,7 +305,7 @@ func TestHandleGetRun(t *testing.T) {
 
 func TestHandleGetRun_NotFound(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	httpReq := httptest.NewRequest(http.MethodGet, "/acp/runs/unknown", nil)
 	httpReq.SetPathValue("run_id", "unknown")
@@ -320,7 +320,7 @@ func TestHandleGetRun_NotFound(t *testing.T) {
 
 func TestHandleCancelRun(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	run := &Run{RunID: "run-1", Status: RunStatusInProgress}
 	adapter.runs.Store("run-1", run)
@@ -344,7 +344,7 @@ func TestHandleCancelRun(t *testing.T) {
 
 func TestHandlePing(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	httpReq := httptest.NewRequest(http.MethodGet, "/acp/ping", nil)
 	w := httptest.NewRecorder()
@@ -358,7 +358,7 @@ func TestHandlePing(t *testing.T) {
 
 func TestInjectMessage(t *testing.T) {
 	adapter := New(nil, nil)
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	env := envelope.New("test", "dest", protocol.ProtocolACP, []byte("test"))
 	if err := adapter.InjectMessage(env); err != nil {

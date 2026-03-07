@@ -147,7 +147,7 @@ func (a *Adapter) HandleAgentCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(card)
+	_ = json.NewEncoder(w).Encode(card)
 }
 
 // HandleGetTask handles GET /a2a/tasks/{id}.
@@ -165,7 +165,7 @@ func (a *Adapter) HandleGetTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(task)
+	_ = json.NewEncoder(w).Encode(task)
 }
 
 // KindNotification is used for checking parsed message kind.
@@ -179,12 +179,12 @@ func writeJSONRPCResult(w http.ResponseWriter, id any, result any) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func writeJSONRPCError(w http.ResponseWriter, id any, code int, message string) {
 	resp := jsonrpc.NewErrorResponse(id, code, message)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // JSON-RPC errors still use 200
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }

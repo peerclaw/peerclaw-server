@@ -127,7 +127,7 @@ func (fs *FederationService) ForwardSignal(ctx context.Context, msg signaling.Si
 			lastErr = err
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			fs.logger.Warn("federation forward rejected", "peer", p.Name, "status", resp.StatusCode)
 		}
@@ -170,10 +170,10 @@ func (fs *FederationService) QueryAgents(ctx context.Context, capabilities []str
 			Agents []*agentcard.Card `json:"agents"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		allCards = append(allCards, result.Agents...)
 	}
 	return allCards, nil

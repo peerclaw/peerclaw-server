@@ -25,12 +25,12 @@ func NewPostgresStore(dsn string) (*PostgresStore, error) {
 		return nil, fmt.Errorf("open postgres: %w", err)
 	}
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
 	s := &PostgresStore{db: db}
 	if err := s.migrate(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 	return s, nil
@@ -187,7 +187,7 @@ func (s *PostgresStore) List(ctx context.Context, filter ListFilter) (*ListResul
 
 	offset := 0
 	if filter.PageToken != "" {
-		fmt.Sscanf(filter.PageToken, "%d", &offset)
+		_, _ = fmt.Sscanf(filter.PageToken, "%d", &offset)
 	}
 
 	query := fmt.Sprintf(`SELECT
@@ -207,7 +207,7 @@ func (s *PostgresStore) List(ctx context.Context, filter ListFilter) (*ListResul
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var agents []*agentcard.Card
 	for rows.Next() {
@@ -287,7 +287,7 @@ func (s *PostgresStore) FindByCapabilities(ctx context.Context, capabilities []s
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var agents []*agentcard.Card
 	for rows.Next() {
@@ -354,13 +354,13 @@ func (s *PostgresStore) scanCardFromRows(rows *sql.Rows) (*agentcard.Card, error
 }
 
 func (s *PostgresStore) unmarshalCard(card *agentcard.Card, caps, protos, authParams, meta, tags, skills, tools, status, transport string, regAt, hbAt time.Time) {
-	json.Unmarshal([]byte(caps), &card.Capabilities)
-	json.Unmarshal([]byte(protos), &card.Protocols)
-	json.Unmarshal([]byte(authParams), &card.Auth.Params)
-	json.Unmarshal([]byte(meta), &card.Metadata)
-	json.Unmarshal([]byte(tags), &card.PeerClaw.Tags)
-	json.Unmarshal([]byte(skills), &card.Skills)
-	json.Unmarshal([]byte(tools), &card.Tools)
+	_ = json.Unmarshal([]byte(caps), &card.Capabilities)
+	_ = json.Unmarshal([]byte(protos), &card.Protocols)
+	_ = json.Unmarshal([]byte(authParams), &card.Auth.Params)
+	_ = json.Unmarshal([]byte(meta), &card.Metadata)
+	_ = json.Unmarshal([]byte(tags), &card.PeerClaw.Tags)
+	_ = json.Unmarshal([]byte(skills), &card.Skills)
+	_ = json.Unmarshal([]byte(tools), &card.Tools)
 	card.Status = agentcard.AgentStatus(status)
 	card.Endpoint.Transport = protocol.Transport(transport)
 	card.RegisteredAt = regAt

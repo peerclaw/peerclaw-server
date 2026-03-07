@@ -108,7 +108,7 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	if err != nil {
 		return fmt.Errorf("a2a: http post: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {
@@ -189,7 +189,7 @@ func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
 	if err != nil {
 		return fmt.Errorf("a2a: fetch agent card: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("a2a: agent card status %d", resp.StatusCode)

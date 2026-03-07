@@ -348,7 +348,7 @@ func (a *Adapter) doPost(ctx context.Context, endpoint string, msg any, sessionI
 	if err != nil {
 		return nil, fmt.Errorf("mcp: http post: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {

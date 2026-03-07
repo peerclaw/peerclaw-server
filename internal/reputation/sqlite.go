@@ -71,7 +71,7 @@ func (s *SQLiteStore) columnExists(ctx context.Context, table, column string) bo
 	if err != nil {
 		return false
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var cid int
 		var name, typeName string
@@ -127,7 +127,7 @@ func (s *SQLiteStore) ListEvents(ctx context.Context, agentID string, limit int)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var events []Event
 	for rows.Next() {

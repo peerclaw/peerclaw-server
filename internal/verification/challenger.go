@@ -90,20 +90,20 @@ func (c *Challenger) InitiateChallenge(ctx context.Context, agentID, endpointURL
 	verifyURL := endpointURL + "/.well-known/peerclaw-verify?challenge=" + nonce
 	resp, err := c.client.Get(verifyURL)
 	if err != nil {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("request to endpoint failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("endpoint returned status %d", resp.StatusCode)
 	}
 
 	// Read and verify the response.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	if err != nil {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
@@ -112,40 +112,40 @@ func (c *Challenger) InitiateChallenge(ctx context.Context, agentID, endpointURL
 		Signature string `json:"signature"`
 	}
 	if err := json.Unmarshal(body, &verifyResp); err != nil {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("invalid response format: %w", err)
 	}
 
 	// Verify nonce matches.
 	if verifyResp.Challenge != nonce {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("challenge mismatch")
 	}
 
 	// Verify Ed25519 signature.
 	pubKeyBytes, err := hex.DecodeString(publicKey)
 	if err != nil {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("invalid public key: %w", err)
 	}
 	if len(pubKeyBytes) != ed25519.PublicKeySize {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("invalid public key size")
 	}
 
 	sigBytes, err := hex.DecodeString(verifyResp.Signature)
 	if err != nil {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("invalid signature encoding: %w", err)
 	}
 
 	if !ed25519.Verify(ed25519.PublicKey(pubKeyBytes), []byte(nonce), sigBytes) {
-		c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
+		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("signature verification failed")
 	}
 
 	// Success: mark challenge as verified.
-	c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusVerified)
+	_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusVerified)
 
 	c.logger.Info("endpoint verification passed", "agent_id", agentID, "endpoint", endpointURL)
 

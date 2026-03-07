@@ -157,7 +157,7 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 		authedID, authErr := h.authenticateConn(r.Context(), conn, agentID)
 		if authErr != nil {
 			h.logger.Warn("websocket auth failed", "agent_id", agentID, "error", authErr)
-			conn.Close(websocket.StatusPolicyViolation, "authentication failed")
+			_ = conn.Close(websocket.StatusPolicyViolation, "authentication failed")
 			return
 		}
 		agentID = authedID
@@ -166,7 +166,7 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	// Close existing connection for this agent if any.
 	if old, exists := h.conns[agentID]; exists {
-		old.Close(websocket.StatusGoingAway, "replaced by new connection")
+		_ = old.Close(websocket.StatusGoingAway, "replaced by new connection")
 	}
 	h.conns[agentID] = conn
 	h.mu.Unlock()
@@ -207,7 +207,7 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 			delete(h.conns, agentID)
 		}
 		h.mu.Unlock()
-		conn.Close(websocket.StatusNormalClosure, "")
+		_ = conn.Close(websocket.StatusNormalClosure, "")
 		h.logger.Info("agent disconnected from signaling", "agent_id", agentID)
 		if h.audit != nil {
 			h.audit.LogSignalingDisconnect(r.Context(), agentID)
@@ -235,7 +235,7 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 		// Enforce message rate limit.
 		if !msgLimiter.allow() {
 			h.logger.Warn("websocket rate limit exceeded, closing", "agent_id", agentID)
-			conn.Close(websocket.StatusPolicyViolation, "rate limit exceeded")
+			_ = conn.Close(websocket.StatusPolicyViolation, "rate limit exceeded")
 			return
 		}
 
@@ -359,7 +359,7 @@ func (h *Hub) CloseAll() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for id, conn := range h.conns {
-		conn.Close(websocket.StatusGoingAway, "server shutting down")
+		_ = conn.Close(websocket.StatusGoingAway, "server shutting down")
 		delete(h.conns, id)
 	}
 }

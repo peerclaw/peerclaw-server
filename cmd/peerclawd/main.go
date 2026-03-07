@@ -64,7 +64,7 @@ func main() {
 		logger.Error("failed to initialize OpenTelemetry", "error", err)
 		os.Exit(1)
 	}
-	defer otelProvider.Shutdown(context.Background())
+	defer func() { _ = otelProvider.Shutdown(context.Background()) }()
 
 	// Initialize metrics.
 	otelMetrics, err := observability.NewMetrics(observability.Meter("peerclaw-gateway"))
@@ -79,7 +79,7 @@ func main() {
 		logger.Error("failed to open database", "error", err, "driver", cfg.Database.Driver)
 		os.Exit(1)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Extract the underlying *sql.DB for shared use by reputation and verification modules.
 	sqlDB, _ := store.GetDB().(*sql.DB)
@@ -116,13 +116,13 @@ func main() {
 
 	// Register protocol bridges.
 	if cfg.Bridge.A2A.Enabled {
-		bridgeManager.RegisterBridge(a2a.New(logger, nil))
+		_ = bridgeManager.RegisterBridge(a2a.New(logger, nil))
 	}
 	if cfg.Bridge.ACP.Enabled {
-		bridgeManager.RegisterBridge(acp.New(logger, nil))
+		_ = bridgeManager.RegisterBridge(acp.New(logger, nil))
 	}
 	if cfg.Bridge.MCP.Enabled {
-		bridgeManager.RegisterBridge(mcp.New(logger, nil))
+		_ = bridgeManager.RegisterBridge(mcp.New(logger, nil))
 	}
 
 	// Initialize signaling hub.
@@ -228,7 +228,7 @@ func main() {
 				broker := signaling.NewRedisBroker(redisClient, sigHub, logger)
 				if _, err := broker.Subscribe(ctx); err != nil {
 					logger.Error("Redis subscribe failed", "error", err)
-					redisClient.Close()
+					_ = redisClient.Close()
 					sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
 				} else {
 					sigHub.SetBroker(broker)
@@ -263,10 +263,10 @@ func main() {
 						if err := rows.Scan(&agentID); err != nil {
 							continue
 						}
-						repEngine.RecordEvent(ctx, agentID, "heartbeat_miss", "")
+						_ = repEngine.RecordEvent(ctx, agentID, "heartbeat_miss", "")
 						logger.Debug("heartbeat miss recorded", "agent_id", agentID)
 					}
-					rows.Close()
+					_ = rows.Close()
 				}
 			}
 		}()
@@ -311,15 +311,15 @@ func main() {
 	// stop the servers and wait for goroutines to finish.
 	cancel()
 	grpcServer.Stop()
-	httpServer.Stop()
+	_ = httpServer.Stop()
 
 	// Wait for server goroutines to complete before tearing down
 	// remaining services, ensuring a clean shutdown.
 	wg.Wait()
 
 	if fedService != nil {
-		fedService.Close()
+		_ = fedService.Close()
 	}
-	bridgeManager.Close()
+	_ = bridgeManager.Close()
 	logger.Info("PeerClaw gateway stopped")
 }

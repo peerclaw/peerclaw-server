@@ -70,7 +70,7 @@ func (b *RedisBroker) Subscribe(ctx context.Context) (<-chan signaling.SignalMes
 	ch := make(chan signaling.SignalMessage, 256)
 	go func() {
 		defer close(ch)
-		defer pubsub.Close()
+		defer func() { _ = pubsub.Close() }()
 		msgCh := pubsub.Channel()
 		for {
 			select {

@@ -15,7 +15,7 @@ func (a *Adapter) HandleListAgents(w http.ResponseWriter, r *http.Request) {
 	// Return an empty list; agents register dynamically.
 	agents := []AgentManifest{}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"agents": agents})
+	_ = json.NewEncoder(w).Encode(map[string]any{"agents": agents})
 }
 
 // HandleGetAgent handles GET /acp/agents/{name}.
@@ -34,7 +34,7 @@ func (a *Adapter) HandleGetAgent(w http.ResponseWriter, r *http.Request) {
 		OutputContentTypes: []string{"text/plain", "application/json"},
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(manifest)
+	_ = json.NewEncoder(w).Encode(manifest)
 }
 
 // HandleCreateRun handles POST /acp/runs.
@@ -80,7 +80,7 @@ func (a *Adapter) HandleCreateRun(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(run)
+	_ = json.NewEncoder(w).Encode(run)
 }
 
 // HandleGetRun handles GET /acp/runs/{run_id}.
@@ -98,7 +98,7 @@ func (a *Adapter) HandleGetRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(run)
+	_ = json.NewEncoder(w).Encode(run)
 }
 
 // HandleCancelRun handles POST /acp/runs/{run_id}/cancel.
@@ -121,11 +121,11 @@ func (a *Adapter) HandleCancelRun(w http.ResponseWriter, r *http.Request) {
 	a.runs.Store(runID, run)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(run)
+	_ = json.NewEncoder(w).Encode(run)
 }
 
 // HandlePing handles GET /acp/ping.
 func (a *Adapter) HandlePing(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }

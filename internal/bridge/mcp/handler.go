@@ -202,12 +202,12 @@ func writeMCPResult(w http.ResponseWriter, id any, result any) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func writeMCPError(w http.ResponseWriter, id any, code int, message string) {
 	resp := jsonrpc.NewErrorResponse(id, code, message)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }

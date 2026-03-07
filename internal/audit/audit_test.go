@@ -81,7 +81,7 @@ func TestLogDeregistration(t *testing.T) {
 	l.LogDeregistration(context.Background(), "agent-1", "1.2.3.4")
 
 	var entry map[string]any
-	json.Unmarshal(buf.Bytes(), &entry)
+	_ = json.Unmarshal(buf.Bytes(), &entry)
 	if entry["audit_type"] != string(EventAgentDeregistered) {
 		t.Errorf("audit_type = %v, want %v", entry["audit_type"], EventAgentDeregistered)
 	}
@@ -95,7 +95,7 @@ func TestLogMessageRouted(t *testing.T) {
 	l.LogMessageRouted(context.Background(), "agent-a", "agent-b", "a2a")
 
 	var entry map[string]any
-	json.Unmarshal(buf.Bytes(), &entry)
+	_ = json.Unmarshal(buf.Bytes(), &entry)
 	if entry["audit_type"] != string(EventMessageRouted) {
 		t.Errorf("audit_type = %v, want %v", entry["audit_type"], EventMessageRouted)
 	}
@@ -109,7 +109,7 @@ func TestLogSecurityEvent(t *testing.T) {
 	l.LogSecurityEvent(context.Background(), EventRateLimited, "1.2.3.4", map[string]string{"reason": "exceeded"})
 
 	var entry map[string]any
-	json.Unmarshal(buf.Bytes(), &entry)
+	_ = json.Unmarshal(buf.Bytes(), &entry)
 	if entry["audit_type"] != string(EventRateLimited) {
 		t.Errorf("audit_type = %v, want %v", entry["audit_type"], EventRateLimited)
 	}

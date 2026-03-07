@@ -11,7 +11,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-COPY --from=frontend /app/dist ./internal/server/dashboard_dist/
+COPY --from=frontend /internal/server/dashboard_dist ./internal/server/dashboard_dist/
 RUN CGO_ENABLED=1 go build -o /peerclawd ./cmd/peerclawd
 
 FROM alpine:3.20

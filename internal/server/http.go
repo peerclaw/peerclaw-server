@@ -349,7 +349,7 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	// Record reputation event.
 	if s.reputation != nil {
-		s.reputation.RecordEvent(r.Context(), card.ID, "registration", "")
+		_ = s.reputation.RecordEvent(r.Context(), card.ID, "registration", "")
 	}
 
 	// Audit log.
@@ -438,7 +438,7 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 
 	// Record reputation event.
 	if s.reputation != nil {
-		s.reputation.RecordEvent(r.Context(), id, "heartbeat_success", "")
+		_ = s.reputation.RecordEvent(r.Context(), id, "heartbeat_success", "")
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]any{"next_deadline": deadline})
@@ -584,7 +584,7 @@ func (s *HTTPServer) handleFederationDiscover(w http.ResponseWriter, r *http.Req
 func (s *HTTPServer) jsonResponse(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
 func (s *HTTPServer) jsonError(w http.ResponseWriter, message string, status int) {

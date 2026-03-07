@@ -1,0 +1,26 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - staticcheck
+    - unused
+
+  exclusions:
+    rules:
+      # Exclude errcheck in test files – test helpers rarely need error checking.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+      # nhooyr.io/websocket is deprecated in favour of github.com/coder/websocket.
+      # Migration is tracked separately; suppress SA1019 for the signaling package.
+      - path: internal/signaling/
+        linters:
+          - staticcheck
+        text: "SA1019"
+
+      # QF1002 (convert if/else-if chain to tagged switch) is a style suggestion.
+      - linters:
+          - staticcheck
+        text: "QF1002"

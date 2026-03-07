@@ -27,12 +27,12 @@ func NewSQLiteStore(dsn string) (*SQLiteStore, error) {
 	}
 	// Enable WAL mode for better concurrent read performance.
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("set WAL mode: %w", err)
 	}
 	s := &SQLiteStore{db: db}
 	if err := s.migrate(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 	return s, nil
@@ -184,7 +184,7 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 
 	offset := 0
 	if filter.PageToken != "" {
-		fmt.Sscanf(filter.PageToken, "%d", &offset)
+		_, _ = fmt.Sscanf(filter.PageToken, "%d", &offset)
 	}
 
 	orderBy := "registered_at DESC"
@@ -211,7 +211,7 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var agents []*agentcard.Card
 	for rows.Next() {
@@ -282,7 +282,7 @@ func (s *SQLiteStore) FindByCapabilities(ctx context.Context, capabilities []str
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var agents []*agentcard.Card
 	for rows.Next() {
@@ -301,10 +301,6 @@ func (s *SQLiteStore) GetDB() interface{} {
 
 func (s *SQLiteStore) Close() error {
 	return s.db.Close()
-}
-
-type scanner interface {
-	Scan(dest ...any) error
 }
 
 func (s *SQLiteStore) scanCard(row *sql.Row) (*agentcard.Card, error) {

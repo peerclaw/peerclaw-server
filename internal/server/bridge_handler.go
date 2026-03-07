@@ -87,7 +87,7 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 		s.logger.Error("bridge send failed", "error", err, "proto", proto, "dest", req.Destination)
 		// Record bridge error reputation event.
 		if s.reputation != nil {
-			s.reputation.RecordEvent(r.Context(), req.Source, "bridge_error", err.Error())
+			_ = s.reputation.RecordEvent(r.Context(), req.Source, "bridge_error", err.Error())
 		}
 		s.jsonError(w, "bridge send failed: "+err.Error(), http.StatusBadGateway)
 		return
@@ -95,7 +95,7 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 
 	// Record bridge success reputation event.
 	if s.reputation != nil {
-		s.reputation.RecordEvent(r.Context(), req.Source, "bridge_success", "")
+		_ = s.reputation.RecordEvent(r.Context(), req.Source, "bridge_success", "")
 	}
 
 	// Audit log and metrics.

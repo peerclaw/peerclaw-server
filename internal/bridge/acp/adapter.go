@@ -82,7 +82,7 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	if err != nil {
 		return fmt.Errorf("acp: http post: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {
@@ -153,7 +153,7 @@ func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
 	if err != nil {
 		return fmt.Errorf("acp: fetch manifest: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("acp: manifest status %d", resp.StatusCode)
