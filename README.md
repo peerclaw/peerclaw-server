@@ -32,7 +32,8 @@ Start it with one command. No external dependencies required.
 ### Build from Source
 
 ```bash
-cd server
+git clone https://github.com/peerclaw/peerclaw-server.git
+cd peerclaw-server
 go build -o peerclawd ./cmd/peerclawd
 ./peerclawd
 ```

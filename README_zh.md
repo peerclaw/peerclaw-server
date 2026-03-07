@@ -32,7 +32,8 @@ peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证
 ### 从源码构建
 
 ```bash
-cd server
+git clone https://github.com/peerclaw/peerclaw-server.git
+cd peerclaw-server
 go build -o peerclawd ./cmd/peerclawd
 ./peerclawd
 ```
