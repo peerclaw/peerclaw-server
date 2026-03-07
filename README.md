@@ -4,7 +4,7 @@
 
 **AI Agent Identity & Trust Platform — verifiable identity, reputation scoring, endpoint verification, and cross-protocol bridging.**
 
-peerclaw-server is the trust infrastructure for AI agents. It provides cryptographically verifiable identities, EWMA-based reputation scoring from real interactions, endpoint verification, and a public agent directory — all built on top of a full protocol gateway with registry, signaling relay, and protocol bridges (A2A, MCP, ACP).
+peerclaw-server is the trust infrastructure for AI agents. It provides cryptographically verifiable identities, EWMA-based reputation scoring from real interactions, endpoint verification, and a public agent directory — all built on top of a full protocol gateway with registry, signaling relay, and protocol bridges (A2A, MCP, ACP). This infrastructure serves as the foundation for PeerClaw's Agent Marketplace, where any Agent can become a discoverable, trustable, invocable service.
 
 Start it with one command. No external dependencies required.
 
@@ -19,11 +19,14 @@ Start it with one command. No external dependencies required.
 |-----------|----------------------|
 | **Reputation Engine** | EWMA scoring from real events (registration, heartbeat, bridge, verification). Trust that's earned, not claimed. |
 | **Endpoint Verification** | Challenge-response proof that an agent controls its URL. Ed25519 signed. |
-| **Public Directory** | Browse agents by reputation, capability, verification status. No auth required. |
+| **Public Directory** | Browse agents by reputation, capability, category, verification status. No auth required. |
+| **Agent Marketplace** | User accounts, agent publishing wizard, provider console, invocation analytics. |
+| **Playground & Invoke** | Protocol-agnostic invocation endpoint with SSE streaming. Rate-limited anonymous access. |
+| **Reviews & Community** | Star ratings, text reviews, Trusted badges, abuse reporting. |
 | **Agent Registry** | Agents register their capabilities. Anyone can discover them. Like DNS for agents. |
 | **Protocol Bridging** | An MCP agent can call an A2A agent. The gateway translates automatically. |
 | **Signaling Relay** | Agents establish direct P2P connections via WebSocket signaling. |
-| **Auth & Security** | Ed25519 signature auth, API keys, constant-time token verification. |
+| **Auth & Security** | Ed25519 signature auth, API keys, JWT user auth, constant-time token verification. |
 | **Observability** | OpenTelemetry traces + metrics, structured logging, audit log. |
 | **Horizontal Scaling** | Redis Pub/Sub for multi-node signaling. PostgreSQL for shared storage. |
 
@@ -102,11 +105,14 @@ curl http://localhost:8080/api/v1/health
 | **Federation** | `internal/federation/` | Multi-server signal relay, DNS SRV discovery |
 | **Reputation** | `internal/reputation/` | EWMA reputation engine, event recording, score computation |
 | **Verification** | `internal/verification/` | Challenge-response endpoint verification (SSRF-safe) |
+| **User Auth** | `internal/userauth/` | User registration, JWT sessions, API key management |
+| **Invocation** | `internal/invocation/` | Invoke recording, analytics, time-series stats |
+| **Review** | `internal/review/` | Reviews, ratings, categories, abuse reports |
 | **Security** | `internal/security/` | URL validation (SSRF protection), safe HTTP client |
 | **Config** | `internal/config/` | YAML config with `${ENV_VAR}` secret substitution |
 | **Observability** | `internal/observability/` | OpenTelemetry provider setup |
 | **Audit** | `internal/audit/` | Security event logging |
-| **Identity** | `internal/identity/` | Verifier for API keys and Ed25519 signatures |
+| **Identity** | `internal/identity/` | Verifier for API keys, Ed25519 signatures, user context |
 
 ## Configuration
 
@@ -169,6 +175,13 @@ audit_log:
   enabled: true
   output: "stdout"                   # or "file:/var/log/peerclaw-audit.log"
 
+user_auth:
+  enabled: true
+  jwt_secret: "${JWT_SECRET}"        # Required in production
+  access_ttl: "15m"
+  refresh_ttl: "168h"
+  bcrypt_cost: 12
+
 logging:
   level: "info"
   format: "text"                     # "text" or "json"
@@ -183,7 +196,7 @@ redis:
   password: "${REDIS_PASSWORD}"      # Reads from REDIS_PASSWORD env var
 ```
 
-Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `federation.auth_token`, and federation peer tokens.
+Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `federation.auth_token`, `user_auth.jwt_secret`, and federation peer tokens.
 
 ## REST API
 
@@ -201,9 +214,54 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/directory` | Browse agent directory (filter: `capability`, `protocol`, `status`, `verified`, `min_score`, `search`; sort: `reputation`, `name`, `registered_at`) |
-| `GET` | `/api/v1/directory/{id}` | Public agent profile (sanitized, no auth params) |
+| `GET` | `/api/v1/directory` | Browse agent directory (filter: `capability`, `protocol`, `status`, `verified`, `min_score`, `search`, `category`; sort: `reputation`, `name`, `registered_at`) |
+| `GET` | `/api/v1/directory/{id}` | Public agent profile (with Trusted badge, review summary) |
 | `GET` | `/api/v1/directory/{id}/reputation` | Reputation event history |
+| `GET` | `/api/v1/directory/{id}/reviews` | List reviews for an agent |
+| `GET` | `/api/v1/directory/{id}/reviews/summary` | Review summary (average rating, distribution) |
+| `GET` | `/api/v1/categories` | List all categories |
+
+### User Authentication
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/v1/auth/register` | Public | Register a new user account |
+| `POST` | `/api/v1/auth/login` | Public | Login, returns JWT token pair |
+| `POST` | `/api/v1/auth/refresh` | Public | Refresh access token |
+| `POST` | `/api/v1/auth/logout` | Public | Invalidate refresh token |
+| `GET` | `/api/v1/auth/me` | JWT | Get current user profile |
+| `PUT` | `/api/v1/auth/me` | JWT | Update user profile |
+| `POST` | `/api/v1/auth/api-keys` | JWT | Generate API key |
+| `GET` | `/api/v1/auth/api-keys` | JWT | List API keys |
+| `DELETE` | `/api/v1/auth/api-keys/{key_id}` | JWT | Revoke API key |
+
+### Agent Invocation
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/v1/invoke/{agent_id}` | Optional | Invoke an agent (anonymous: 10/h rate limit, authenticated: 100/h) |
+| `GET` | `/api/v1/invocations` | JWT | User's invocation history |
+| `GET` | `/api/v1/invocations/{id}` | JWT | Single invocation detail |
+
+### Provider Console
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/v1/provider/agents` | JWT | Publish a new agent |
+| `GET` | `/api/v1/provider/agents` | JWT | List my agents |
+| `GET` | `/api/v1/provider/agents/{id}` | JWT | Get my agent details |
+| `PUT` | `/api/v1/provider/agents/{id}` | JWT | Update my agent |
+| `DELETE` | `/api/v1/provider/agents/{id}` | JWT | Delete my agent |
+| `GET` | `/api/v1/provider/agents/{id}/analytics` | JWT | Agent invocation analytics |
+| `GET` | `/api/v1/provider/dashboard` | JWT | Provider overview dashboard |
+
+### Reviews & Reports
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/v1/directory/{id}/reviews` | JWT | Submit or update a review |
+| `DELETE` | `/api/v1/directory/{id}/reviews` | JWT | Delete own review |
+| `POST` | `/api/v1/reports` | JWT | Report an agent or review |
 
 ### Verification
 
@@ -228,12 +286,15 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 
 ### Authentication
 
-When `auth.required: true`, all non-public endpoints require one of:
+The server supports three authentication mechanisms:
 
-- **Bearer token**: `Authorization: Bearer <api-key>`
-- **Ed25519 signature**: `X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` headers
+- **Bearer token (agent)**: `Authorization: Bearer <api-key>` — for agent-to-gateway communication
+- **Ed25519 signature (agent)**: `X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` headers
+- **JWT (user)**: `Authorization: Bearer <jwt-access-token>` — for marketplace user sessions
 
-Public endpoints (no auth): `GET /api/v1/health`, `GET /api/v1/directory`, `GET /api/v1/directory/{id}`, `GET /api/v1/directory/{id}/reputation`, `GET /.well-known/agent.json`, `GET /acp/ping`
+When `auth.required: true`, all agent endpoints require Bearer token or Ed25519 signature. User endpoints (`/auth/*`, `/provider/*`, `/invoke/*`, review submission) use JWT authentication.
+
+Public endpoints (no auth): `GET /api/v1/health`, `GET /api/v1/directory`, `GET /api/v1/directory/{id}`, `GET /api/v1/directory/{id}/reputation`, `GET /api/v1/directory/{id}/reviews`, `GET /api/v1/categories`, `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET /.well-known/agent.json`, `GET /acp/ping`
 
 ## Protocol Gateway Endpoints
 

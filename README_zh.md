@@ -4,7 +4,7 @@
 
 **AI Agent 身份与信任平台 — 可验证身份、声誉评分、端点验证、跨协议桥接。**
 
-peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证身份、基于真实交互的 EWMA 声誉评分、端点验证、以及公开的 Agent 目录 — 一切都构建在完整的协议网关之上，包括注册中心、信令中转和协议桥接（A2A、MCP、ACP）。
+peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证身份、基于真实交互的 EWMA 声誉评分、端点验证、以及公开的 Agent 目录 — 一切都构建在完整的协议网关之上，包括注册中心、信令中转和协议桥接（A2A、MCP、ACP）。这套基础设施是 PeerClaw Agent Marketplace 的根基，让任何 Agent 都能成为可发现、可信任、可调用的服务。
 
 一行命令启动，零外部依赖。
 
@@ -19,11 +19,14 @@ peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证
 |------|--------------|
 | **声誉引擎** | 基于真实事件（注册、心跳、桥接、验证）的 EWMA 评分。信任是赢得的，不是声称的。 |
 | **端点验证** | Challenge-Response 证明 Agent 控制其 URL，Ed25519 签名。 |
-| **公开目录** | 按声誉、能力、验证状态浏览 Agent，无需认证。 |
+| **公开目录** | 按声誉、能力、分类、验证状态浏览 Agent，无需认证。 |
+| **Agent Marketplace** | 用户账号、Agent 发布向导、Provider 控制台、调用分析。 |
+| **Playground 与调用** | 协议无关的调用端点，SSE 流式响应，匿名限速访问。 |
+| **评价与社区** | 星级评分、文字评价、Trusted 徽章、举报机制。 |
 | **Agent 注册中心** | Agent 注册自己的能力，任何人都能发现它。像 Agent 的 DNS。 |
 | **协议桥接** | MCP Agent 可以调用 A2A Agent，网关自动翻译。 |
 | **信令中转** | Agent 通过 WebSocket 信令建立 P2P 直连。 |
-| **认证鉴权** | Ed25519 签名认证、API Key、恒时 token 比较。 |
+| **认证鉴权** | Ed25519 签名认证、API Key、JWT 用户认证、恒时 token 比较。 |
 | **可观测性** | OpenTelemetry 链路追踪 + 指标、结构化日志、审计日志。 |
 | **水平扩展** | Redis Pub/Sub 多节点信令，PostgreSQL 共享存储。 |
 
@@ -102,11 +105,14 @@ curl http://localhost:8080/api/v1/health
 | **联邦** | `internal/federation/` | 多服务器信令中转、DNS SRV 发现 |
 | **声誉** | `internal/reputation/` | EWMA 声誉引擎、事件记录、分数计算 |
 | **验证** | `internal/verification/` | Challenge-Response 端点验证（SSRF 安全） |
+| **用户认证** | `internal/userauth/` | 用户注册、JWT 会话、API Key 管理 |
+| **调用记录** | `internal/invocation/` | 调用记录、分析统计、时间序列 |
+| **评价** | `internal/review/` | 评论、评分、分类、举报 |
 | **安全** | `internal/security/` | URL 校验（SSRF 防护）、安全 HTTP 客户端 |
 | **配置** | `internal/config/` | YAML 配置 + `${ENV_VAR}` 密钥替换 |
 | **可观测** | `internal/observability/` | OpenTelemetry Provider 初始化 |
 | **审计** | `internal/audit/` | 安全事件日志 |
-| **身份** | `internal/identity/` | API Key 和 Ed25519 签名验证器 |
+| **身份** | `internal/identity/` | API Key、Ed25519 签名验证器、用户上下文 |
 
 ## 配置
 
@@ -169,6 +175,13 @@ audit_log:
   enabled: true
   output: "stdout"                   # 或 "file:/var/log/peerclaw-audit.log"
 
+user_auth:
+  enabled: true
+  jwt_secret: "${JWT_SECRET}"        # 生产环境必填
+  access_ttl: "15m"
+  refresh_ttl: "168h"
+  bcrypt_cost: 12
+
 logging:
   level: "info"
   format: "text"                     # "text" 或 "json"
@@ -183,7 +196,7 @@ redis:
   password: "${REDIS_PASSWORD}"      # 从 REDIS_PASSWORD 环境变量读取
 ```
 
-适用于：`redis.password`、`database.dsn`、`signaling.turn.credential`、`federation.auth_token` 及联邦 peer token。
+适用于：`redis.password`、`database.dsn`、`signaling.turn.credential`、`federation.auth_token`、`user_auth.jwt_secret` 及联邦 peer token。
 
 ## REST API
 
@@ -201,9 +214,54 @@ redis:
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/v1/directory` | 浏览 Agent 目录（过滤：`capability`、`protocol`、`status`、`verified`、`min_score`、`search`；排序：`reputation`、`name`、`registered_at`） |
-| `GET` | `/api/v1/directory/{id}` | Agent 公开档案（脱敏，不含认证参数） |
+| `GET` | `/api/v1/directory` | 浏览 Agent 目录（过滤：`capability`、`protocol`、`status`、`verified`、`min_score`、`search`、`category`；排序：`reputation`、`name`、`registered_at`） |
+| `GET` | `/api/v1/directory/{id}` | Agent 公开档案（含 Trusted 徽章、评价摘要） |
 | `GET` | `/api/v1/directory/{id}/reputation` | 声誉事件历史 |
+| `GET` | `/api/v1/directory/{id}/reviews` | 列出 Agent 评论 |
+| `GET` | `/api/v1/directory/{id}/reviews/summary` | 评论摘要（平均评分、分布） |
+| `GET` | `/api/v1/categories` | 列出所有分类 |
+
+### 用户认证
+
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| `POST` | `/api/v1/auth/register` | 公开 | 注册用户账号 |
+| `POST` | `/api/v1/auth/login` | 公开 | 登录，返回 JWT 令牌对 |
+| `POST` | `/api/v1/auth/refresh` | 公开 | 刷新 Access Token |
+| `POST` | `/api/v1/auth/logout` | 公开 | 注销 Refresh Token |
+| `GET` | `/api/v1/auth/me` | JWT | 获取当前用户信息 |
+| `PUT` | `/api/v1/auth/me` | JWT | 更新用户信息 |
+| `POST` | `/api/v1/auth/api-keys` | JWT | 生成 API Key |
+| `GET` | `/api/v1/auth/api-keys` | JWT | 列出 API Key |
+| `DELETE` | `/api/v1/auth/api-keys/{key_id}` | JWT | 撤销 API Key |
+
+### Agent 调用
+
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| `POST` | `/api/v1/invoke/{agent_id}` | 可选 | 调用 Agent（匿名：10 次/小时限速，登录：100 次/小时） |
+| `GET` | `/api/v1/invocations` | JWT | 用户调用历史 |
+| `GET` | `/api/v1/invocations/{id}` | JWT | 单条调用详情 |
+
+### Provider 控制台
+
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| `POST` | `/api/v1/provider/agents` | JWT | 发布新 Agent |
+| `GET` | `/api/v1/provider/agents` | JWT | 列出我的 Agent |
+| `GET` | `/api/v1/provider/agents/{id}` | JWT | 获取我的 Agent 详情 |
+| `PUT` | `/api/v1/provider/agents/{id}` | JWT | 更新我的 Agent |
+| `DELETE` | `/api/v1/provider/agents/{id}` | JWT | 删除我的 Agent |
+| `GET` | `/api/v1/provider/agents/{id}/analytics` | JWT | Agent 调用分析 |
+| `GET` | `/api/v1/provider/dashboard` | JWT | Provider 总览面板 |
+
+### 评价与举报
+
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| `POST` | `/api/v1/directory/{id}/reviews` | JWT | 提交或更新评论 |
+| `DELETE` | `/api/v1/directory/{id}/reviews` | JWT | 删除自己的评论 |
+| `POST` | `/api/v1/reports` | JWT | 举报 Agent 或评论 |
 
 ### 端点验证
 
@@ -228,12 +286,15 @@ redis:
 
 ### 认证
 
-当 `auth.required: true` 时，所有非公开端点需要以下认证方式之一：
+服务器支持三种认证机制：
 
-- **Bearer Token**：`Authorization: Bearer <api-key>`
-- **Ed25519 签名**：`X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` 请求头
+- **Bearer Token（Agent）**：`Authorization: Bearer <api-key>` — 用于 Agent 与网关通信
+- **Ed25519 签名（Agent）**：`X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` 请求头
+- **JWT（用户）**：`Authorization: Bearer <jwt-access-token>` — 用于 Marketplace 用户会话
 
-公开端点（免认证）：`GET /api/v1/health`、`GET /api/v1/directory`、`GET /api/v1/directory/{id}`、`GET /api/v1/directory/{id}/reputation`、`GET /.well-known/agent.json`、`GET /acp/ping`
+当 `auth.required: true` 时，所有 Agent 端点需要 Bearer Token 或 Ed25519 签名。用户端点（`/auth/*`、`/provider/*`、`/invoke/*`、评价提交）使用 JWT 认证。
+
+公开端点（免认证）：`GET /api/v1/health`、`GET /api/v1/directory`、`GET /api/v1/directory/{id}`、`GET /api/v1/directory/{id}/reputation`、`GET /api/v1/directory/{id}/reviews`、`GET /api/v1/categories`、`POST /api/v1/auth/register`、`POST /api/v1/auth/login`、`GET /.well-known/agent.json`、`GET /acp/ping`
 
 ## 协议网关端点
 
