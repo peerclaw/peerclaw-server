@@ -86,8 +86,9 @@ func main() {
 
 	// Initialize reputation engine.
 	var repEngine *reputation.Engine
+	var repStore reputation.Store
 	if sqlDB != nil {
-		repStore := reputation.NewSQLiteStore(sqlDB)
+		repStore = reputation.NewStore(cfg.Database.Driver, sqlDB)
 		if err := repStore.Migrate(context.Background()); err != nil {
 			logger.Error("failed to migrate reputation tables", "error", err)
 			os.Exit(1)
@@ -99,7 +100,7 @@ func main() {
 	// Initialize verification challenger.
 	var verifyChallenger *verification.Challenger
 	if sqlDB != nil {
-		verifyStore := verification.NewSQLiteStore(sqlDB)
+		verifyStore := verification.NewStore(cfg.Database.Driver, sqlDB)
 		if err := verifyStore.Migrate(context.Background()); err != nil {
 			logger.Error("failed to migrate verification tables", "error", err)
 			os.Exit(1)
@@ -240,7 +241,7 @@ func main() {
 		}
 	}
 	// Start heartbeat timeout checker goroutine.
-	if repEngine != nil && sqlDB != nil {
+	if repEngine != nil && repStore != nil {
 		go func() {
 			ticker := time.NewTicker(60 * time.Second)
 			defer ticker.Stop()
@@ -249,24 +250,15 @@ func main() {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					// Find agents whose last heartbeat is older than 5 minutes and status is online.
-					rows, err := sqlDB.QueryContext(ctx,
-						`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < ?`,
-						time.Now().UTC().Add(-5*time.Minute).Format(time.RFC3339),
-					)
+					staleAgents, err := repStore.ListStaleOnlineAgents(ctx, 5*time.Minute)
 					if err != nil {
 						logger.Warn("heartbeat check query failed", "error", err)
 						continue
 					}
-					for rows.Next() {
-						var agentID string
-						if err := rows.Scan(&agentID); err != nil {
-							continue
-						}
+					for _, agentID := range staleAgents {
 						_ = repEngine.RecordEvent(ctx, agentID, "heartbeat_miss", "")
 						logger.Debug("heartbeat miss recorded", "agent_id", agentID)
 					}
-					_ = rows.Close()
 				}
 			}
 		}()

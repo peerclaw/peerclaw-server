@@ -7,28 +7,28 @@ import (
 	"time"
 )
 
-// SQLiteStore implements Store using SQLite.
-type SQLiteStore struct {
+// PostgresStore implements Store using PostgreSQL.
+type PostgresStore struct {
 	db *sql.DB
 }
 
-// NewSQLiteStore creates a new SQLite-backed reputation store.
+// NewPostgresStore creates a new PostgreSQL-backed reputation store.
 // It expects the same *sql.DB that the registry uses.
-func NewSQLiteStore(db *sql.DB) *SQLiteStore {
-	return &SQLiteStore{db: db}
+func NewPostgresStore(db *sql.DB) *PostgresStore {
+	return &PostgresStore{db: db}
 }
 
 // Migrate creates the reputation_events table and adds reputation columns to the agents table.
-func (s *SQLiteStore) Migrate(ctx context.Context) error {
+func (s *PostgresStore) Migrate(ctx context.Context) error {
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS reputation_events (
-			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			id          SERIAL PRIMARY KEY,
 			agent_id    TEXT NOT NULL,
 			event_type  TEXT NOT NULL,
-			weight      REAL NOT NULL,
-			score_after REAL NOT NULL,
+			weight      DOUBLE PRECISION NOT NULL,
+			score_after DOUBLE PRECISION NOT NULL,
 			metadata    TEXT,
-			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+			created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_reputation_events_agent ON reputation_events(agent_id, created_at DESC)`,
 	}
@@ -40,18 +40,16 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 	}
 
 	// Add columns to agents table if they don't exist.
-	// SQLite doesn't support IF NOT EXISTS for ALTER TABLE,
-	// so we check if the column exists first.
 	columns := []struct {
 		name string
 		def  string
 	}{
-		{"reputation_score", "REAL DEFAULT 0.5"},
+		{"reputation_score", "DOUBLE PRECISION DEFAULT 0.5"},
 		{"reputation_event_count", "INTEGER DEFAULT 0"},
-		{"reputation_updated_at", "DATETIME"},
-		{"verified", "BOOLEAN DEFAULT 0"},
-		{"verified_at", "DATETIME"},
-		{"public_endpoint", "BOOLEAN DEFAULT 0"},
+		{"reputation_updated_at", "TIMESTAMPTZ"},
+		{"verified", "BOOLEAN DEFAULT FALSE"},
+		{"verified_at", "TIMESTAMPTZ"},
+		{"public_endpoint", "BOOLEAN DEFAULT FALSE"},
 	}
 
 	for _, col := range columns {
@@ -66,46 +64,38 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 	return nil
 }
 
-func (s *SQLiteStore) columnExists(ctx context.Context, table, column string) bool {
-	rows, err := s.db.QueryContext(ctx, fmt.Sprintf("PRAGMA table_info(%s)", table))
+func (s *PostgresStore) columnExists(ctx context.Context, table, column string) bool {
+	var exists bool
+	err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns
+			WHERE table_name = $1 AND column_name = $2
+		)`, table, column,
+	).Scan(&exists)
 	if err != nil {
 		return false
 	}
-	defer func() { _ = rows.Close() }()
-	for rows.Next() {
-		var cid int
-		var name, typeName string
-		var notNull int
-		var dfltValue sql.NullString
-		var pk int
-		if err := rows.Scan(&cid, &name, &typeName, &notNull, &dfltValue, &pk); err != nil {
-			continue
-		}
-		if name == column {
-			return true
-		}
-	}
-	return false
+	return exists
 }
 
 // InsertEvent records a reputation event.
-func (s *SQLiteStore) InsertEvent(ctx context.Context, event *Event) error {
+func (s *PostgresStore) InsertEvent(ctx context.Context, event *Event) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO reputation_events (agent_id, event_type, weight, score_after, metadata, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		event.AgentID, string(event.EventType), event.Weight, event.ScoreAfter,
-		event.Metadata, event.CreatedAt.UTC().Format(time.RFC3339),
+		event.Metadata, event.CreatedAt.UTC(),
 	)
 	return err
 }
 
 // GetScore returns the current reputation score and event count for an agent.
-func (s *SQLiteStore) GetScore(ctx context.Context, agentID string) (float64, int64, error) {
+func (s *PostgresStore) GetScore(ctx context.Context, agentID string) (float64, int64, error) {
 	var score float64
 	var count int64
 	err := s.db.QueryRowContext(ctx,
 		`SELECT COALESCE(reputation_score, 0.5), COALESCE(reputation_event_count, 0)
-		 FROM agents WHERE id = ?`, agentID,
+		 FROM agents WHERE id = $1`, agentID,
 	).Scan(&score, &count)
 	if err != nil {
 		return 0, 0, fmt.Errorf("get reputation score: %w", err)
@@ -114,14 +104,14 @@ func (s *SQLiteStore) GetScore(ctx context.Context, agentID string) (float64, in
 }
 
 // ListEvents returns reputation events for an agent, ordered by most recent first.
-func (s *SQLiteStore) ListEvents(ctx context.Context, agentID string, limit int) ([]Event, error) {
+func (s *PostgresStore) ListEvents(ctx context.Context, agentID string, limit int) ([]Event, error) {
 	if limit <= 0 {
 		limit = 50
 	}
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, agent_id, event_type, weight, score_after, COALESCE(metadata, ''), created_at
-		 FROM reputation_events WHERE agent_id = ?
-		 ORDER BY created_at DESC LIMIT ?`,
+		 FROM reputation_events WHERE agent_id = $1
+		 ORDER BY created_at DESC LIMIT $2`,
 		agentID, limit,
 	)
 	if err != nil {
@@ -132,12 +122,8 @@ func (s *SQLiteStore) ListEvents(ctx context.Context, agentID string, limit int)
 	var events []Event
 	for rows.Next() {
 		var e Event
-		var createdAt string
-		if err := rows.Scan(&e.ID, &e.AgentID, &e.EventType, &e.Weight, &e.ScoreAfter, &e.Metadata, &createdAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.AgentID, &e.EventType, &e.Weight, &e.ScoreAfter, &e.Metadata, &e.CreatedAt); err != nil {
 			return nil, err
-		}
-		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
-			e.CreatedAt = t
 		}
 		events = append(events, e)
 	}
@@ -145,29 +131,29 @@ func (s *SQLiteStore) ListEvents(ctx context.Context, agentID string, limit int)
 }
 
 // UpdateAgentReputation updates the cached reputation score on the agents table.
-func (s *SQLiteStore) UpdateAgentReputation(ctx context.Context, agentID string, score float64, eventCount int64) error {
+func (s *PostgresStore) UpdateAgentReputation(ctx context.Context, agentID string, score float64, eventCount int64) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE agents SET reputation_score = ?, reputation_event_count = ?, reputation_updated_at = ? WHERE id = ?`,
-		score, eventCount, time.Now().UTC().Format(time.RFC3339), agentID,
+		`UPDATE agents SET reputation_score = $1, reputation_event_count = $2, reputation_updated_at = $3 WHERE id = $4`,
+		score, eventCount, time.Now().UTC(), agentID,
 	)
 	return err
 }
 
 // SetAgentVerified marks an agent as verified.
-func (s *SQLiteStore) SetAgentVerified(ctx context.Context, agentID string) error {
+func (s *PostgresStore) SetAgentVerified(ctx context.Context, agentID string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE agents SET verified = 1, verified_at = ? WHERE id = ?`,
-		time.Now().UTC().Format(time.RFC3339), agentID,
+		`UPDATE agents SET verified = TRUE, verified_at = $1 WHERE id = $2`,
+		time.Now().UTC(), agentID,
 	)
 	return err
 }
 
 // ListStaleOnlineAgents returns IDs of agents whose status is online but
 // whose last heartbeat is older than the given timeout.
-func (s *SQLiteStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {
+func (s *PostgresStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < ?`,
-		time.Now().UTC().Add(-timeout).Format(time.RFC3339),
+		`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < $1`,
+		time.Now().UTC().Add(-timeout),
 	)
 	if err != nil {
 		return nil, err
@@ -186,6 +172,6 @@ func (s *SQLiteStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Du
 }
 
 // Close is a no-op since the db is shared with the registry store.
-func (s *SQLiteStore) Close() error {
+func (s *PostgresStore) Close() error {
 	return nil
 }

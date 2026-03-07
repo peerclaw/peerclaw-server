@@ -50,6 +50,10 @@ type Store interface {
 	// SetAgentVerified marks an agent as verified.
 	SetAgentVerified(ctx context.Context, agentID string) error
 
+	// ListStaleOnlineAgents returns IDs of agents whose status is online but
+	// whose last heartbeat is older than the given timeout.
+	ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error)
+
 	// Migrate creates the required tables and columns.
 	Migrate(ctx context.Context) error
 
