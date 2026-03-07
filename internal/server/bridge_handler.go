@@ -85,8 +85,17 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 	bridgeStart := time.Now()
 	if err := s.bridges.Send(r.Context(), env); err != nil {
 		s.logger.Error("bridge send failed", "error", err, "proto", proto, "dest", req.Destination)
+		// Record bridge error reputation event.
+		if s.reputation != nil {
+			s.reputation.RecordEvent(r.Context(), req.Source, "bridge_error", err.Error())
+		}
 		s.jsonError(w, "bridge send failed: "+err.Error(), http.StatusBadGateway)
 		return
+	}
+
+	// Record bridge success reputation event.
+	if s.reputation != nil {
+		s.reputation.RecordEvent(r.Context(), req.Source, "bridge_success", "")
 	}
 
 	// Audit log and metrics.
@@ -99,8 +108,8 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]any{
-		"status":   "sent",
-		"protocol": proto,
+		"status":      "sent",
+		"protocol":    proto,
 		"envelope_id": env.ID,
 	})
 }

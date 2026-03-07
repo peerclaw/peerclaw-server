@@ -1,0 +1,220 @@
+package server
+
+import (
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-server/internal/registry"
+)
+
+// PublicAgentProfile is the sanitized public view of an agent.
+type PublicAgentProfile struct {
+	ID               string              `json:"id"`
+	Name             string              `json:"name"`
+	Description      string              `json:"description,omitempty"`
+	Version          string              `json:"version,omitempty"`
+	PublicKey        string              `json:"public_key,omitempty"`
+	Capabilities     []string            `json:"capabilities,omitempty"`
+	Skills           []agentcard.Skill   `json:"skills,omitempty"`
+	Protocols        []string            `json:"protocols,omitempty"`
+	Status           agentcard.AgentStatus `json:"status"`
+	Tags             []string            `json:"tags,omitempty"`
+	Verified         bool                `json:"verified"`
+	VerifiedAt       *time.Time          `json:"verified_at,omitempty"`
+	ReputationScore  float64             `json:"reputation_score"`
+	ReputationEvents int64               `json:"reputation_events"`
+	EndpointURL      string              `json:"endpoint_url,omitempty"` // Only if public_endpoint=true
+	RegisteredAt     time.Time           `json:"registered_at"`
+}
+
+// DirectoryResponse is the response for the public directory endpoint.
+type DirectoryResponse struct {
+	Agents        []PublicAgentProfile `json:"agents"`
+	NextPageToken string               `json:"next_page_token,omitempty"`
+	TotalCount    int                  `json:"total_count"`
+}
+
+// toPublicProfile converts an internal Card to a sanitized public profile.
+func toPublicProfile(card *agentcard.Card) PublicAgentProfile {
+	protocols := make([]string, len(card.Protocols))
+	for i, p := range card.Protocols {
+		protocols[i] = string(p)
+	}
+
+	profile := PublicAgentProfile{
+		ID:              card.ID,
+		Name:            card.Name,
+		Description:     card.Description,
+		Version:         card.Version,
+		PublicKey:       card.PublicKey,
+		Capabilities:    card.Capabilities,
+		Skills:          card.Skills,
+		Protocols:       protocols,
+		Status:          card.Status,
+		Tags:            card.PeerClaw.Tags,
+		ReputationScore: card.PeerClaw.ReputationScore,
+		RegisteredAt:    card.RegisteredAt,
+	}
+
+	// Only expose endpoint URL if the owner opted in.
+	if card.PeerClaw.PublicEndpoint {
+		profile.EndpointURL = card.Endpoint.URL
+	}
+
+	return profile
+}
+
+// handleDirectory handles GET /api/v1/directory — public agent directory.
+func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	filter := registry.ListFilter{
+		Protocol:   q.Get("protocol"),
+		Capability: q.Get("capability"),
+		Search:     q.Get("search"),
+		PageToken:  q.Get("page_token"),
+		SortBy:     q.Get("sort"),
+	}
+
+	if q.Get("status") != "" {
+		filter.Status = agentcard.AgentStatus(q.Get("status"))
+	}
+	if q.Get("verified") == "true" {
+		filter.Verified = true
+	}
+	if ms := q.Get("min_score"); ms != "" {
+		if score, err := strconv.ParseFloat(ms, 64); err == nil {
+			filter.MinScore = score
+		}
+	}
+	if ps := q.Get("page_size"); ps != "" {
+		if size, err := strconv.Atoi(ps); err == nil {
+			filter.PageSize = size
+		}
+	}
+
+	if filter.SortBy == "" {
+		filter.SortBy = "reputation"
+	}
+
+	result, err := s.registry.ListAgents(r.Context(), filter)
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	profiles := make([]PublicAgentProfile, 0, len(result.Agents))
+	for _, card := range result.Agents {
+		p := toPublicProfile(card)
+		// Enrich with reputation data from the engine if available.
+		if s.reputation != nil {
+			score, _ := s.reputation.GetScore(r.Context(), card.ID)
+			p.ReputationScore = score
+		}
+		profiles = append(profiles, p)
+	}
+
+	s.jsonResponse(w, http.StatusOK, DirectoryResponse{
+		Agents:        profiles,
+		NextPageToken: result.NextPageToken,
+		TotalCount:    result.TotalCount,
+	})
+}
+
+// handlePublicProfile handles GET /api/v1/directory/{id} — single agent public profile.
+func (s *HTTPServer) handlePublicProfile(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	card, err := s.registry.GetAgent(r.Context(), id)
+	if err != nil {
+		s.jsonError(w, "agent not found", http.StatusNotFound)
+		return
+	}
+
+	profile := toPublicProfile(card)
+
+	// Enrich with live reputation data.
+	if s.reputation != nil {
+		score, _ := s.reputation.GetScore(r.Context(), card.ID)
+		profile.ReputationScore = score
+	}
+
+	s.jsonResponse(w, http.StatusOK, profile)
+}
+
+// handleReputationHistory handles GET /api/v1/directory/{id}/reputation — reputation event history.
+func (s *HTTPServer) handleReputationHistory(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if s.reputation == nil {
+		s.jsonError(w, "reputation engine not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	limit := 50
+	if ls := r.URL.Query().Get("limit"); ls != "" {
+		if l, err := strconv.Atoi(ls); err == nil && l > 0 && l <= 200 {
+			limit = l
+		}
+	}
+
+	events, err := s.reputation.GetHistory(r.Context(), id, limit)
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if events == nil {
+		s.jsonResponse(w, http.StatusOK, map[string]any{"events": []struct{}{}})
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{"events": events})
+}
+
+// handleVerifyEndpoint handles POST /api/v1/agents/{id}/verify — initiate endpoint verification.
+func (s *HTTPServer) handleVerifyEndpoint(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if s.verificationChallenger == nil {
+		s.jsonError(w, "verification not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get the agent to verify.
+	card, err := s.registry.GetAgent(r.Context(), id)
+	if err != nil {
+		s.jsonError(w, "agent not found", http.StatusNotFound)
+		return
+	}
+
+	if card.Endpoint.URL == "" {
+		s.jsonError(w, "agent has no endpoint URL", http.StatusBadRequest)
+		return
+	}
+	if card.PublicKey == "" {
+		s.jsonError(w, "agent has no public key", http.StatusBadRequest)
+		return
+	}
+
+	result, err := s.verificationChallenger.InitiateChallenge(r.Context(), id, card.Endpoint.URL, card.PublicKey)
+	if err != nil {
+		// Record verification failure.
+		if s.reputation != nil {
+			s.reputation.RecordEvent(r.Context(), id, "verification_fail", err.Error())
+		}
+		s.jsonError(w, "verification failed: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Mark agent as verified and record success event.
+	if s.reputation != nil {
+		s.reputation.SetVerified(r.Context(), id)
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"status":    "verified",
+		"challenge": result.Challenge,
+	})
+}

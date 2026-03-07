@@ -16,8 +16,10 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
+	"github.com/peerclaw/peerclaw-server/internal/reputation"
 	"github.com/peerclaw/peerclaw-server/internal/router"
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
+	"github.com/peerclaw/peerclaw-server/internal/verification"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -33,19 +35,21 @@ type HTTPServerConfig struct {
 
 // HTTPServer provides the REST API gateway for PeerClaw.
 type HTTPServer struct {
-	mux        *http.ServeMux
-	server     *http.Server
-	registry   *registry.Service
-	engine     *router.Engine
-	bridges    *bridge.Manager
-	sigHub     *signaling.Hub
-	logger     *slog.Logger
-	store      registry.Store
-	audit      *audit.Logger
-	metrics    *observability.Metrics
-	federation *federation.FederationService
-	verifier   *identity.Verifier
-	authCfg    AuthConfig
+	mux                    *http.ServeMux
+	server                 *http.Server
+	registry               *registry.Service
+	engine                 *router.Engine
+	bridges                *bridge.Manager
+	sigHub                 *signaling.Hub
+	logger                 *slog.Logger
+	store                  registry.Store
+	audit                  *audit.Logger
+	metrics                *observability.Metrics
+	federation             *federation.FederationService
+	verifier               *identity.Verifier
+	authCfg                AuthConfig
+	reputation             *reputation.Engine
+	verificationChallenger *verification.Challenger
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -127,6 +131,16 @@ func (s *HTTPServer) SetFederation(f *federation.FederationService) {
 	s.federation = f
 }
 
+// SetReputation sets the reputation engine for recording and querying reputation.
+func (s *HTTPServer) SetReputation(r *reputation.Engine) {
+	s.reputation = r
+}
+
+// SetVerificationChallenger sets the endpoint verification challenger.
+func (s *HTTPServer) SetVerificationChallenger(v *verification.Challenger) {
+	s.verificationChallenger = v
+}
+
 func (s *HTTPServer) routes() {
 	authMW := AuthMiddleware(s.authCfg, s.logger)
 	ownerMW := OwnerOnlyMiddleware(s.logger)
@@ -142,6 +156,9 @@ func (s *HTTPServer) routes() {
 
 	// Public routes — no authentication required.
 	s.mux.HandleFunc("GET /api/v1/health", s.handleHealth)
+	s.mux.HandleFunc("GET /api/v1/directory", s.handleDirectory)
+	s.mux.HandleFunc("GET /api/v1/directory/{id}", s.handlePublicProfile)
+	s.mux.HandleFunc("GET /api/v1/directory/{id}/reputation", s.handleReputationHistory)
 
 	// Authenticated routes.
 	s.mux.Handle("POST /api/v1/agents", wrapAuth(s.handleRegister))
@@ -158,6 +175,7 @@ func (s *HTTPServer) routes() {
 	// Owner-only routes — authenticated agent must match {id} in path.
 	s.mux.Handle("DELETE /api/v1/agents/{id}", wrapOwner(s.handleDeregister))
 	s.mux.Handle("POST /api/v1/agents/{id}/heartbeat", wrapOwner(s.handleHeartbeat))
+	s.mux.Handle("POST /api/v1/agents/{id}/verify", wrapOwner(s.handleVerifyEndpoint))
 
 	// Federation endpoints (use their own token-based auth).
 	s.mux.HandleFunc("POST /api/v1/federation/signal", s.handleFederationSignal)
@@ -275,6 +293,7 @@ type peerclawReq struct {
 	RelayPreference string   `json:"relay_preference"`
 	Priority        int      `json:"priority"`
 	Tags            []string `json:"tags"`
+	PublicEndpoint  bool     `json:"public_endpoint"`
 }
 
 func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -317,6 +336,7 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 			RelayPreference: req.PeerClaw.RelayPreference,
 			Priority:        req.PeerClaw.Priority,
 			Tags:            req.PeerClaw.Tags,
+			PublicEndpoint:  req.PeerClaw.PublicEndpoint,
 		},
 	})
 	if err != nil {
@@ -326,6 +346,11 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	// Update routing table.
 	s.engine.UpdateFromCard(card)
+
+	// Record reputation event.
+	if s.reputation != nil {
+		s.reputation.RecordEvent(r.Context(), card.ID, "registration", "")
+	}
 
 	// Audit log.
 	if s.audit != nil {
@@ -410,6 +435,12 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		s.jsonError(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
+	// Record reputation event.
+	if s.reputation != nil {
+		s.reputation.RecordEvent(r.Context(), id, "heartbeat_success", "")
+	}
+
 	s.jsonResponse(w, http.StatusOK, map[string]any{"next_deadline": deadline})
 }
 

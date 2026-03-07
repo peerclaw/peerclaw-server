@@ -153,6 +153,17 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 		conditions = append(conditions, "status = ?")
 		args = append(args, string(filter.Status))
 	}
+	if filter.Verified {
+		conditions = append(conditions, "verified = 1")
+	}
+	if filter.MinScore > 0 {
+		conditions = append(conditions, "COALESCE(reputation_score, 0.5) >= ?")
+		args = append(args, filter.MinScore)
+	}
+	if filter.Search != "" {
+		conditions = append(conditions, "(name LIKE ? OR description LIKE ?)")
+		args = append(args, "%"+filter.Search+"%", "%"+filter.Search+"%")
+	}
 
 	where := ""
 	if len(conditions) > 0 {
@@ -176,6 +187,16 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 		fmt.Sscanf(filter.PageToken, "%d", &offset)
 	}
 
+	orderBy := "registered_at DESC"
+	switch filter.SortBy {
+	case "reputation":
+		orderBy = "COALESCE(reputation_score, 0.5) DESC"
+	case "name":
+		orderBy = "name ASC"
+	case "registered_at":
+		orderBy = "registered_at DESC"
+	}
+
 	query := fmt.Sprintf(`SELECT
 		id, name, description, version, COALESCE(public_key, ''), capabilities,
 		endpoint_url, endpoint_host, endpoint_port, endpoint_transport,
@@ -183,7 +204,7 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 		peerclaw_nat, peerclaw_relay, peerclaw_priority, peerclaw_tags,
 		COALESCE(skills, '[]'), COALESCE(tools, '[]'),
 		status, registered_at, last_heartbeat
-		FROM agents %s ORDER BY registered_at DESC LIMIT ? OFFSET ?`, where)
+		FROM agents %s ORDER BY %s LIMIT ? OFFSET ?`, where, orderBy)
 
 	args = append(args, pageSize, offset)
 	rows, err := s.db.QueryContext(ctx, query, args...)
@@ -272,6 +293,10 @@ func (s *SQLiteStore) FindByCapabilities(ctx context.Context, capabilities []str
 		agents = append(agents, card)
 	}
 	return agents, rows.Err()
+}
+
+func (s *SQLiteStore) GetDB() interface{} {
+	return s.db
 }
 
 func (s *SQLiteStore) Close() error {

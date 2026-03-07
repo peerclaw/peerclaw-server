@@ -13,6 +13,11 @@ type ListFilter struct {
 	Status     agentcard.AgentStatus
 	PageSize   int
 	PageToken  string
+	// Public directory filters.
+	Verified bool
+	MinScore float64
+	Search   string
+	SortBy   string // "reputation", "name", "registered_at"
 }
 
 // ListResult holds a page of agents and pagination info.
@@ -41,6 +46,9 @@ type Store interface {
 
 	// FindByCapabilities returns agents that match any of the given capabilities.
 	FindByCapabilities(ctx context.Context, capabilities []string, protocol string, maxResults int) ([]*agentcard.Card, error)
+
+	// GetDB returns the underlying *sql.DB for shared use by other modules.
+	GetDB() interface{}
 
 	// Close releases resources.
 	Close() error

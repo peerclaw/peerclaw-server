@@ -2,8 +2,8 @@ import { NavLink } from "react-router-dom"
 import { LayoutDashboard, Bot } from "lucide-react"
 
 const links = [
-  { to: "/", label: "Overview", icon: LayoutDashboard },
-  { to: "/agents", label: "Agents", icon: Bot },
+  { to: "/admin", label: "Overview", icon: LayoutDashboard },
+  { to: "/admin/agents", label: "Agents", icon: Bot },
 ]
 
 export function Sidebar() {
@@ -13,7 +13,7 @@ export function Sidebar() {
         <div className="size-7 rounded-md bg-primary flex items-center justify-center">
           <span className="text-xs font-bold text-primary-foreground">PC</span>
         </div>
-        <span className="font-semibold text-sm">PeerClaw</span>
+        <span className="font-semibold text-sm">PeerClaw Admin</span>
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
@@ -21,7 +21,7 @@ export function Sidebar() {
           <NavLink
             key={to}
             to={to}
-            end={to === "/"}
+            end={to === "/admin"}
             className={({ isActive }) =>
               `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
                 isActive
@@ -37,7 +37,9 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border p-3">
-        <p className="text-xs text-muted-foreground">PeerClaw Dashboard</p>
+        <NavLink to="/" className="text-xs text-muted-foreground hover:text-foreground">
+          Back to Public Site
+        </NavLink>
       </div>
     </aside>
   )

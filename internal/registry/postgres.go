@@ -300,6 +300,10 @@ func (s *PostgresStore) FindByCapabilities(ctx context.Context, capabilities []s
 	return agents, rows.Err()
 }
 
+func (s *PostgresStore) GetDB() interface{} {
+	return s.db
+}
+
 func (s *PostgresStore) Close() error {
 	return s.db.Close()
 }

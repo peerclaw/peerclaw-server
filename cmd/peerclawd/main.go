@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"database/sql"
+
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
@@ -19,9 +21,11 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
+	"github.com/peerclaw/peerclaw-server/internal/reputation"
 	"github.com/peerclaw/peerclaw-server/internal/router"
 	"github.com/peerclaw/peerclaw-server/internal/server"
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
+	"github.com/peerclaw/peerclaw-server/internal/verification"
 	goredis "github.com/redis/go-redis/v9"
 )
 
@@ -76,6 +80,33 @@ func main() {
 		os.Exit(1)
 	}
 	defer store.Close()
+
+	// Extract the underlying *sql.DB for shared use by reputation and verification modules.
+	sqlDB, _ := store.GetDB().(*sql.DB)
+
+	// Initialize reputation engine.
+	var repEngine *reputation.Engine
+	if sqlDB != nil {
+		repStore := reputation.NewSQLiteStore(sqlDB)
+		if err := repStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate reputation tables", "error", err)
+			os.Exit(1)
+		}
+		repEngine = reputation.NewEngine(repStore, logger)
+		logger.Info("reputation engine initialized")
+	}
+
+	// Initialize verification challenger.
+	var verifyChallenger *verification.Challenger
+	if sqlDB != nil {
+		verifyStore := verification.NewSQLiteStore(sqlDB)
+		if err := verifyStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate verification tables", "error", err)
+			os.Exit(1)
+		}
+		verifyChallenger = verification.NewChallenger(verifyStore, logger)
+		logger.Info("endpoint verification initialized")
+	}
 
 	// Initialize services.
 	regService := registry.NewService(store, logger)
@@ -169,6 +200,12 @@ func main() {
 	httpServer.SetStore(store)
 	httpServer.SetAudit(auditLogger)
 	httpServer.SetMetrics(otelMetrics)
+	if repEngine != nil {
+		httpServer.SetReputation(repEngine)
+	}
+	if verifyChallenger != nil {
+		httpServer.SetVerificationChallenger(verifyChallenger)
+	}
 	if fedService != nil {
 		httpServer.SetFederation(fedService)
 	}
@@ -202,6 +239,40 @@ func main() {
 			sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
 		}
 	}
+	// Start heartbeat timeout checker goroutine.
+	if repEngine != nil && sqlDB != nil {
+		go func() {
+			ticker := time.NewTicker(60 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					// Find agents whose last heartbeat is older than 5 minutes and status is online.
+					rows, err := sqlDB.QueryContext(ctx,
+						`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < ?`,
+						time.Now().UTC().Add(-5*time.Minute).Format(time.RFC3339),
+					)
+					if err != nil {
+						logger.Warn("heartbeat check query failed", "error", err)
+						continue
+					}
+					for rows.Next() {
+						var agentID string
+						if err := rows.Scan(&agentID); err != nil {
+							continue
+						}
+						repEngine.RecordEvent(ctx, agentID, "heartbeat_miss", "")
+						logger.Debug("heartbeat miss recorded", "agent_id", agentID)
+					}
+					rows.Close()
+				}
+			}
+		}()
+		logger.Info("heartbeat timeout checker started", "interval", "60s", "timeout", "5m")
+	}
+
 	grpcServer := server.NewGRPCServer(cfg.Server.GRPCAddr, logger)
 
 	var wg sync.WaitGroup

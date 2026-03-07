@@ -2,9 +2,9 @@
 
 # peerclaw-server
 
-**AI Agent Gateway — register, discover, connect, and bridge across protocols.**
+**AI Agent Identity & Trust Platform — verifiable identity, reputation scoring, endpoint verification, and cross-protocol bridging.**
 
-peerclaw-server is the coordination hub for AI agents. Think of it as an API gateway purpose-built for agents: it provides a registry so agents can find each other, a signaling relay so they can connect, and protocol bridges so A2A, MCP, and ACP agents can talk to each other without code changes.
+peerclaw-server is the trust infrastructure for AI agents. It provides cryptographically verifiable identities, EWMA-based reputation scoring from real interactions, endpoint verification, and a public agent directory — all built on top of a full protocol gateway with registry, signaling relay, and protocol bridges (A2A, MCP, ACP).
 
 Start it with one command. No external dependencies required.
 
@@ -17,6 +17,9 @@ Start it with one command. No external dependencies required.
 
 | Capability | What it means for you |
 |-----------|----------------------|
+| **Reputation Engine** | EWMA scoring from real events (registration, heartbeat, bridge, verification). Trust that's earned, not claimed. |
+| **Endpoint Verification** | Challenge-response proof that an agent controls its URL. Ed25519 signed. |
+| **Public Directory** | Browse agents by reputation, capability, verification status. No auth required. |
 | **Agent Registry** | Agents register their capabilities. Anyone can discover them. Like DNS for agents. |
 | **Protocol Bridging** | An MCP agent can call an A2A agent. The gateway translates automatically. |
 | **Signaling Relay** | Agents establish direct P2P connections via WebSocket signaling. |
@@ -96,6 +99,8 @@ curl http://localhost:8080/api/v1/health
 | **Bridge** | `internal/bridge/` | Protocol adapters (A2A, MCP, ACP) + negotiator |
 | **Router** | `internal/router/` | Capability-based message routing |
 | **Federation** | `internal/federation/` | Multi-server signal relay, DNS SRV discovery |
+| **Reputation** | `internal/reputation/` | EWMA reputation engine, event recording, score computation |
+| **Verification** | `internal/verification/` | Challenge-response endpoint verification (SSRF-safe) |
 | **Security** | `internal/security/` | URL validation (SSRF protection), safe HTTP client |
 | **Config** | `internal/config/` | YAML config with `${ENV_VAR}` secret substitution |
 | **Observability** | `internal/observability/` | OpenTelemetry provider setup |
@@ -192,6 +197,20 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 | `DELETE` | `/api/v1/agents/{id}` | Deregister an agent (owner only) |
 | `POST` | `/api/v1/agents/{id}/heartbeat` | Report heartbeat (owner only) |
 
+### Public Directory (no auth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/directory` | Browse agent directory (filter: `capability`, `protocol`, `status`, `verified`, `min_score`, `search`; sort: `reputation`, `name`, `registered_at`) |
+| `GET` | `/api/v1/directory/{id}` | Public agent profile (sanitized, no auth params) |
+| `GET` | `/api/v1/directory/{id}/reputation` | Reputation event history |
+
+### Verification
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/agents/{id}/verify` | Initiate endpoint verification (owner only) |
+
 ### Discovery & Routing
 
 | Method | Path | Description |
@@ -214,7 +233,7 @@ When `auth.required: true`, all non-public endpoints require one of:
 - **Bearer token**: `Authorization: Bearer <api-key>`
 - **Ed25519 signature**: `X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` headers
 
-Public endpoints (no auth): `GET /api/v1/health`, `GET /.well-known/agent.json`, `GET /acp/ping`
+Public endpoints (no auth): `GET /api/v1/health`, `GET /api/v1/directory`, `GET /api/v1/directory/{id}`, `GET /api/v1/directory/{id}/reputation`, `GET /.well-known/agent.json`, `GET /acp/ping`
 
 ## Protocol Gateway Endpoints
 

@@ -2,9 +2,9 @@
 
 # peerclaw-server
 
-**AI Agent 网关 — 注册、发现、连接、跨协议通信。**
+**AI Agent 身份与信任平台 — 可验证身份、声誉评分、端点验证、跨协议桥接。**
 
-peerclaw-server 是 AI Agent 的协调中心。你可以把它理解为专为 Agent 设计的 API 网关：提供注册中心让 Agent 互相发现，提供信令中转让它们建立连接，提供协议桥接让 A2A、MCP、ACP 的 Agent 无需改代码就能互相通信。
+peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证身份、基于真实交互的 EWMA 声誉评分、端点验证、以及公开的 Agent 目录 — 一切都构建在完整的协议网关之上，包括注册中心、信令中转和协议桥接（A2A、MCP、ACP）。
 
 一行命令启动，零外部依赖。
 
@@ -17,6 +17,9 @@ peerclaw-server 是 AI Agent 的协调中心。你可以把它理解为专为 Ag
 
 | 能力 | 对你意味着什么 |
 |------|--------------|
+| **声誉引擎** | 基于真实事件（注册、心跳、桥接、验证）的 EWMA 评分。信任是赢得的，不是声称的。 |
+| **端点验证** | Challenge-Response 证明 Agent 控制其 URL，Ed25519 签名。 |
+| **公开目录** | 按声誉、能力、验证状态浏览 Agent，无需认证。 |
 | **Agent 注册中心** | Agent 注册自己的能力，任何人都能发现它。像 Agent 的 DNS。 |
 | **协议桥接** | MCP Agent 可以调用 A2A Agent，网关自动翻译。 |
 | **信令中转** | Agent 通过 WebSocket 信令建立 P2P 直连。 |
@@ -96,6 +99,8 @@ curl http://localhost:8080/api/v1/health
 | **桥接** | `internal/bridge/` | 协议适配器（A2A、MCP、ACP）+ 协商器 |
 | **路由** | `internal/router/` | 基于能力的消息路由 |
 | **联邦** | `internal/federation/` | 多服务器信令中转、DNS SRV 发现 |
+| **声誉** | `internal/reputation/` | EWMA 声誉引擎、事件记录、分数计算 |
+| **验证** | `internal/verification/` | Challenge-Response 端点验证（SSRF 安全） |
 | **安全** | `internal/security/` | URL 校验（SSRF 防护）、安全 HTTP 客户端 |
 | **配置** | `internal/config/` | YAML 配置 + `${ENV_VAR}` 密钥替换 |
 | **可观测** | `internal/observability/` | OpenTelemetry Provider 初始化 |
@@ -192,6 +197,20 @@ redis:
 | `DELETE` | `/api/v1/agents/{id}` | 注销 Agent（仅所有者） |
 | `POST` | `/api/v1/agents/{id}/heartbeat` | 上报心跳（仅所有者） |
 
+### 公开目录（免认证）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/v1/directory` | 浏览 Agent 目录（过滤：`capability`、`protocol`、`status`、`verified`、`min_score`、`search`；排序：`reputation`、`name`、`registered_at`） |
+| `GET` | `/api/v1/directory/{id}` | Agent 公开档案（脱敏，不含认证参数） |
+| `GET` | `/api/v1/directory/{id}/reputation` | 声誉事件历史 |
+
+### 端点验证
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/v1/agents/{id}/verify` | 发起端点验证（仅所有者） |
+
 ### 发现与路由
 
 | 方法 | 路径 | 说明 |
@@ -214,7 +233,7 @@ redis:
 - **Bearer Token**：`Authorization: Bearer <api-key>`
 - **Ed25519 签名**：`X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` 请求头
 
-公开端点（免认证）：`GET /api/v1/health`、`GET /.well-known/agent.json`、`GET /acp/ping`
+公开端点（免认证）：`GET /api/v1/health`、`GET /api/v1/directory`、`GET /api/v1/directory/{id}`、`GET /api/v1/directory/{id}/reputation`、`GET /.well-known/agent.json`、`GET /acp/ping`
 
 ## 协议网关端点
 

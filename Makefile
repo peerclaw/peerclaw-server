@@ -6,7 +6,7 @@ GO := go
 GOFLAGS := -v
 
 dashboard:
-	cd web/dashboard && npm install && npm run build
+	cd web/app && npm install && npm run build
 
 build: dashboard
 	CGO_ENABLED=1 $(GO) build $(GOFLAGS) -o $(BUILD_DIR)/$(BINARY) ./cmd/peerclawd
