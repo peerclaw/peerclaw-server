@@ -19,6 +19,9 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/reputation"
 	"github.com/peerclaw/peerclaw-server/internal/router"
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
+	"github.com/peerclaw/peerclaw-server/internal/invocation"
+	"github.com/peerclaw/peerclaw-server/internal/review"
+	"github.com/peerclaw/peerclaw-server/internal/userauth"
 	"github.com/peerclaw/peerclaw-server/internal/verification"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -50,6 +53,10 @@ type HTTPServer struct {
 	authCfg                AuthConfig
 	reputation             *reputation.Engine
 	verificationChallenger *verification.Challenger
+	userAuth               *userauth.Service
+	invocation             *invocation.Service
+	invokeRateLimiter      *IPRateLimiter
+	reviewService          *review.Service
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -141,6 +148,26 @@ func (s *HTTPServer) SetVerificationChallenger(v *verification.Challenger) {
 	s.verificationChallenger = v
 }
 
+// SetUserAuth sets the user authentication service.
+func (s *HTTPServer) SetUserAuth(ua *userauth.Service) {
+	s.userAuth = ua
+}
+
+// SetInvocation sets the invocation service.
+func (s *HTTPServer) SetInvocation(inv *invocation.Service) {
+	s.invocation = inv
+}
+
+// SetInvokeRateLimiter sets the rate limiter for agent invocations.
+func (s *HTTPServer) SetInvokeRateLimiter(rl *IPRateLimiter) {
+	s.invokeRateLimiter = rl
+}
+
+// SetReviewService sets the review service for ratings, reviews, and reports.
+func (s *HTTPServer) SetReviewService(rs *review.Service) {
+	s.reviewService = rs
+}
+
 func (s *HTTPServer) routes() {
 	authMW := AuthMiddleware(s.authCfg, s.logger)
 	ownerMW := OwnerOnlyMiddleware(s.logger)
@@ -186,6 +213,18 @@ func (s *HTTPServer) routes() {
 
 	// Dashboard stats API (public).
 	s.mux.HandleFunc("GET /api/v1/dashboard/stats", s.handleDashboardStats)
+
+	// User auth routes.
+	s.registerUserAuthRoutes()
+
+	// Invoke routes.
+	s.registerInvokeRoutes()
+
+	// Provider console routes.
+	s.registerProviderRoutes()
+
+	// Review and community routes.
+	s.registerReviewRoutes()
 
 	// Dashboard SPA (catch-all, registered last).
 	s.mux.Handle("GET /", DashboardHandler())
@@ -577,6 +616,116 @@ func (s *HTTPServer) handleFederationDiscover(w http.ResponseWriter, r *http.Req
 		return
 	}
 	s.jsonResponse(w, http.StatusOK, map[string]any{"agents": agents})
+}
+
+func (s *HTTPServer) registerReviewRoutes() {
+	wrapReviewAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+		})
+	}
+
+	// Public review endpoints.
+	s.mux.HandleFunc("GET /api/v1/directory/{id}/reviews", s.handleListReviews)
+	s.mux.HandleFunc("GET /api/v1/directory/{id}/reviews/summary", s.handleGetReviewSummary)
+
+	// JWT-protected review endpoints.
+	s.mux.Handle("POST /api/v1/directory/{id}/reviews", wrapReviewAuth(s.handleSubmitReview))
+	s.mux.Handle("DELETE /api/v1/directory/{id}/reviews", wrapReviewAuth(s.handleDeleteReview))
+
+	// Category endpoint (public).
+	s.mux.HandleFunc("GET /api/v1/categories", s.handleListCategories)
+
+	// Report endpoint (JWT-protected).
+	s.mux.Handle("POST /api/v1/reports", wrapReviewAuth(s.handleSubmitReport))
+}
+
+func (s *HTTPServer) registerProviderRoutes() {
+	wrapProviderAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+		})
+	}
+
+	s.mux.Handle("POST /api/v1/provider/agents", wrapProviderAuth(s.handleProviderPublishAgent))
+	s.mux.Handle("GET /api/v1/provider/agents", wrapProviderAuth(s.handleProviderListAgents))
+	s.mux.Handle("GET /api/v1/provider/agents/{id}", wrapProviderAuth(s.handleProviderGetAgent))
+	s.mux.Handle("PUT /api/v1/provider/agents/{id}", wrapProviderAuth(s.handleProviderUpdateAgent))
+	s.mux.Handle("DELETE /api/v1/provider/agents/{id}", wrapProviderAuth(s.handleProviderDeleteAgent))
+	s.mux.Handle("GET /api/v1/provider/agents/{id}/analytics", wrapProviderAuth(s.handleProviderAgentAnalytics))
+	s.mux.Handle("GET /api/v1/provider/dashboard", wrapProviderAuth(s.handleProviderDashboard))
+}
+
+func (s *HTTPServer) registerInvokeRoutes() {
+	// Invoke with optional auth (anonymous allowed with rate limiting).
+	wrapOptionalAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth != nil {
+				OptionalUserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+				return
+			}
+			h(w, r)
+		})
+	}
+
+	wrapInvokeAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth != nil {
+				UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+				return
+			}
+			h(w, r)
+		})
+	}
+
+	s.mux.Handle("POST /api/v1/invoke/{agent_id}", wrapOptionalAuth(s.handleInvoke))
+	s.mux.Handle("GET /api/v1/invocations", wrapInvokeAuth(s.handleListInvocations))
+	s.mux.Handle("GET /api/v1/invocations/{id}", wrapInvokeAuth(s.handleGetInvocation))
+}
+
+func (s *HTTPServer) registerUserAuthRoutes() {
+	// Guard: if userAuth is not available, return 501 for auth endpoints.
+	guardUserAuth := func(h http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			h(w, r)
+		}
+	}
+
+	// wrapUserAuth applies JWT auth middleware.
+	wrapUserAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+		})
+	}
+
+	// Public auth routes.
+	s.mux.HandleFunc("POST /api/v1/auth/register", guardUserAuth(s.handleAuthRegister))
+	s.mux.HandleFunc("POST /api/v1/auth/login", guardUserAuth(s.handleAuthLogin))
+	s.mux.HandleFunc("POST /api/v1/auth/refresh", guardUserAuth(s.handleAuthRefresh))
+	s.mux.HandleFunc("POST /api/v1/auth/logout", guardUserAuth(s.handleAuthLogout))
+
+	// JWT-protected auth routes.
+	s.mux.Handle("GET /api/v1/auth/me", wrapUserAuth(s.handleAuthMe))
+	s.mux.Handle("PUT /api/v1/auth/me", wrapUserAuth(s.handleAuthUpdateMe))
+	s.mux.Handle("POST /api/v1/auth/api-keys", wrapUserAuth(s.handleAuthCreateAPIKey))
+	s.mux.Handle("GET /api/v1/auth/api-keys", wrapUserAuth(s.handleAuthListAPIKeys))
+	s.mux.Handle("DELETE /api/v1/auth/api-keys/{key_id}", wrapUserAuth(s.handleAuthRevokeAPIKey))
 }
 
 // --- Helpers ---

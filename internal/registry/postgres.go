@@ -300,6 +300,11 @@ func (s *PostgresStore) FindByCapabilities(ctx context.Context, capabilities []s
 	return agents, rows.Err()
 }
 
+func (s *PostgresStore) ListByOwner(ctx context.Context, userID string, filter ListFilter) (*ListResult, error) {
+	filter.OwnerUserID = userID
+	return s.List(ctx, filter)
+}
+
 func (s *PostgresStore) GetDB() interface{} {
 	return s.db
 }

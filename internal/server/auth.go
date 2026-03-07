@@ -4,8 +4,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/peerclaw/peerclaw-server/internal/identity"
+	"github.com/peerclaw/peerclaw-server/internal/userauth"
 )
 
 // AuthConfig controls authentication behavior.
@@ -156,4 +158,70 @@ func (br *bytesReaderWrapper) Read(p []byte) (int, error) {
 	n := copy(p, br.data[br.pos:])
 	br.pos += n
 	return n, nil
+}
+
+// UserAuthMiddleware validates JWT tokens from Authorization: Bearer <jwt> headers
+// and stores the user ID and role in the request context.
+func UserAuthMiddleware(jwtMgr *userauth.JWTManager, logger *slog.Logger) Middleware {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				http.Error(w, `{"error":"authorization header required"}`, http.StatusUnauthorized)
+				return
+			}
+
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+				http.Error(w, `{"error":"invalid authorization header"}`, http.StatusUnauthorized)
+				return
+			}
+
+			claims, err := jwtMgr.ValidateAccessToken(parts[1])
+			if err != nil {
+				logger.Debug("JWT validation failed", "error", err)
+				http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
+				return
+			}
+
+			ctx := identity.WithUserID(r.Context(), claims.UserID)
+			ctx = identity.WithUserRole(ctx, claims.Role)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// OptionalUserAuthMiddleware extracts JWT if present but does not require it.
+func OptionalUserAuthMiddleware(jwtMgr *userauth.JWTManager, logger *slog.Logger) Middleware {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			claims, err := jwtMgr.ValidateAccessToken(parts[1])
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			ctx := identity.WithUserID(r.Context(), claims.UserID)
+			ctx = identity.WithUserRole(ctx, claims.Role)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

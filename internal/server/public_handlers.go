@@ -23,10 +23,20 @@ type PublicAgentProfile struct {
 	Tags             []string            `json:"tags,omitempty"`
 	Verified         bool                `json:"verified"`
 	VerifiedAt       *time.Time          `json:"verified_at,omitempty"`
+	Trusted          bool                `json:"trusted"`
 	ReputationScore  float64             `json:"reputation_score"`
 	ReputationEvents int64               `json:"reputation_events"`
 	EndpointURL      string              `json:"endpoint_url,omitempty"` // Only if public_endpoint=true
 	RegisteredAt     time.Time           `json:"registered_at"`
+	ReviewSummary    *reviewSummaryJSON   `json:"review_summary,omitempty"`
+	Categories       []string            `json:"categories,omitempty"`
+}
+
+// reviewSummaryJSON is the JSON representation of a review summary.
+type reviewSummaryJSON struct {
+	AverageRating float64 `json:"average_rating"`
+	TotalReviews  int     `json:"total_reviews"`
+	Distribution  [5]int  `json:"distribution"`
 }
 
 // DirectoryResponse is the response for the public directory endpoint.
@@ -95,6 +105,10 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if q.Get("category") != "" {
+		filter.Category = q.Get("category")
+	}
+
 	if filter.SortBy == "" {
 		filter.SortBy = "reputation"
 	}
@@ -138,6 +152,20 @@ func (s *HTTPServer) handlePublicProfile(w http.ResponseWriter, r *http.Request)
 	if s.reputation != nil {
 		score, _ := s.reputation.GetScore(r.Context(), card.ID)
 		profile.ReputationScore = score
+		// Trusted badge: verified + high reputation.
+		profile.Trusted = profile.Verified && score > 0.8
+	}
+
+	// Enrich with review summary.
+	if s.reviewService != nil {
+		summary, err := s.reviewService.GetSummary(r.Context(), card.ID)
+		if err == nil && summary != nil {
+			profile.ReviewSummary = &reviewSummaryJSON{
+				AverageRating: summary.AverageRating,
+				TotalReviews:  summary.TotalReviews,
+				Distribution:  summary.Distribution,
+			}
+		}
 	}
 
 	s.jsonResponse(w, http.StatusOK, profile)

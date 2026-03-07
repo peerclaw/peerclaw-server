@@ -84,10 +84,13 @@ export interface PublicAgentProfile {
   tags?: string[]
   verified: boolean
   verified_at?: string
+  trusted: boolean
   reputation_score: number
   reputation_events: number
   endpoint_url?: string
   registered_at: string
+  review_summary?: ReviewSummary
+  categories?: string[]
 }
 
 export interface DirectoryResponse {
@@ -106,6 +109,7 @@ export interface DirectoryParams {
   sort?: "reputation" | "name" | "registered_at"
   page_size?: number
   page_token?: string
+  category?: string
 }
 
 export interface ReputationEvent {
@@ -116,4 +120,100 @@ export interface ReputationEvent {
   score_after: number
   metadata?: string
   created_at: string
+}
+
+// Review & Community types
+
+export interface Review {
+  id: string
+  agent_id: string
+  user_id: string
+  rating: number
+  comment: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ReviewSummary {
+  average_rating: number
+  total_reviews: number
+  distribution: number[]
+}
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  description: string
+  icon: string
+  sort_order: number
+}
+
+export interface AbuseReport {
+  id: string
+  reporter_id: string
+  target_type: string
+  target_id: string
+  reason: string
+  details: string
+  status: string
+  created_at: string
+}
+
+// Invocation types
+
+export interface InvokeRequest {
+  message: string
+  protocol?: string
+  metadata?: Record<string, string>
+  stream?: boolean
+}
+
+export interface InvokeResponse {
+  invocation_id: string
+  agent_id: string
+  protocol: string
+  response: string
+  duration_ms: number
+}
+
+export interface InvocationRecord {
+  id: string
+  agent_id: string
+  user_id: string
+  protocol: string
+  status_code: number
+  duration_ms: number
+  error: string
+  created_at: string
+}
+
+// Provider types
+
+export interface AgentInvocationStats {
+  total_calls: number
+  success_calls: number
+  error_calls: number
+  avg_duration_ms: number
+  p95_duration_ms: number
+}
+
+export interface TimeSeriesPoint {
+  bucket: string
+  count: number
+  errors: number
+  avg_duration_ms: number
+}
+
+export interface ProviderDashboardStats {
+  total_agents: number
+  total_calls: number
+  total_errors: number
+  avg_duration_ms: number
+  agents: Array<{
+    id: string
+    name: string
+    total_calls: number
+    error_rate: number
+  }>
 }

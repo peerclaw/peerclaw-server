@@ -39,6 +39,7 @@ type RegisterRequest struct {
 	Auth         agentcard.AuthInfo
 	Metadata     map[string]string
 	PeerClaw     agentcard.PeerClawExtension
+	OwnerUserID  string
 }
 
 // Register creates a new agent registration.
@@ -76,6 +77,14 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*agentcard
 		Status:        agentcard.StatusOnline,
 		RegisteredAt:  now,
 		LastHeartbeat: now,
+	}
+
+	// Store owner in metadata for ownership checks.
+	if req.OwnerUserID != "" {
+		if card.Metadata == nil {
+			card.Metadata = make(map[string]string)
+		}
+		card.Metadata["owner_user_id"] = req.OwnerUserID
 	}
 
 	if err := s.store.Put(ctx, card); err != nil {

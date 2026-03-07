@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom"
 import { fetchDirectory } from "@/api/client"
 import type { PublicAgentProfile } from "@/api/types"
 import { AgentDirectoryCard } from "@/components/public/AgentDirectoryCard"
+import { CategoryFilter } from "@/components/public/CategoryFilter"
 import { Search } from "lucide-react"
 
 type SortOption = "reputation" | "name" | "registered_at"
@@ -19,6 +20,9 @@ export function DirectoryPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(
     searchParams.get("verified") === "true"
   )
+  const [category, setCategory] = useState<string | undefined>(
+    searchParams.get("category") ?? undefined
+  )
 
   useEffect(() => {
     setLoading(true)
@@ -26,6 +30,7 @@ export function DirectoryPage() {
       search: search || undefined,
       sort,
       verified: verifiedOnly || undefined,
+      category,
       page_size: 24,
     })
       .then((res) => {
@@ -37,7 +42,7 @@ export function DirectoryPage() {
         setTotal(0)
       })
       .finally(() => setLoading(false))
-  }, [search, sort, verifiedOnly])
+  }, [search, sort, verifiedOnly, category])
 
   const updateFilter = (key: string, value: string | undefined) => {
     const params = new URLSearchParams(searchParams)
@@ -56,6 +61,17 @@ export function DirectoryPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           {total} agent{total !== 1 ? "s" : ""} registered
         </p>
+      </div>
+
+      {/* Category Filter */}
+      <div className="mb-4">
+        <CategoryFilter
+          selected={category}
+          onChange={(cat) => {
+            setCategory(cat)
+            updateFilter("category", cat)
+          }}
+        />
       </div>
 
       {/* Filters */}
@@ -109,15 +125,17 @@ export function DirectoryPage() {
       ) : agents.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center text-muted-foreground">
           <p className="text-sm">No agents found</p>
-          {search && (
+          {(search || category) && (
             <button
               onClick={() => {
                 setSearch("")
+                setCategory(undefined)
                 updateFilter("search", undefined)
+                updateFilter("category", undefined)
               }}
               className="mt-2 text-xs text-primary hover:underline"
             >
-              Clear search
+              Clear filters
             </button>
           )}
         </div>

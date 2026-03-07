@@ -164,6 +164,14 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 		conditions = append(conditions, "(name LIKE ? OR description LIKE ?)")
 		args = append(args, "%"+filter.Search+"%", "%"+filter.Search+"%")
 	}
+	if filter.OwnerUserID != "" {
+		conditions = append(conditions, "owner_user_id = ?")
+		args = append(args, filter.OwnerUserID)
+	}
+	if filter.Category != "" {
+		conditions = append(conditions, "id IN (SELECT agent_id FROM agent_categories ac INNER JOIN categories c ON c.id = ac.category_id WHERE c.slug = ?)")
+		args = append(args, filter.Category)
+	}
 
 	where := ""
 	if len(conditions) > 0 {
@@ -293,6 +301,11 @@ func (s *SQLiteStore) FindByCapabilities(ctx context.Context, capabilities []str
 		agents = append(agents, card)
 	}
 	return agents, rows.Err()
+}
+
+func (s *SQLiteStore) ListByOwner(ctx context.Context, userID string, filter ListFilter) (*ListResult, error) {
+	filter.OwnerUserID = userID
+	return s.List(ctx, filter)
 }
 
 func (s *SQLiteStore) GetDB() interface{} {

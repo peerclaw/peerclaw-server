@@ -3,9 +3,12 @@ import { useParams, Link } from "react-router-dom"
 import { fetchPublicProfile, fetchReputationHistory } from "@/api/client"
 import type { PublicAgentProfile, ReputationEvent } from "@/api/types"
 import { VerifiedBadge } from "@/components/public/VerifiedBadge"
+import { TrustedBadge } from "@/components/public/TrustedBadge"
 import { ReputationMeter } from "@/components/public/ReputationMeter"
 import { ReputationChart } from "@/components/public/ReputationChart"
-import { ArrowLeft, ExternalLink, Key } from "lucide-react"
+import { ReviewSection } from "@/components/public/ReviewSection"
+import { ReportDialog } from "@/components/public/ReportDialog"
+import { ArrowLeft, ExternalLink, Key, Play } from "lucide-react"
 
 const statusColors: Record<string, string> = {
   online: "bg-emerald-500",
@@ -75,6 +78,7 @@ export function PublicProfilePage() {
                 title={agent.status}
               />
               {agent.verified && <VerifiedBadge />}
+              {agent.trusted && <TrustedBadge />}
             </div>
             {agent.description && (
               <p className="mt-2 text-sm text-muted-foreground">
@@ -86,10 +90,46 @@ export function PublicProfilePage() {
                 v{agent.version}
               </p>
             )}
+
+            {/* Categories */}
+            {agent.categories && agent.categories.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {agent.categories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="w-32 shrink-0">
             <ReputationMeter score={agent.reputation_score} size="lg" />
           </div>
+        </div>
+
+        {/* Review summary inline */}
+        {agent.review_summary && agent.review_summary.total_reviews > 0 && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-medium text-yellow-400">
+              {agent.review_summary.average_rating.toFixed(1)}
+            </span>
+            <span>({agent.review_summary.total_reviews} reviews)</span>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            to={`/playground/${agent.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Play className="size-4" />
+            Try in Playground
+          </Link>
+          <ReportDialog targetType="agent" targetId={agent.id} />
         </div>
 
         {/* Public Key */}
@@ -186,6 +226,11 @@ export function PublicProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Reviews */}
+      <div className="mt-4">
+        <ReviewSection agentId={agent.id} />
+      </div>
 
       {/* Reputation History */}
       <div className="mt-4 rounded-lg border border-border bg-card p-4">

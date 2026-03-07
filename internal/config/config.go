@@ -21,11 +21,21 @@ type Config struct {
 	AuditLog      AuditLogConfig      `yaml:"audit_log"`
 	Federation    FederationConfig    `yaml:"federation"`
 	Auth          AuthConfig          `yaml:"auth"`
+	UserAuth      UserAuthConfig      `yaml:"user_auth"`
 }
 
 // AuthConfig holds authentication settings.
 type AuthConfig struct {
 	Required bool `yaml:"required"` // When true, reject unauthenticated requests. Default false for transition.
+}
+
+// UserAuthConfig holds user authentication settings.
+type UserAuthConfig struct {
+	Enabled    bool   `yaml:"enabled"`     // default true
+	JWTSecret  string `yaml:"jwt_secret"`  // supports ${ENV_VAR}
+	AccessTTL  string `yaml:"access_ttl"`  // default "15m"
+	RefreshTTL string `yaml:"refresh_ttl"` // default "168h" (7 days)
+	BcryptCost int    `yaml:"bcrypt_cost"` // default 12
 }
 
 // ServerConfig holds HTTP and gRPC server settings.
@@ -166,6 +176,12 @@ func DefaultConfig() *Config {
 		Federation: FederationConfig{
 			Enabled: false,
 		},
+		UserAuth: UserAuthConfig{
+			Enabled:    true,
+			AccessTTL:  "15m",
+			RefreshTTL: "168h",
+			BcryptCost: 12,
+		},
 	}
 }
 
@@ -200,6 +216,7 @@ func (c *Config) resolveSecrets() {
 	c.Database.DSN = resolveEnv(c.Database.DSN)
 	c.Signaling.TURN.Credential = resolveEnv(c.Signaling.TURN.Credential)
 	c.Federation.AuthToken = resolveEnv(c.Federation.AuthToken)
+	c.UserAuth.JWTSecret = resolveEnv(c.UserAuth.JWTSecret)
 	for i := range c.Federation.Peers {
 		c.Federation.Peers[i].Token = resolveEnv(c.Federation.Peers[i].Token)
 	}

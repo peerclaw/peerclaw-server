@@ -68,6 +68,8 @@ func ExtractBearerToken(authHeader string) (string, error) {
 type contextKey string
 
 const agentIDKey contextKey = "agent_id"
+const userIDKey contextKey = "user_id"
+const userRoleKey contextKey = "user_role"
 
 // WithAgentID stores the agent ID in the context.
 func WithAgentID(ctx context.Context, agentID string) context.Context {
@@ -78,4 +80,26 @@ func WithAgentID(ctx context.Context, agentID string) context.Context {
 func AgentIDFromContext(ctx context.Context) (string, bool) {
 	id, ok := ctx.Value(agentIDKey).(string)
 	return id, ok
+}
+
+// WithUserID stores the user ID in the context.
+func WithUserID(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, userIDKey, userID)
+}
+
+// UserIDFromContext retrieves the user ID from the context.
+func UserIDFromContext(ctx context.Context) (string, bool) {
+	id, ok := ctx.Value(userIDKey).(string)
+	return id, ok
+}
+
+// WithUserRole stores the user role in the context.
+func WithUserRole(ctx context.Context, role string) context.Context {
+	return context.WithValue(ctx, userRoleKey, role)
+}
+
+// UserRoleFromContext retrieves the user role from the context.
+func UserRoleFromContext(ctx context.Context) (string, bool) {
+	role, ok := ctx.Value(userRoleKey).(string)
+	return role, ok
 }

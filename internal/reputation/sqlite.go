@@ -52,6 +52,7 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 		{"verified", "BOOLEAN DEFAULT 0"},
 		{"verified_at", "DATETIME"},
 		{"public_endpoint", "BOOLEAN DEFAULT 0"},
+		{"owner_user_id", "TEXT DEFAULT ''"},
 	}
 
 	for _, col := range columns {

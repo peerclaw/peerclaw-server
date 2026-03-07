@@ -25,6 +25,9 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/router"
 	"github.com/peerclaw/peerclaw-server/internal/server"
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
+	"github.com/peerclaw/peerclaw-server/internal/invocation"
+	"github.com/peerclaw/peerclaw-server/internal/review"
+	"github.com/peerclaw/peerclaw-server/internal/userauth"
 	"github.com/peerclaw/peerclaw-server/internal/verification"
 	goredis "github.com/redis/go-redis/v9"
 )
@@ -107,6 +110,62 @@ func main() {
 		}
 		verifyChallenger = verification.NewChallenger(verifyStore, logger)
 		logger.Info("endpoint verification initialized")
+	}
+
+	// Initialize user authentication.
+	var userAuthService *userauth.Service
+	if cfg.UserAuth.Enabled && sqlDB != nil {
+		uaStore := userauth.NewStore(cfg.Database.Driver, sqlDB)
+		if err := uaStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate userauth tables", "error", err)
+			os.Exit(1)
+		}
+
+		jwtSecret := cfg.UserAuth.JWTSecret
+		if jwtSecret == "" {
+			jwtSecret = "peerclaw-dev-secret-change-me"
+			logger.Warn("using default JWT secret — set user_auth.jwt_secret in config for production")
+		}
+
+		accessTTL, err := time.ParseDuration(cfg.UserAuth.AccessTTL)
+		if err != nil {
+			accessTTL = 15 * time.Minute
+		}
+		refreshTTL, err := time.ParseDuration(cfg.UserAuth.RefreshTTL)
+		if err != nil {
+			refreshTTL = 168 * time.Hour
+		}
+
+		jwtMgr := userauth.NewJWTManager(jwtSecret, accessTTL, refreshTTL)
+		userAuthService = userauth.NewService(uaStore, jwtMgr, cfg.UserAuth.BcryptCost, logger)
+		logger.Info("user authentication initialized",
+			"access_ttl", accessTTL,
+			"refresh_ttl", refreshTTL,
+		)
+	}
+
+	// Initialize invocation store.
+	var invocationService *invocation.Service
+	if sqlDB != nil {
+		invStore := invocation.NewStore(cfg.Database.Driver, sqlDB)
+		if err := invStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate invocation tables", "error", err)
+			os.Exit(1)
+		}
+		invocationService = invocation.NewService(invStore, logger)
+		logger.Info("invocation tracking initialized")
+	}
+
+	// Initialize review service.
+	var reviewService *review.Service
+	if sqlDB != nil {
+		revStore := review.NewStore(cfg.Database.Driver, sqlDB)
+		if err := revStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate review tables", "error", err)
+			os.Exit(1)
+		}
+		reviewService = review.NewService(revStore, repEngine, logger)
+		logger.Info("review service initialized")
 	}
 
 	// Initialize services.
@@ -209,6 +268,20 @@ func main() {
 	}
 	if fedService != nil {
 		httpServer.SetFederation(fedService)
+	}
+	if userAuthService != nil {
+		httpServer.SetUserAuth(userAuthService)
+	}
+	if reviewService != nil {
+		httpServer.SetReviewService(reviewService)
+	}
+	if invocationService != nil {
+		httpServer.SetInvocation(invocationService)
+		// Anonymous: 10 calls/hour/IP, Authenticated: 100 calls/hour.
+		invokeRL := server.NewIPRateLimiter(10.0/3600.0, 3)
+		stopInvokeCleanup := invokeRL.StartCleanup(time.Minute)
+		defer stopInvokeCleanup()
+		httpServer.SetInvokeRateLimiter(invokeRL)
 	}
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)
