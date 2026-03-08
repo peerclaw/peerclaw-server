@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { useProviderDashboard } from "@/hooks/use-provider"
 import { AgentStatsCard } from "@/components/provider/AgentStatsCard"
+import { ClaimTokenSection } from "@/components/provider/ClaimTokenSection"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -76,6 +77,9 @@ export function ProviderDashboardPage() {
           icon={Timer}
         />
       </div>
+
+      {/* Claim token section */}
+      <ClaimTokenSection />
 
       {/* Agent list */}
       <div>
