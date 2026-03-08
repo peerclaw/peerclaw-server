@@ -1,0 +1,63 @@
+server:
+  http_addr: ":8080"
+  cors_origins: []                   # e.g. ["https://dashboard.example.com"]
+
+auth:
+  required: true
+
+database:
+  driver: "sqlite"                   # "sqlite" or "postgres"
+  dsn: "/var/lib/peerclaw/peerclaw.db"
+
+redis:
+  addr: "localhost:6379"
+  password: "${REDIS_PASSWORD}"
+  db: 0
+
+logging:
+  level: "info"
+  format: "json"
+
+user_auth:
+  enabled: true
+  jwt_secret: "${JWT_SECRET}"
+  access_ttl: "15m"
+  refresh_ttl: "168h"
+  bcrypt_cost: 12
+
+bridge:
+  a2a:
+    enabled: true
+  acp:
+    enabled: true
+  mcp:
+    enabled: true
+
+signaling:
+  enabled: true
+  turn:
+    urls: []                         # e.g. ["turn:turn.example.com:3478"]
+    username: ""
+    credential: "${TURN_CREDENTIAL}"
+
+rate_limit:
+  enabled: true
+  requests_per_sec: 100
+  burst_size: 200
+  max_connections: 1000
+
+observability:
+  enabled: false
+  otlp_endpoint: "localhost:4317"
+  service_name: "peerclaw-gateway"
+  traces_sampling: 0.1
+
+audit_log:
+  enabled: true
+  output: "file:/var/log/peerclaw/audit.log"
+
+federation:
+  enabled: false
+  node_name: "node-1"
+  auth_token: "${FEDERATION_TOKEN}"
+  peers: []

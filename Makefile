@@ -1,4 +1,4 @@
-.PHONY: build test lint run clean proto fmt vet dashboard
+.PHONY: build test lint run clean proto fmt vet dashboard install uninstall
 
 BINARY := peerclawd
 BUILD_DIR := bin
@@ -32,6 +32,12 @@ vet:
 
 clean:
 	rm -rf $(BUILD_DIR) coverage.out coverage.html *.db
+
+install: build
+	sudo deploy/systemd/install.sh $(BUILD_DIR)/$(BINARY)
+
+uninstall:
+	sudo deploy/systemd/uninstall.sh
 
 docker-build:
 	docker build -t peerclaw-server:latest .

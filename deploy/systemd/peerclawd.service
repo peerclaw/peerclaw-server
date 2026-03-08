@@ -1,0 +1,63 @@
+[Unit]
+Description=PeerClaw Agent Gateway
+Documentation=https://github.com/peerclaw/peerclaw-server
+After=network-online.target
+Wants=network-online.target
+# Uncomment if using PostgreSQL or Redis:
+# After=network-online.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=peerclaw
+Group=peerclaw
+
+ExecStart=/usr/local/bin/peerclawd -config /etc/peerclaw/config.yaml
+
+WorkingDirectory=/var/lib/peerclaw
+RuntimeDirectory=peerclaw
+StateDirectory=peerclaw
+LogsDirectory=peerclaw
+ConfigurationDirectory=peerclaw
+
+# Environment file for secrets (JWT_SECRET, REDIS_PASSWORD, etc.)
+EnvironmentFile=-/etc/peerclaw/peerclaw.env
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Graceful shutdown
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+MemoryDenyWriteExecute=yes
+LockPersonality=yes
+
+# Allow binding to port 8080 (non-privileged)
+AmbientCapabilities=
+CapabilityBoundingSet=
+
+# File descriptor limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Read-write paths for data and logs
+ReadWritePaths=/var/lib/peerclaw /var/log/peerclaw
+
+[Install]
+WantedBy=multi-user.target
