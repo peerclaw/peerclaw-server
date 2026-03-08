@@ -82,6 +82,10 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send via bridge manager.
+	if s.bridges == nil {
+		s.jsonError(w, "bridge not available", http.StatusServiceUnavailable)
+		return
+	}
 	bridgeStart := time.Now()
 	if err := s.bridges.Send(r.Context(), env); err != nil {
 		s.logger.Error("bridge send failed", "error", err, "proto", proto, "dest", req.Destination)

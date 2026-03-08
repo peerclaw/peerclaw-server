@@ -241,7 +241,8 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 
 	duration := time.Since(start).Milliseconds()
 
-	if invokeErr != "" && statusCode >= 500 {
+	// Send error event only if not already sent by the streaming loop.
+	if invokeErr != "" && statusCode >= 500 && s.bridges == nil {
 		_, _ = fmt.Fprintf(w, "event: error\ndata: %s\n\n", escapeSSEData(invokeErr))
 		flusher.Flush()
 	}
