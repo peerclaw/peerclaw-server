@@ -21,14 +21,17 @@ func NewSQLiteStore(db *sql.DB) *SQLiteStore {
 func (s *SQLiteStore) Migrate(ctx context.Context) error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS claim_tokens (
-		id         TEXT PRIMARY KEY,
-		code       TEXT NOT NULL UNIQUE,
-		user_id    TEXT NOT NULL,
-		status     TEXT NOT NULL DEFAULT 'pending',
-		agent_id   TEXT DEFAULT '',
-		created_at DATETIME NOT NULL,
-		expires_at DATETIME NOT NULL,
-		claimed_at DATETIME
+		id           TEXT PRIMARY KEY,
+		code         TEXT NOT NULL UNIQUE,
+		user_id      TEXT NOT NULL,
+		status       TEXT NOT NULL DEFAULT 'pending',
+		agent_id     TEXT DEFAULT '',
+		agent_name   TEXT DEFAULT '',
+		capabilities TEXT DEFAULT '',
+		protocols    TEXT DEFAULT '',
+		created_at   DATETIME NOT NULL,
+		expires_at   DATETIME NOT NULL,
+		claimed_at   DATETIME
 	);
 	CREATE INDEX IF NOT EXISTS idx_claim_tokens_code ON claim_tokens(code);
 	CREATE INDEX IF NOT EXISTS idx_claim_tokens_user ON claim_tokens(user_id);
@@ -39,9 +42,10 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 
 func (s *SQLiteStore) Create(ctx context.Context, token *ClaimToken) error {
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO claim_tokens (id, code, user_id, status, agent_id, created_at, expires_at, claimed_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		INSERT INTO claim_tokens (id, code, user_id, status, agent_id, agent_name, capabilities, protocols, created_at, expires_at, claimed_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		token.ID, token.Code, token.UserID, token.Status, token.AgentID,
+		token.AgentName, token.Capabilities, token.Protocols,
 		token.CreatedAt.UTC().Format(time.RFC3339),
 		token.ExpiresAt.UTC().Format(time.RFC3339),
 		nil,
@@ -51,7 +55,7 @@ func (s *SQLiteStore) Create(ctx context.Context, token *ClaimToken) error {
 
 func (s *SQLiteStore) GetByCode(ctx context.Context, code string) (*ClaimToken, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, code, user_id, status, COALESCE(agent_id, ''), created_at, expires_at, claimed_at
+		SELECT id, code, user_id, status, COALESCE(agent_id, ''), COALESCE(agent_name, ''), COALESCE(capabilities, ''), COALESCE(protocols, ''), created_at, expires_at, claimed_at
 		FROM claim_tokens WHERE code = ?`, code)
 
 	return s.scanToken(row)
@@ -76,7 +80,7 @@ func (s *SQLiteStore) MarkClaimed(ctx context.Context, code, agentID string) err
 
 func (s *SQLiteStore) ListByUser(ctx context.Context, userID string) ([]ClaimToken, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, code, user_id, status, COALESCE(agent_id, ''), created_at, expires_at, claimed_at
+		SELECT id, code, user_id, status, COALESCE(agent_id, ''), COALESCE(agent_name, ''), COALESCE(capabilities, ''), COALESCE(protocols, ''), created_at, expires_at, claimed_at
 		FROM claim_tokens WHERE user_id = ? ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -116,6 +120,7 @@ func (s *SQLiteStore) scanToken(row *sql.Row) (*ClaimToken, error) {
 	var claimedAt sql.NullString
 
 	err := row.Scan(&t.ID, &t.Code, &t.UserID, &t.Status, &t.AgentID,
+		&t.AgentName, &t.Capabilities, &t.Protocols,
 		&createdAt, &expiresAt, &claimedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -144,6 +149,7 @@ func (s *SQLiteStore) scanTokenFromRows(rows *sql.Rows) (*ClaimToken, error) {
 	var claimedAt sql.NullString
 
 	err := rows.Scan(&t.ID, &t.Code, &t.UserID, &t.Status, &t.AgentID,
+		&t.AgentName, &t.Capabilities, &t.Protocols,
 		&createdAt, &expiresAt, &claimedAt)
 	if err != nil {
 		return nil, err

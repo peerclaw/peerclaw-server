@@ -17,6 +17,7 @@ export function ClaimTokenSection() {
   const { data, loading, error, refetch } = useClaimTokens()
   const { generate } = useGenerateClaimToken()
 
+  const [agentName, setAgentName] = useState("")
   const [generatedCode, setGeneratedCode] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [remaining, setRemaining] = useState<number>(0)
@@ -44,10 +45,17 @@ export function ClaimTokenSection() {
   }, [expiresAt])
 
   const handleGenerate = useCallback(async () => {
+    if (!agentName.trim()) {
+      setGenError("Please enter an agent name")
+      return
+    }
     setGenerating(true)
     setGenError(null)
     try {
-      const res = await generate()
+      const res = await generate({
+        agent_name: agentName.trim(),
+        protocols: ["a2a"],
+      })
       setGeneratedCode(res.token)
       setExpiresAt(res.expires_at)
       setCopied(false)
@@ -57,14 +65,18 @@ export function ClaimTokenSection() {
     } finally {
       setGenerating(false)
     }
-  }, [generate, refetch])
+  }, [agentName, generate, refetch])
+
+  const prompt = generatedCode
+    ? `curl -fsSL https://peerclaw.ai/install.sh | sh\npeerclaw agent claim --token ${generatedCode}`
+    : ""
 
   const handleCopy = useCallback(() => {
-    if (!generatedCode) return
-    navigator.clipboard.writeText(generatedCode)
+    if (!prompt) return
+    navigator.clipboard.writeText(prompt)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }, [generatedCode])
+  }, [prompt])
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -99,47 +111,69 @@ export function ClaimTokenSection() {
             Generate a one-time code to pair an Agent with your account
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={handleGenerate}
-          disabled={generating}
-        >
-          {generating ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Key className="size-4" />
-          )}
-          {generating ? "Generating..." : "Generate Token"}
-        </Button>
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Agent name input + generate button */}
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <label className="text-sm font-medium mb-1 block">
+              Agent Name
+            </label>
+            <input
+              type="text"
+              value={agentName}
+              onChange={(e) => setAgentName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+              placeholder="e.g., my-research-agent"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <Button
+            size="sm"
+            onClick={handleGenerate}
+            disabled={generating}
+            className="shrink-0"
+          >
+            {generating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Key className="size-4" />
+            )}
+            {generating ? "Generating..." : "Generate Token"}
+          </Button>
+        </div>
+
         {genError && (
           <p className="text-sm text-destructive">{genError}</p>
         )}
 
-        {/* Generated code display */}
+        {/* Generated prompt display */}
         {generatedCode && (
-          <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
-            <code className="text-xl font-mono font-bold tracking-widest text-primary">
-              {generatedCode}
-            </code>
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">
+                Send this prompt to your Agent:
+              </p>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {formatTime(remaining)}
+              </span>
+            </div>
+            <pre className="text-sm font-mono bg-background rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all border">
+              {prompt}
+            </pre>
             <Button
               variant="outline"
               size="sm"
               onClick={handleCopy}
-              className="shrink-0"
             >
               {copied ? (
                 <Check className="size-4 text-emerald-500" />
               ) : (
                 <Copy className="size-4" />
               )}
-              {copied ? "Copied" : "Copy"}
+              {copied ? "Copied" : "Copy Prompt"}
             </Button>
-            <span className="text-sm text-muted-foreground ml-auto tabular-nums">
-              {formatTime(remaining)}
-            </span>
           </div>
         )}
 
@@ -162,9 +196,9 @@ export function ClaimTokenSection() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Code</TableHead>
+                  <TableHead>Agent Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead>Agent</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -175,6 +209,9 @@ export function ClaimTokenSection() {
                       <TableCell className="font-mono text-xs">
                         {t.code}
                       </TableCell>
+                      <TableCell className="text-sm">
+                        {t.agent_name || "-"}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(displayStatus)}>
                           {displayStatus}
@@ -182,11 +219,6 @@ export function ClaimTokenSection() {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
                         {new Date(t.created_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs font-mono">
-                        {t.agent_id
-                          ? t.agent_id.slice(0, 8) + "..."
-                          : "-"}
                       </TableCell>
                     </TableRow>
                   )
@@ -196,7 +228,7 @@ export function ClaimTokenSection() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            No tokens generated yet. Click "Generate Token" to create a pairing code.
+            No tokens generated yet. Enter an agent name and click "Generate Token" to create a pairing code.
           </p>
         )}
       </CardContent>

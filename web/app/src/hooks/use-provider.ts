@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback } from "react"
 import { fetchWithAuth } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { generateClaimToken, listClaimTokens } from "@/api/claim"
-import type { ClaimToken, GenerateClaimTokenResponse } from "@/api/types"
+import type {
+  ClaimToken,
+  GenerateClaimTokenRequest,
+  GenerateClaimTokenResponse,
+} from "@/api/types"
 
 // ----- Types -----
 
@@ -220,10 +224,15 @@ export function useClaimTokens(): UseQueryResult<{ tokens: ClaimToken[] }> {
 export function useGenerateClaimToken() {
   const { accessToken } = useAuth()
 
-  const generate = useCallback(async (): Promise<GenerateClaimTokenResponse> => {
-    if (!accessToken) throw new Error("Not authenticated")
-    return generateClaimToken(accessToken)
-  }, [accessToken])
+  const generate = useCallback(
+    async (
+      params: GenerateClaimTokenRequest
+    ): Promise<GenerateClaimTokenResponse> => {
+      if (!accessToken) throw new Error("Not authenticated")
+      return generateClaimToken(accessToken, params)
+    },
+    [accessToken]
+  )
 
   return { generate }
 }

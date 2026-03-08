@@ -1,11 +1,17 @@
 import { fetchWithAuth } from "./client"
-import type { ClaimToken, GenerateClaimTokenResponse } from "./types"
+import type {
+  ClaimToken,
+  GenerateClaimTokenRequest,
+  GenerateClaimTokenResponse,
+} from "./types"
 
 export function generateClaimToken(
-  accessToken: string
+  accessToken: string,
+  params: GenerateClaimTokenRequest
 ): Promise<GenerateClaimTokenResponse> {
   return fetchWithAuth<GenerateClaimTokenResponse>("/claim-tokens", accessToken, {
     method: "POST",
+    body: JSON.stringify(params),
   })
 }
 

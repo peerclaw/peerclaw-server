@@ -44,8 +44,15 @@ func NewStore(driver string, db *sql.DB) Store {
 	}
 }
 
-// Generate creates a new claim token for the given user.
-func (s *Service) Generate(ctx context.Context, userID string) (*ClaimToken, error) {
+// GenerateParams holds the agent metadata to store with the claim token.
+type GenerateParams struct {
+	AgentName    string
+	Capabilities string // comma-separated
+	Protocols    string // comma-separated
+}
+
+// Generate creates a new claim token for the given user, embedding agent metadata.
+func (s *Service) Generate(ctx context.Context, userID string, params GenerateParams) (*ClaimToken, error) {
 	code, err := generateCode()
 	if err != nil {
 		return nil, fmt.Errorf("generate code: %w", err)
@@ -53,19 +60,22 @@ func (s *Service) Generate(ctx context.Context, userID string) (*ClaimToken, err
 
 	now := time.Now().UTC()
 	token := &ClaimToken{
-		ID:        uuid.New().String(),
-		Code:      code,
-		UserID:    userID,
-		Status:    StatusPending,
-		CreatedAt: now,
-		ExpiresAt: now.Add(codeTTL),
+		ID:           uuid.New().String(),
+		Code:         code,
+		UserID:       userID,
+		Status:       StatusPending,
+		AgentName:    params.AgentName,
+		Capabilities: params.Capabilities,
+		Protocols:    params.Protocols,
+		CreatedAt:    now,
+		ExpiresAt:    now.Add(codeTTL),
 	}
 
 	if err := s.store.Create(ctx, token); err != nil {
 		return nil, fmt.Errorf("create claim token: %w", err)
 	}
 
-	s.logger.Info("claim token generated", "code", code, "user_id", userID)
+	s.logger.Info("claim token generated", "code", code, "user_id", userID, "agent_name", params.AgentName)
 	return token, nil
 }
 

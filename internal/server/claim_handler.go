@@ -3,15 +3,23 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/protocol"
+	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 )
 
 // --- Generate Claim Token (JWT-protected) ---
+
+type generateClaimTokenRequest struct {
+	AgentName    string   `json:"agent_name"`
+	Capabilities []string `json:"capabilities,omitempty"`
+	Protocols    []string `json:"protocols,omitempty"`
+}
 
 func (s *HTTPServer) handleGenerateClaimToken(w http.ResponseWriter, r *http.Request) {
 	userID, ok := identity.UserIDFromContext(r.Context())
@@ -20,7 +28,29 @@ func (s *HTTPServer) handleGenerateClaimToken(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	token, err := s.claimToken.Generate(r.Context(), userID)
+	var req generateClaimTokenRequest
+	if r.Body != nil && r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			s.jsonError(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if req.AgentName == "" {
+		s.jsonError(w, "agent_name is required", http.StatusBadRequest)
+		return
+	}
+
+	params := claimtoken.GenerateParams{
+		AgentName:    req.AgentName,
+		Capabilities: strings.Join(req.Capabilities, ","),
+		Protocols:    strings.Join(req.Protocols, ","),
+	}
+	if params.Protocols == "" {
+		params.Protocols = "a2a"
+	}
+
+	token, err := s.claimToken.Generate(r.Context(), userID, params)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -28,6 +58,7 @@ func (s *HTTPServer) handleGenerateClaimToken(w http.ResponseWriter, r *http.Req
 
 	s.jsonResponse(w, http.StatusCreated, map[string]any{
 		"token":      token.Code,
+		"agent_name": token.AgentName,
 		"expires_at": token.ExpiresAt.Format(time.RFC3339),
 		"expires_in": int(time.Until(token.ExpiresAt).Seconds()),
 	})
@@ -72,12 +103,8 @@ func (s *HTTPServer) handleClaimAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields.
-	if req.Token == "" || req.Name == "" || req.PublicKey == "" || req.Signature == "" {
-		s.jsonError(w, "token, name, public_key, and signature are required", http.StatusBadRequest)
-		return
-	}
-	if len(req.Protocols) == 0 {
-		s.jsonError(w, "at least one protocol is required", http.StatusBadRequest)
+	if req.Token == "" || req.PublicKey == "" || req.Signature == "" {
+		s.jsonError(w, "token, public_key, and signature are required", http.StatusBadRequest)
 		return
 	}
 
@@ -105,15 +132,38 @@ func (s *HTTPServer) handleClaimAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3. Register the agent (same as handleRegister), with owner bound to token's user.
-	protocols := make([]protocol.Protocol, len(req.Protocols))
-	for i, p := range req.Protocols {
+	// Use token metadata as defaults; request fields override if provided.
+	agentName := ct.AgentName
+	if req.Name != "" {
+		agentName = req.Name
+	}
+	if agentName == "" {
+		s.jsonError(w, "agent name is required (set in token or request)", http.StatusBadRequest)
+		return
+	}
+
+	protoList := req.Protocols
+	if len(protoList) == 0 && ct.Protocols != "" {
+		protoList = strings.Split(ct.Protocols, ",")
+	}
+	if len(protoList) == 0 {
+		protoList = []string{"a2a"}
+	}
+
+	caps := req.Capabilities
+	if len(caps) == 0 && ct.Capabilities != "" {
+		caps = strings.Split(ct.Capabilities, ",")
+	}
+
+	protocols := make([]protocol.Protocol, len(protoList))
+	for i, p := range protoList {
 		protocols[i] = protocol.Protocol(p)
 	}
 
 	card, err := s.registry.Register(r.Context(), registry.RegisterRequest{
-		Name:         req.Name,
+		Name:         agentName,
 		PublicKey:    req.PublicKey,
-		Capabilities: req.Capabilities,
+		Capabilities: caps,
 		Endpoint: agentcard.Endpoint{
 			URL:       req.Endpoint.URL,
 			Host:      req.Endpoint.Host,

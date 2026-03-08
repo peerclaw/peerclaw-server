@@ -227,13 +227,23 @@ export interface ClaimToken {
   user_id: string
   status: "pending" | "claimed" | "expired"
   agent_id: string
+  agent_name: string
+  capabilities: string
+  protocols: string
   created_at: string
   expires_at: string
   claimed_at?: string
 }
 
+export interface GenerateClaimTokenRequest {
+  agent_name: string
+  capabilities?: string[]
+  protocols?: string[]
+}
+
 export interface GenerateClaimTokenResponse {
   token: string
+  agent_name: string
   expires_at: string
   expires_in: number
 }
