@@ -17,6 +17,7 @@ import { PlaygroundPage } from "@/pages/PlaygroundPage"
 import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage"
 import { AgentPublishPage } from "@/pages/AgentPublishPage"
 import { ProviderAgentDetailPage } from "@/pages/ProviderAgentDetailPage"
+import { AgentEditPage } from "@/pages/AgentEditPage"
 import { InvocationHistoryPage } from "@/pages/InvocationHistoryPage"
 import { APIKeysPage } from "@/pages/APIKeysPage"
 import { UsersPage } from "@/pages/admin/UsersPage"
@@ -53,6 +54,7 @@ export function App() {
             <Route index element={<ProviderDashboardPage />} />
             <Route path="publish" element={<AgentPublishPage />} />
             <Route path="agents/:id" element={<ProviderAgentDetailPage />} />
+            <Route path="agents/:id/edit" element={<AgentEditPage />} />
             <Route path="invocations" element={<InvocationHistoryPage />} />
             <Route path="api-keys" element={<APIKeysPage />} />
           </Route>

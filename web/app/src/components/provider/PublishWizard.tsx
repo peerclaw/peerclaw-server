@@ -9,6 +9,7 @@ import type { PublishAgentData } from "@/hooks/use-provider"
 interface PublishWizardProps {
   onSubmit: (data: PublishAgentData) => Promise<void>
   initialData?: Partial<PublishAgentData>
+  editMode?: boolean
 }
 
 const STEPS = [
@@ -22,7 +23,7 @@ const STEPS = [
 const AUTH_TYPES = ["none", "api_key", "bearer_token", "oauth2"]
 const PROTOCOL_OPTIONS = ["a2a", "mcp", "http", "grpc"]
 
-export function PublishWizard({ onSubmit, initialData }: PublishWizardProps) {
+export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizardProps) {
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -462,7 +463,9 @@ export function PublishWizard({ onSubmit, initialData }: PublishWizardProps) {
           ) : (
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="size-4 animate-spin" />}
-              {submitting ? "Publishing..." : "Publish Agent"}
+              {submitting
+                ? editMode ? "Saving..." : "Publishing..."
+                : editMode ? "Save Changes" : "Publish Agent"}
             </Button>
           )}
         </div>
