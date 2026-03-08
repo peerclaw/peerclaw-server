@@ -7,6 +7,7 @@ import {
 } from "@/hooks/use-provider"
 import { AnalyticsChart } from "@/components/provider/AnalyticsChart"
 import { AgentStatsCard } from "@/components/provider/AgentStatsCard"
+import { ContactsSection } from "@/components/provider/ContactsSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -201,6 +202,9 @@ export function ProviderAgentDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Contacts Whitelist */}
+      {id && <ContactsSection agentId={id} />}
 
       {/* Analytics */}
       {analytics && (

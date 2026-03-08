@@ -50,6 +50,20 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check contacts whitelist for agent-to-agent invocations.
+	callerAgentID, isAgent := identity.AgentIDFromContext(r.Context())
+	if isAgent && s.contacts != nil {
+		allowed, err := s.contacts.IsAllowed(r.Context(), callerAgentID, agentID)
+		if err != nil {
+			s.jsonError(w, "failed to check contacts", http.StatusInternalServerError)
+			return
+		}
+		if !allowed {
+			s.jsonError(w, "not in destination agent's contact list", http.StatusForbidden)
+			return
+		}
+	}
+
 	// Look up agent.
 	card, err := s.registry.GetAgent(r.Context(), agentID)
 	if err != nil {

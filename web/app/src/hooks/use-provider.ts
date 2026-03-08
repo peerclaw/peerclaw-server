@@ -3,6 +3,7 @@ import { fetchWithAuth } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { generateClaimToken, listClaimTokens } from "@/api/claim"
 import type {
+  AgentContact,
   ClaimToken,
   GenerateClaimTokenRequest,
   GenerateClaimTokenResponse,
@@ -190,6 +191,55 @@ export function useProviderMutations() {
   )
 
   return { publishAgent, updateAgent, deleteAgent }
+}
+
+// ----- Agent Contacts Hooks -----
+
+export function useAgentContacts(
+  agentId: string | undefined
+): UseQueryResult<{ contacts: AgentContact[] }> {
+  return useProviderQuery<{ contacts: AgentContact[] }>(
+    `/provider/agents/${agentId}/contacts`,
+    !agentId
+  )
+}
+
+export function useAgentContactMutations(agentId: string | undefined) {
+  const { accessToken } = useAuth()
+
+  const addContact = useCallback(
+    async (contactAgentId: string, alias = ""): Promise<AgentContact> => {
+      if (!accessToken) throw new Error("Not authenticated")
+      if (!agentId) throw new Error("Agent ID required")
+      return fetchWithAuth<AgentContact>(
+        `/provider/agents/${agentId}/contacts`,
+        accessToken,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            contact_agent_id: contactAgentId,
+            alias,
+          }),
+        }
+      )
+    },
+    [accessToken, agentId]
+  )
+
+  const removeContact = useCallback(
+    async (contactAgentId: string): Promise<void> => {
+      if (!accessToken) throw new Error("Not authenticated")
+      if (!agentId) throw new Error("Agent ID required")
+      await fetchWithAuth<void>(
+        `/provider/agents/${agentId}/contacts/${contactAgentId}`,
+        accessToken,
+        { method: "DELETE" }
+      )
+    },
+    [accessToken, agentId]
+  )
+
+  return { addContact, removeContact }
 }
 
 // ----- Claim Token Hooks -----

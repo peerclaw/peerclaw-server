@@ -14,6 +14,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/blob"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
+	"github.com/peerclaw/peerclaw-server/internal/contacts"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
@@ -61,6 +62,8 @@ type HTTPServer struct {
 	reviewService          *review.Service
 	claimToken             *claimtoken.Service
 	blob                   *blob.Service
+	contacts               *contacts.Service
+	bridgeRateLimiter      *IPRateLimiter
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -183,6 +186,16 @@ func (s *HTTPServer) SetBlob(b *blob.Service) {
 	s.blob = b
 }
 
+// SetContacts sets the contacts service for agent whitelist management.
+func (s *HTTPServer) SetContacts(c *contacts.Service) {
+	s.contacts = c
+}
+
+// SetBridgeRateLimiter sets the per-agent rate limiter for bridge sends.
+func (s *HTTPServer) SetBridgeRateLimiter(rl *IPRateLimiter) {
+	s.bridgeRateLimiter = rl
+}
+
 func (s *HTTPServer) routes() {
 	authMW := AuthMiddleware(s.authCfg, s.logger)
 	ownerMW := OwnerOnlyMiddleware(s.logger)
@@ -243,6 +256,9 @@ func (s *HTTPServer) routes() {
 
 	// Claim token routes.
 	s.registerClaimTokenRoutes()
+
+	// Contacts routes.
+	s.registerContactRoutes()
 
 	// Blob routes.
 	s.registerBlobRoutes()
@@ -709,6 +725,37 @@ func (s *HTTPServer) registerClaimTokenRoutes() {
 
 	// Public: agent claims a token (token itself is the auth).
 	s.mux.HandleFunc("POST /api/v1/agents/claim", s.handleClaimAgent)
+}
+
+func (s *HTTPServer) registerContactRoutes() {
+	if s.contacts == nil {
+		return
+	}
+
+	authMW := AuthMiddleware(s.authCfg, s.logger)
+	ownerMW := OwnerOnlyMiddleware(s.logger)
+
+	// Agent-side: authenticated agent must match {id}.
+	wrapOwner := func(h http.HandlerFunc) http.Handler {
+		return authMW(ownerMW(h))
+	}
+	s.mux.Handle("POST /api/v1/agents/{id}/contacts", wrapOwner(s.handleAgentAddContact))
+	s.mux.Handle("GET /api/v1/agents/{id}/contacts", wrapOwner(s.handleAgentListContacts))
+	s.mux.Handle("DELETE /api/v1/agents/{id}/contacts/{contact_id}", wrapOwner(s.handleAgentRemoveContact))
+
+	// Provider-side: JWT-authenticated user who owns the agent.
+	wrapProviderAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+		})
+	}
+	s.mux.Handle("POST /api/v1/provider/agents/{id}/contacts", wrapProviderAuth(s.handleProviderAddContact))
+	s.mux.Handle("GET /api/v1/provider/agents/{id}/contacts", wrapProviderAuth(s.handleProviderListContacts))
+	s.mux.Handle("DELETE /api/v1/provider/agents/{id}/contacts/{contact_id}", wrapProviderAuth(s.handleProviderRemoveContact))
 }
 
 func (s *HTTPServer) registerBlobRoutes() {

@@ -219,6 +219,16 @@ export interface ProviderDashboardStats {
   }>
 }
 
+// Agent Contact types
+
+export interface AgentContact {
+  id: string
+  owner_agent_id: string
+  contact_agent_id: string
+  alias: string
+  created_at: string
+}
+
 // Claim Token types
 
 export interface ClaimToken {

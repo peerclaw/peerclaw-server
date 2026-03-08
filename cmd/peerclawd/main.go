@@ -23,6 +23,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/bridge/mcp"
 	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
 	"github.com/peerclaw/peerclaw-server/internal/config"
+	"github.com/peerclaw/peerclaw-server/internal/contacts"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
@@ -224,6 +225,18 @@ func main() {
 		)
 	}
 
+	// Initialize contacts service.
+	var contactsService *contacts.Service
+	if sqlDB != nil {
+		ctcStore := contacts.NewStore(cfg.Database.Driver, sqlDB)
+		if err := ctcStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate contacts tables", "error", err)
+			os.Exit(1)
+		}
+		contactsService = contacts.NewService(ctcStore, logger)
+		logger.Info("contacts service initialized")
+	}
+
 	// Initialize services.
 	regService := registry.NewService(store, logger)
 	routeTable := router.NewTable()
@@ -344,6 +357,15 @@ func main() {
 	}
 	if blobService != nil {
 		httpServer.SetBlob(blobService)
+	}
+	if contactsService != nil {
+		httpServer.SetContacts(contactsService)
+		// Per-source-agent rate limiter for bridge sends: 1 msg/sec, burst 10.
+		bridgeRL := server.NewIPRateLimiter(1.0, 10)
+		stopBridgeCleanup := bridgeRL.StartCleanup(time.Minute)
+		defer stopBridgeCleanup()
+		httpServer.SetBridgeRateLimiter(bridgeRL)
+		logger.Info("bridge per-agent rate limiter enabled", "rate", 1.0, "burst", 10)
 	}
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)

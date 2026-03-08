@@ -8,6 +8,7 @@ import (
 
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
+	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/router"
 )
 
@@ -45,6 +46,34 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 	if req.Source == "" || req.Destination == "" {
 		s.jsonError(w, "source and destination are required", http.StatusBadRequest)
 		return
+	}
+
+	// Verify authenticated agent matches the source field.
+	ctxAgentID, ok := identity.AgentIDFromContext(r.Context())
+	if ok && ctxAgentID != req.Source {
+		s.jsonError(w, "source does not match authenticated agent", http.StatusForbidden)
+		return
+	}
+
+	// Check contacts whitelist: destination agent must have source in its contact list.
+	if s.contacts != nil {
+		allowed, err := s.contacts.IsAllowed(r.Context(), req.Source, req.Destination)
+		if err != nil {
+			s.jsonError(w, "failed to check contacts", http.StatusInternalServerError)
+			return
+		}
+		if !allowed {
+			s.jsonError(w, "not in destination agent's contact list", http.StatusForbidden)
+			return
+		}
+	}
+
+	// Per-source-agent rate limiting for bridge sends.
+	if s.bridgeRateLimiter != nil {
+		if !s.bridgeRateLimiter.GetLimiter("bridge:"+req.Source).Allow() {
+			s.jsonError(w, "rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
 	}
 
 	proto := req.Protocol
