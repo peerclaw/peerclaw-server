@@ -1,73 +1,100 @@
-# React + TypeScript + Vite
+**English** | [中文](README_zh.md)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# PeerClaw Web App
 
-Currently, two official plugins are available:
+The PeerClaw web application — an Agent Marketplace frontend built with React + TypeScript + Vite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Architecture
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── api/           # API client, request utilities, type definitions
+├── assets/        # Static assets
+├── components/
+│   ├── ui/        # Base UI components (shadcn/ui + Radix UI + TailwindCSS)
+│   ├── agents/    # Agent management components
+│   ├── auth/      # Login, register, auth guards
+│   ├── layout/    # AppLayout, Sidebar, ConsoleLayout, PublicLayout
+│   ├── provider/  # Provider console components
+│   ├── public/    # Public marketplace components
+│   ├── playground/# Agent playground & invocation UI
+│   └── overview/  # Dashboard overview components
+├── hooks/         # Custom React hooks (auth, provider, playground, etc.)
+├── lib/           # Utility functions
+└── pages/         # Page components (see Routes below)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Routes
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Public (No Auth)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | LandingPage | Platform stats, value propositions, search |
+| `/directory` | DirectoryPage | Agent marketplace with search, filter, sort |
+| `/agents/:id` | PublicProfilePage | Agent profile, reputation, reviews |
+| `/playground` | PlaygroundPage | Try agents via chat interface |
+| `/playground/:agentId` | PlaygroundPage | Pre-selected agent playground |
+| `/login` | LoginPage | User authentication |
+| `/register` | RegisterPage | New user registration |
+
+### Provider Console (Auth Required)
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/console` | ProviderDashboardPage | Agent stats, claim tokens |
+| `/console/publish` | AgentPublishPage | 5-step agent publish wizard |
+| `/console/agents/:id` | ProviderAgentDetailPage | Agent details, analytics, contacts |
+| `/console/agents/:id/edit` | AgentEditPage | Edit published agent |
+| `/console/invocations` | InvocationHistoryPage | Invocation history |
+| `/console/api-keys` | APIKeysPage | API key management |
+
+### Admin Dashboard (Admin Role)
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/admin` | OverviewPage | System stats & health |
+| `/admin/users` | UsersPage | User management |
+| `/admin/agents` | AgentsPage | Agent management & verification |
+| `/admin/reports` | ReportsPage | Abuse report moderation |
+| `/admin/categories` | CategoriesPage | Category CRUD |
+| `/admin/analytics` | AnalyticsPage | Global invocation analytics |
+| `/admin/invocations` | InvocationsPage | System-wide invocation logs |
+
+## Tech Stack
+
+- **React** 19 + **TypeScript** ~5.9
+- **Vite** 7.3 (build & dev server)
+- **TailwindCSS** 4.2 (styling)
+- **Radix UI** (accessible components)
+- **Lucide React** (icons)
+- **Recharts** (analytics charts)
+- **React Router** 7 (routing)
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Type check + production build
+npm run build
+
+# Lint
+npm run lint
 ```
+
+## API Integration
+
+The app communicates with the PeerClaw server via REST API at `/api/v1/*`. Key endpoint groups:
+
+- `/auth/*` — User registration, login, JWT tokens, API keys
+- `/directory/*` — Public agent directory, profiles, reviews
+- `/invoke/:agentId` — Agent invocation (supports SSE streaming)
+- `/provider/*` — Provider console (publish, manage, analytics)
+- `/admin/*` — Admin dashboard (users, agents, reports, categories)
+- `/claim-tokens` — Claim token generation for agent pairing
+- `/blobs` — File upload/download

@@ -64,18 +64,17 @@ export interface PublishAgentData {
 export interface Invocation {
   id: string
   agent_id: string
-  agent_name: string
-  caller_id: string
-  status: "success" | "error" | "timeout"
+  user_id?: string
+  protocol: string
+  status_code: number
   duration_ms: number
+  error?: string
   created_at: string
-  error_message?: string
 }
 
 export interface InvocationListResponse {
   invocations: Invocation[]
-  next_page_token?: string
-  total_count: number
+  total: number
 }
 
 // ----- Hook helpers -----
@@ -141,15 +140,15 @@ export function useAgentAnalytics(agentId: string | undefined): UseQueryResult<A
 }
 
 export function useProviderInvocations(
-  page?: number,
+  page = 1,
   pageSize = 20
 ): UseQueryResult<InvocationListResponse> {
   const query = new URLSearchParams()
-  if (page) query.set("page", String(page))
-  query.set("page_size", String(pageSize))
+  query.set("limit", String(pageSize))
+  query.set("offset", String((page - 1) * pageSize))
   const qs = query.toString()
   return useProviderQuery<InvocationListResponse>(
-    `/provider/invocations${qs ? `?${qs}` : ""}`
+    `/invocations?${qs}`
   )
 }
 

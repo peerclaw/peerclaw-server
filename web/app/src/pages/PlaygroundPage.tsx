@@ -18,7 +18,7 @@ export function PlaygroundPage() {
   const [showRaw, setShowRaw] = useState(false)
 
   const { messages, loading, error, lastRaw, sendMessage, clearMessages } =
-    usePlayground()
+    usePlayground(selectedAgentId)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 

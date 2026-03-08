@@ -8,11 +8,23 @@ import { Search } from "lucide-react"
 
 type SortOption = "reputation" | "name" | "registered_at" | "popular"
 
+const PAGE_SIZE = 24
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+  return debouncedValue
+}
+
 export function DirectoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [agents, setAgents] = useState<PublicAgentProfile[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [search, setSearch] = useState(searchParams.get("search") ?? "")
   const [sort, setSort] = useState<SortOption>(
     (searchParams.get("sort") as SortOption) ?? "reputation"
@@ -23,26 +35,54 @@ export function DirectoryPage() {
   const [category, setCategory] = useState<string | undefined>(
     searchParams.get("category") ?? undefined
   )
+  const [nextPageToken, setNextPageToken] = useState<string | undefined>()
 
+  const debouncedSearch = useDebounce(search, 300)
+
+  // Reset and load first page when filters change
   useEffect(() => {
     setLoading(true)
+    setNextPageToken(undefined)
     fetchDirectory({
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       sort,
       verified: verifiedOnly || undefined,
       category,
-      page_size: 24,
+      page_size: PAGE_SIZE,
     })
       .then((res) => {
         setAgents(res.agents ?? [])
         setTotal(res.total_count)
+        setNextPageToken(res.next_page_token)
       })
       .catch(() => {
         setAgents([])
         setTotal(0)
+        setNextPageToken(undefined)
       })
       .finally(() => setLoading(false))
-  }, [search, sort, verifiedOnly, category])
+  }, [debouncedSearch, sort, verifiedOnly, category])
+
+  const loadMore = () => {
+    if (!nextPageToken || loadingMore) return
+    setLoadingMore(true)
+    fetchDirectory({
+      search: debouncedSearch || undefined,
+      sort,
+      verified: verifiedOnly || undefined,
+      category,
+      page_size: PAGE_SIZE,
+      page_token: nextPageToken,
+    })
+      .then((res) => {
+        setAgents((prev) => [...prev, ...(res.agents ?? [])])
+        setNextPageToken(res.next_page_token)
+      })
+      .catch(() => {
+        // keep existing agents on error
+      })
+      .finally(() => setLoadingMore(false))
+  }
 
   const updateFilter = (key: string, value: string | undefined) => {
     const params = new URLSearchParams(searchParams)
@@ -141,11 +181,26 @@ export function DirectoryPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {agents.map((agent) => (
-            <AgentDirectoryCard key={agent.id} agent={agent} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {agents.map((agent) => (
+              <AgentDirectoryCard key={agent.id} agent={agent} />
+            ))}
+          </div>
+
+          {/* Load More */}
+          {nextPageToken && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="rounded-lg border border-input bg-background px-6 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50"
+              >
+                {loadingMore ? "Loading..." : `Load more (showing ${agents.length} of ${total})`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -9,15 +9,17 @@ export function LandingPage() {
   const [stats, setStats] = useState({ total: 0, verified: 0, online: 0 })
 
   useEffect(() => {
-    fetchDirectory({ page_size: 1 }).then((res) => {
-      setStats((prev) => ({ ...prev, total: res.total_count }))
-    }).catch(() => {})
-    fetchDirectory({ page_size: 1, verified: true }).then((res) => {
-      setStats((prev) => ({ ...prev, verified: res.total_count }))
-    }).catch(() => {})
-    fetchDirectory({ page_size: 1, status: "online" }).then((res) => {
-      setStats((prev) => ({ ...prev, online: res.total_count }))
-    }).catch(() => {})
+    Promise.all([
+      fetchDirectory({ page_size: 1 }).catch(() => null),
+      fetchDirectory({ page_size: 1, verified: true }).catch(() => null),
+      fetchDirectory({ page_size: 1, status: "online" }).catch(() => null),
+    ]).then(([allRes, verifiedRes, onlineRes]) => {
+      setStats({
+        total: allRes?.total_count ?? 0,
+        verified: verifiedRes?.total_count ?? 0,
+        online: onlineRes?.total_count ?? 0,
+      })
+    })
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {

@@ -18,17 +18,18 @@ export function InvocationHistoryPage() {
   const [page, setPage] = useState(1)
   const { data, loading, error, refetch } = useProviderInvocations(page, PAGE_SIZE)
 
-  const statusVariant = (status: string) => {
-    switch (status) {
-      case "success":
-        return "default" as const
-      case "error":
-        return "destructive" as const
-      case "timeout":
-        return "secondary" as const
-      default:
-        return "outline" as const
-    }
+  const statusLabel = (code: number): string => {
+    if (code >= 200 && code < 300) return "success"
+    if (code === 408) return "timeout"
+    if (code >= 400) return "error"
+    return String(code)
+  }
+
+  const statusVariant = (code: number) => {
+    if (code >= 200 && code < 300) return "default" as const
+    if (code === 408) return "secondary" as const
+    if (code >= 400) return "destructive" as const
+    return "outline" as const
   }
 
   const formatDuration = (ms: number): string => {
@@ -41,7 +42,7 @@ export function InvocationHistoryPage() {
     return date.toLocaleString()
   }
 
-  const totalPages = data ? Math.ceil(data.total_count / PAGE_SIZE) : 0
+  const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0
 
   return (
     <div className="space-y-6">
@@ -91,11 +92,11 @@ export function InvocationHistoryPage() {
                 {data.invocations.map((inv) => (
                   <TableRow key={inv.id}>
                     <TableCell>
-                      <span className="font-medium">{inv.agent_name}</span>
+                      <span className="font-medium font-mono text-xs">{inv.agent_id}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={statusVariant(inv.status)}>
-                        {inv.status}
+                      <Badge variant={statusVariant(inv.status_code)}>
+                        {statusLabel(inv.status_code)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -105,7 +106,7 @@ export function InvocationHistoryPage() {
                       {formatTime(inv.created_at)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
-                      {inv.error_message || "-"}
+                      {inv.error || "-"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -117,7 +118,7 @@ export function InvocationHistoryPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} ({data.total_count} total)
+                Page {page} of {totalPages} ({data.total} total)
               </p>
               <div className="flex gap-2">
                 <Button

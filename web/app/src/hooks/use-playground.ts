@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 
 const BASE = "/api/v1"
 const TOKEN_KEY = "peerclaw_tokens"
@@ -26,13 +26,93 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
-export function usePlayground() {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+// --- sessionStorage helpers (tab-scoped persistence) ---
+
+function sessionKey(agentId: string | null, suffix: string): string {
+  return `peerclaw_playground_${suffix}_${agentId ?? "__none__"}`
+}
+
+function loadSessionId(agentId: string | null): string | null {
+  if (!agentId) return null
+  try {
+    return sessionStorage.getItem(sessionKey(agentId, "session"))
+  } catch {
+    return null
+  }
+}
+
+function saveSessionId(agentId: string | null, id: string): void {
+  if (!agentId) return
+  try {
+    sessionStorage.setItem(sessionKey(agentId, "session"), id)
+  } catch {
+    // quota exceeded or unavailable — silently ignore
+  }
+}
+
+function loadMessages(agentId: string | null): ChatMessage[] {
+  if (!agentId) return []
+  try {
+    const raw = sessionStorage.getItem(sessionKey(agentId, "messages"))
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as ChatMessage[]
+    // Rehydrate Date objects
+    return parsed.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }))
+  } catch {
+    return []
+  }
+}
+
+function saveMessages(agentId: string | null, messages: ChatMessage[]): void {
+  if (!agentId) return
+  try {
+    sessionStorage.setItem(sessionKey(agentId, "messages"), JSON.stringify(messages))
+  } catch {
+    // quota exceeded or unavailable — silently ignore
+  }
+}
+
+function clearStorage(agentId: string | null): void {
+  if (!agentId) return
+  try {
+    sessionStorage.removeItem(sessionKey(agentId, "session"))
+    sessionStorage.removeItem(sessionKey(agentId, "messages"))
+  } catch {
+    // silently ignore
+  }
+}
+
+export function usePlayground(agentId: string | null = null) {
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages(agentId))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastRaw, setLastRaw] = useState<unknown>(null)
   const abortRef = useRef<AbortController | null>(null)
-  const sessionIdRef = useRef<string | null>(null)
+  const sessionIdRef = useRef<string | null>(loadSessionId(agentId))
+  const agentIdRef = useRef<string | null>(agentId)
+
+  // When agentId changes, reload persisted state for the new agent
+  useEffect(() => {
+    if (agentId === agentIdRef.current) return
+    agentIdRef.current = agentId
+
+    // Cancel in-flight request
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
+
+    sessionIdRef.current = loadSessionId(agentId)
+    setMessages(loadMessages(agentId))
+    setError(null)
+    setLastRaw(null)
+    setLoading(false)
+  }, [agentId])
+
+  // Persist messages to sessionStorage whenever they change
+  useEffect(() => {
+    saveMessages(agentIdRef.current, messages)
+  }, [messages])
 
   const sendMessage = useCallback(
     async (agentId: string, message: string, stream = false) => {
@@ -125,6 +205,7 @@ export function usePlayground() {
                   // Capture session_id from start event payload.
                   if (parsed.session_id) {
                     sessionIdRef.current = parsed.session_id
+                    saveSessionId(agentIdRef.current, parsed.session_id)
                   }
                   const content = parsed.content ?? parsed.text ?? parsed.delta ?? data
                   accumulated += typeof content === "string" ? content : JSON.stringify(content)
@@ -172,6 +253,7 @@ export function usePlayground() {
           // Capture session_id for subsequent requests.
           if (data.session_id) {
             sessionIdRef.current = data.session_id
+            saveSessionId(agentIdRef.current, data.session_id)
           }
 
           const content =
@@ -217,6 +299,7 @@ export function usePlayground() {
       abortRef.current.abort()
       abortRef.current = null
     }
+    clearStorage(agentIdRef.current)
     sessionIdRef.current = null
     setMessages([])
     setError(null)

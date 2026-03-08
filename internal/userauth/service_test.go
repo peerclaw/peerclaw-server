@@ -1,0 +1,161 @@
+package userauth
+
+import (
+	"context"
+	"database/sql"
+	"testing"
+	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+func newTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	return db
+}
+
+func newTestService(t *testing.T) *Service {
+	t.Helper()
+	db := newTestDB(t)
+	store := NewSQLiteStore(db)
+	if err := store.Migrate(context.Background()); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	jwt := NewJWTManager("test-secret-key-for-tests", 15*time.Minute, 7*24*time.Hour)
+	// Use low bcrypt cost (4) to keep tests fast.
+	return NewService(store, jwt, 4, nil)
+}
+
+func TestService_RegisterAndLogin(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Register a new user.
+	user, tokens, err := svc.Register(ctx, RegisterRequest{
+		Email:       "alice@example.com",
+		Password:    "securepassword",
+		DisplayName: "Alice",
+	})
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if user.Email != "alice@example.com" {
+		t.Errorf("Email = %q, want %q", user.Email, "alice@example.com")
+	}
+	if user.DisplayName != "Alice" {
+		t.Errorf("DisplayName = %q, want %q", user.DisplayName, "Alice")
+	}
+	if user.Role != "user" {
+		t.Errorf("Role = %q, want %q", user.Role, "user")
+	}
+	if tokens.AccessToken == "" {
+		t.Error("AccessToken is empty")
+	}
+	if tokens.RefreshToken == "" {
+		t.Error("RefreshToken is empty")
+	}
+
+	// Login with the same credentials.
+	loggedIn, loginTokens, err := svc.Login(ctx, LoginRequest{
+		Email:    "alice@example.com",
+		Password: "securepassword",
+	}, "127.0.0.1", "test-agent")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+	if loggedIn.ID != user.ID {
+		t.Errorf("Login user ID = %q, want %q", loggedIn.ID, user.ID)
+	}
+	if loginTokens.AccessToken == "" {
+		t.Error("Login AccessToken is empty")
+	}
+
+	// Login with wrong password should fail.
+	_, _, err = svc.Login(ctx, LoginRequest{
+		Email:    "alice@example.com",
+		Password: "wrongpassword",
+	}, "", "")
+	if err == nil {
+		t.Fatal("expected error for wrong password, got nil")
+	}
+}
+
+func TestService_Register_Validation(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Empty email should fail.
+	_, _, err := svc.Register(ctx, RegisterRequest{
+		Email:    "",
+		Password: "securepassword",
+	})
+	if err == nil {
+		t.Fatal("expected error for empty email")
+	}
+
+	// Short password should fail.
+	_, _, err = svc.Register(ctx, RegisterRequest{
+		Email:    "bob@example.com",
+		Password: "short",
+	})
+	if err == nil {
+		t.Fatal("expected error for short password")
+	}
+
+	// Duplicate email should fail.
+	_, _, err = svc.Register(ctx, RegisterRequest{
+		Email:    "alice@example.com",
+		Password: "securepassword",
+	})
+	if err != nil {
+		t.Fatalf("first register: %v", err)
+	}
+	_, _, err = svc.Register(ctx, RegisterRequest{
+		Email:    "alice@example.com",
+		Password: "anotherpassword",
+	})
+	if err == nil {
+		t.Fatal("expected error for duplicate email")
+	}
+}
+
+func TestJWTManager_GenerateAndValidate(t *testing.T) {
+	mgr := NewJWTManager("my-secret", 15*time.Minute, 24*time.Hour)
+
+	token, err := mgr.GenerateAccessToken("user-123", "admin")
+	if err != nil {
+		t.Fatalf("GenerateAccessToken: %v", err)
+	}
+	if token == "" {
+		t.Fatal("token is empty")
+	}
+
+	claims, err := mgr.ValidateAccessToken(token)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken: %v", err)
+	}
+	if claims.UserID != "user-123" {
+		t.Errorf("UserID = %q, want %q", claims.UserID, "user-123")
+	}
+	if claims.Role != "admin" {
+		t.Errorf("Role = %q, want %q", claims.Role, "admin")
+	}
+
+	// Invalid token should fail.
+	_, err = mgr.ValidateAccessToken("garbage.token.here")
+	if err == nil {
+		t.Fatal("expected error for invalid token")
+	}
+
+	// Token signed with different secret should fail.
+	otherMgr := NewJWTManager("different-secret", 15*time.Minute, 24*time.Hour)
+	_, err = otherMgr.ValidateAccessToken(token)
+	if err == nil {
+		t.Fatal("expected error for wrong secret")
+	}
+}
