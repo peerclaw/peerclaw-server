@@ -218,6 +218,25 @@ export interface ProviderDashboardStats {
   }>
 }
 
+// Claim Token types
+
+export interface ClaimToken {
+  id: string
+  code: string
+  user_id: string
+  status: "pending" | "claimed" | "expired"
+  agent_id: string
+  created_at: string
+  expires_at: string
+  claimed_at?: string
+}
+
+export interface GenerateClaimTokenResponse {
+  token: string
+  expires_at: string
+  expires_in: number
+}
+
 // Admin types
 
 export interface AdminDashboardStats {

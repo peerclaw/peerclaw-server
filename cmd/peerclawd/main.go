@@ -17,6 +17,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/acp"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/mcp"
+	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
 	"github.com/peerclaw/peerclaw-server/internal/config"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
@@ -168,6 +169,18 @@ func main() {
 		logger.Info("review service initialized")
 	}
 
+	// Initialize claim token service.
+	var claimTokenService *claimtoken.Service
+	if sqlDB != nil {
+		ctStore := claimtoken.NewStore(cfg.Database.Driver, sqlDB)
+		if err := ctStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate claim token tables", "error", err)
+			os.Exit(1)
+		}
+		claimTokenService = claimtoken.NewService(ctStore, logger)
+		logger.Info("claim token service initialized")
+	}
+
 	// Initialize services.
 	regService := registry.NewService(store, logger)
 	routeTable := router.NewTable()
@@ -282,6 +295,9 @@ func main() {
 		stopInvokeCleanup := invokeRL.StartCleanup(time.Minute)
 		defer stopInvokeCleanup()
 		httpServer.SetInvokeRateLimiter(invokeRL)
+	}
+	if claimTokenService != nil {
+		httpServer.SetClaimToken(claimTokenService)
 	}
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)

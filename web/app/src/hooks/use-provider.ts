@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { fetchWithAuth } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
+import { generateClaimToken, listClaimTokens } from "@/api/claim"
+import type { ClaimToken, GenerateClaimTokenResponse } from "@/api/types"
 
 // ----- Types -----
 
@@ -184,4 +186,44 @@ export function useProviderMutations() {
   )
 
   return { publishAgent, updateAgent, deleteAgent }
+}
+
+// ----- Claim Token Hooks -----
+
+export function useClaimTokens(): UseQueryResult<{ tokens: ClaimToken[] }> {
+  const { accessToken } = useAuth()
+  const [data, setData] = useState<{ tokens: ClaimToken[] } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!accessToken) return
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await listClaimTokens(accessToken)
+      setData(result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Request failed")
+    } finally {
+      setLoading(false)
+    }
+  }, [accessToken])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  return { data, loading, error, refetch: load }
+}
+
+export function useGenerateClaimToken() {
+  const { accessToken } = useAuth()
+
+  const generate = useCallback(async (): Promise<GenerateClaimTokenResponse> => {
+    if (!accessToken) throw new Error("Not authenticated")
+    return generateClaimToken(accessToken)
+  }, [accessToken])
+
+  return { generate }
 }

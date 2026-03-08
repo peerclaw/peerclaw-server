@@ -12,6 +12,7 @@ import (
 	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
+	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
@@ -57,6 +58,7 @@ type HTTPServer struct {
 	invocation             *invocation.Service
 	invokeRateLimiter      *IPRateLimiter
 	reviewService          *review.Service
+	claimToken             *claimtoken.Service
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -168,6 +170,11 @@ func (s *HTTPServer) SetReviewService(rs *review.Service) {
 	s.reviewService = rs
 }
 
+// SetClaimToken sets the claim token service for agent pairing.
+func (s *HTTPServer) SetClaimToken(ct *claimtoken.Service) {
+	s.claimToken = ct
+}
+
 func (s *HTTPServer) routes() {
 	authMW := AuthMiddleware(s.authCfg, s.logger)
 	ownerMW := OwnerOnlyMiddleware(s.logger)
@@ -225,6 +232,9 @@ func (s *HTTPServer) routes() {
 
 	// Review and community routes.
 	s.registerReviewRoutes()
+
+	// Claim token routes.
+	s.registerClaimTokenRoutes()
 
 	// Admin routes.
 	s.registerAdminRoutes()
@@ -665,6 +675,29 @@ func (s *HTTPServer) registerProviderRoutes() {
 	s.mux.Handle("DELETE /api/v1/provider/agents/{id}", wrapProviderAuth(s.handleProviderDeleteAgent))
 	s.mux.Handle("GET /api/v1/provider/agents/{id}/analytics", wrapProviderAuth(s.handleProviderAgentAnalytics))
 	s.mux.Handle("GET /api/v1/provider/dashboard", wrapProviderAuth(s.handleProviderDashboard))
+}
+
+func (s *HTTPServer) registerClaimTokenRoutes() {
+	if s.claimToken == nil {
+		return
+	}
+
+	wrapClaimAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+		})
+	}
+
+	// JWT-protected: generate and list claim tokens.
+	s.mux.Handle("POST /api/v1/claim-tokens", wrapClaimAuth(s.handleGenerateClaimToken))
+	s.mux.Handle("GET /api/v1/claim-tokens", wrapClaimAuth(s.handleListClaimTokens))
+
+	// Public: agent claims a token (token itself is the auth).
+	s.mux.HandleFunc("POST /api/v1/agents/claim", s.handleClaimAgent)
 }
 
 func (s *HTTPServer) registerInvokeRoutes() {
