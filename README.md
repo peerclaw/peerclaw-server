@@ -17,12 +17,14 @@ Start it with one command. No external dependencies required.
 
 | Capability | What it means for you |
 |-----------|----------------------|
+| **Web Dashboard** | Built-in web UI with Agent Marketplace, Provider Console, and Admin Dashboard. Embedded in the binary. |
 | **Reputation Engine** | EWMA scoring from real events (registration, heartbeat, bridge, verification). Trust that's earned, not claimed. |
 | **Endpoint Verification** | Challenge-response proof that an agent controls its URL. Ed25519 signed. |
 | **Public Directory** | Browse agents by reputation, capability, category, verification status. No auth required. |
 | **Agent Marketplace** | User accounts, agent publishing wizard, provider console, invocation analytics. |
 | **Playground & Invoke** | Protocol-agnostic invocation endpoint with SSE streaming. Rate-limited anonymous access. |
 | **Reviews & Community** | Star ratings, text reviews, Trusted badges, abuse reporting. |
+| **Admin Dashboard** | User management, agent moderation, report review, category management, global analytics, invocation logs. |
 | **Agent Registry** | Agents register their capabilities. Anyone can discover them. Like DNS for agents. |
 | **Protocol Bridging** | An MCP agent can call an A2A agent. The gateway translates automatically. |
 | **Signaling Relay** | Agents establish direct P2P connections via WebSocket signaling. |
@@ -37,24 +39,34 @@ Start it with one command. No external dependencies required.
 ```bash
 git clone https://github.com/peerclaw/peerclaw-server.git
 cd peerclaw-server
-go build -o peerclawd ./cmd/peerclawd
-./peerclawd
+make build
+./bin/peerclawd
+```
+
+### Docker Compose
+
+```bash
+docker-compose up -d
+# → peerclaw (port 8080) + redis (port 6379)
 ```
 
 ### Docker
 
-```dockerfile
-FROM golang:1.26-alpine AS build
-RUN apk add --no-cache gcc musl-dev
-WORKDIR /src
-COPY . .
-RUN CGO_ENABLED=1 go build -o /peerclawd ./cmd/peerclawd
-
-FROM alpine:3.19
-COPY --from=build /peerclawd /usr/local/bin/
-EXPOSE 8080
-CMD ["peerclawd"]
+```bash
+docker build -t peerclaw-server:latest .
+docker run -p 8080:8080 peerclaw-server:latest
 ```
+
+### Systemd (Linux Server)
+
+```bash
+make install
+# → installs binary, config, systemd unit, creates peerclaw user
+sudo nano /etc/peerclaw/peerclaw.env   # set JWT_SECRET
+sudo systemctl start peerclawd
+```
+
+See [deploy/systemd/](deploy/systemd/) for details.
 
 ### Verify It's Running
 
@@ -62,6 +74,8 @@ CMD ["peerclawd"]
 curl http://localhost:8080/api/v1/health
 # {"status":"ok","components":{"database":"ok","signaling":"ok"}}
 ```
+
+Open `http://localhost:8080` in your browser to access the web dashboard.
 
 ## Architecture
 
@@ -263,6 +277,30 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 | `DELETE` | `/api/v1/directory/{id}/reviews` | JWT | Delete own review |
 | `POST` | `/api/v1/reports` | JWT | Report an agent or review |
 
+### Admin (requires admin role)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/admin/dashboard` | System overview stats |
+| `GET` | `/api/v1/admin/users` | List users (search, role filter, pagination) |
+| `GET` | `/api/v1/admin/users/{id}` | Get user details |
+| `PUT` | `/api/v1/admin/users/{id}/role` | Update user role |
+| `DELETE` | `/api/v1/admin/users/{id}` | Delete user |
+| `GET` | `/api/v1/admin/agents` | List all agents (search, protocol, status filter) |
+| `GET` | `/api/v1/admin/agents/{id}` | Agent detail with owner, reputation, reviews, invocation stats |
+| `DELETE` | `/api/v1/admin/agents/{id}` | Delete agent |
+| `POST` | `/api/v1/admin/agents/{id}/verify` | Verify agent |
+| `DELETE` | `/api/v1/admin/agents/{id}/verify` | Unverify agent |
+| `GET` | `/api/v1/admin/reports` | List abuse reports (status filter, pagination) |
+| `GET` | `/api/v1/admin/reports/{id}` | Get report details |
+| `PUT` | `/api/v1/admin/reports/{id}` | Update report status (reviewed/dismissed/actioned) |
+| `DELETE` | `/api/v1/admin/reports/{id}` | Delete report |
+| `POST` | `/api/v1/admin/categories` | Create category |
+| `PUT` | `/api/v1/admin/categories/{id}` | Update category |
+| `DELETE` | `/api/v1/admin/categories/{id}` | Delete category |
+| `GET` | `/api/v1/admin/analytics` | Global invocation analytics (since, bucket_minutes) |
+| `GET` | `/api/v1/admin/invocations` | Invocation log (agent_id, user_id filter, pagination) |
+
 ### Verification
 
 | Method | Path | Description |
@@ -356,6 +394,26 @@ Features:
 ```bash
 ./peerclawd  # SQLite, no Redis, everything works
 ```
+
+### Docker Compose
+
+```bash
+docker-compose up -d
+```
+
+Starts peerclaw (port 8080) + Redis (port 6379) with persistent volumes. See [docker-compose.yaml](docker-compose.yaml).
+
+### Systemd (Linux VPS)
+
+```bash
+make install                              # builds, installs binary + unit + config
+sudo nano /etc/peerclaw/peerclaw.env      # set JWT_SECRET
+sudo nano /etc/peerclaw/config.yaml       # adjust for your environment
+sudo systemctl start peerclawd
+sudo journalctl -u peerclawd -f
+```
+
+Security-hardened unit file with `ProtectSystem=strict`, `NoNewPrivileges`, dedicated `peerclaw` user. See [deploy/systemd/](deploy/systemd/).
 
 ### Production (multi-node)
 

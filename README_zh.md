@@ -17,12 +17,14 @@ peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证
 
 | 能力 | 对你意味着什么 |
 |------|--------------|
+| **Web 控制台** | 内置 Web 界面：Agent Marketplace、Provider 控制台、管理后台，嵌入到二进制中。 |
 | **声誉引擎** | 基于真实事件（注册、心跳、桥接、验证）的 EWMA 评分。信任是赢得的，不是声称的。 |
 | **端点验证** | Challenge-Response 证明 Agent 控制其 URL，Ed25519 签名。 |
 | **公开目录** | 按声誉、能力、分类、验证状态浏览 Agent，无需认证。 |
 | **Agent Marketplace** | 用户账号、Agent 发布向导、Provider 控制台、调用分析。 |
 | **Playground 与调用** | 协议无关的调用端点，SSE 流式响应，匿名限速访问。 |
 | **评价与社区** | 星级评分、文字评价、Trusted 徽章、举报机制。 |
+| **管理后台** | 用户管理、Agent 审核、举报审查、分类管理、全局分析、调用日志。 |
 | **Agent 注册中心** | Agent 注册自己的能力，任何人都能发现它。像 Agent 的 DNS。 |
 | **协议桥接** | MCP Agent 可以调用 A2A Agent，网关自动翻译。 |
 | **信令中转** | Agent 通过 WebSocket 信令建立 P2P 直连。 |
@@ -37,24 +39,34 @@ peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证
 ```bash
 git clone https://github.com/peerclaw/peerclaw-server.git
 cd peerclaw-server
-go build -o peerclawd ./cmd/peerclawd
-./peerclawd
+make build
+./bin/peerclawd
+```
+
+### Docker Compose
+
+```bash
+docker-compose up -d
+# → peerclaw（端口 8080）+ redis（端口 6379）
 ```
 
 ### Docker
 
-```dockerfile
-FROM golang:1.26-alpine AS build
-RUN apk add --no-cache gcc musl-dev
-WORKDIR /src
-COPY . .
-RUN CGO_ENABLED=1 go build -o /peerclawd ./cmd/peerclawd
-
-FROM alpine:3.19
-COPY --from=build /peerclawd /usr/local/bin/
-EXPOSE 8080
-CMD ["peerclawd"]
+```bash
+docker build -t peerclaw-server:latest .
+docker run -p 8080:8080 peerclaw-server:latest
 ```
+
+### Systemd（Linux 服务器）
+
+```bash
+make install
+# → 安装二进制、配置文件、systemd 单元，创建 peerclaw 用户
+sudo nano /etc/peerclaw/peerclaw.env   # 设置 JWT_SECRET
+sudo systemctl start peerclawd
+```
+
+详见 [deploy/systemd/](deploy/systemd/)。
 
 ### 验证运行
 
@@ -62,6 +74,8 @@ CMD ["peerclawd"]
 curl http://localhost:8080/api/v1/health
 # {"status":"ok","components":{"database":"ok","signaling":"ok"}}
 ```
+
+浏览器打开 `http://localhost:8080` 即可访问 Web 控制台。
 
 ## 架构
 
@@ -263,6 +277,30 @@ redis:
 | `DELETE` | `/api/v1/directory/{id}/reviews` | JWT | 删除自己的评论 |
 | `POST` | `/api/v1/reports` | JWT | 举报 Agent 或评论 |
 
+### 管理后台（需要 admin 角色）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/v1/admin/dashboard` | 系统概览统计 |
+| `GET` | `/api/v1/admin/users` | 用户列表（搜索、角色过滤、分页） |
+| `GET` | `/api/v1/admin/users/{id}` | 用户详情 |
+| `PUT` | `/api/v1/admin/users/{id}/role` | 更新用户角色 |
+| `DELETE` | `/api/v1/admin/users/{id}` | 删除用户 |
+| `GET` | `/api/v1/admin/agents` | Agent 列表（搜索、协议、状态过滤） |
+| `GET` | `/api/v1/admin/agents/{id}` | Agent 详情（含所有者、声誉、评价、调用统计） |
+| `DELETE` | `/api/v1/admin/agents/{id}` | 删除 Agent |
+| `POST` | `/api/v1/admin/agents/{id}/verify` | 验证 Agent |
+| `DELETE` | `/api/v1/admin/agents/{id}/verify` | 取消验证 Agent |
+| `GET` | `/api/v1/admin/reports` | 举报列表（状态过滤、分页） |
+| `GET` | `/api/v1/admin/reports/{id}` | 举报详情 |
+| `PUT` | `/api/v1/admin/reports/{id}` | 更新举报状态（reviewed/dismissed/actioned） |
+| `DELETE` | `/api/v1/admin/reports/{id}` | 删除举报 |
+| `POST` | `/api/v1/admin/categories` | 创建分类 |
+| `PUT` | `/api/v1/admin/categories/{id}` | 更新分类 |
+| `DELETE` | `/api/v1/admin/categories/{id}` | 删除分类 |
+| `GET` | `/api/v1/admin/analytics` | 全局调用分析（since、bucket_minutes） |
+| `GET` | `/api/v1/admin/invocations` | 调用日志（agent_id、user_id 过滤、分页） |
+
 ### 端点验证
 
 | 方法 | 路径 | 说明 |
@@ -356,6 +394,26 @@ redis:
 ```bash
 ./peerclawd  # SQLite，无需 Redis，开箱即用
 ```
+
+### Docker Compose
+
+```bash
+docker-compose up -d
+```
+
+启动 peerclaw（端口 8080）+ Redis（端口 6379），数据持久化。详见 [docker-compose.yaml](docker-compose.yaml)。
+
+### Systemd（Linux 服务器）
+
+```bash
+make install                              # 构建并安装二进制 + 单元 + 配置
+sudo nano /etc/peerclaw/peerclaw.env      # 设置 JWT_SECRET
+sudo nano /etc/peerclaw/config.yaml       # 按需调整配置
+sudo systemctl start peerclawd
+sudo journalctl -u peerclawd -f
+```
+
+安全加固的 unit 文件，含 `ProtectSystem=strict`、`NoNewPrivileges`、专用 `peerclaw` 用户。详见 [deploy/systemd/](deploy/systemd/)。
 
 ### 生产环境（多节点）
 
