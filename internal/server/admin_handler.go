@@ -100,6 +100,10 @@ func (s *HTTPServer) handleAdminGetUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	id := r.PathValue("id")
+	if id == "" {
+		s.jsonError(w, "user id is required", http.StatusBadRequest)
+		return
+	}
 	user, err := s.userAuth.GetUser(r.Context(), id)
 	if err != nil {
 		s.jsonError(w, "user not found", http.StatusNotFound)
@@ -117,6 +121,10 @@ func (s *HTTPServer) handleAdminUpdateUserRole(w http.ResponseWriter, r *http.Re
 	}
 
 	id := r.PathValue("id")
+	if id == "" {
+		s.jsonError(w, "user id is required", http.StatusBadRequest)
+		return
+	}
 	var req struct {
 		Role string `json:"role"`
 	}
@@ -527,9 +535,13 @@ func (s *HTTPServer) registerAdminRoutes() {
 }
 
 // queryInt extracts an integer query parameter with a default value.
+// Values are clamped to [1, 200] to prevent abuse.
 func queryInt(r *http.Request, key string, defaultVal int) int {
 	if v := r.URL.Query().Get(key); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			if n > 200 {
+				n = 200
+			}
 			return n
 		}
 	}

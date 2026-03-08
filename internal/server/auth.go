@@ -237,6 +237,7 @@ func OptionalUserAuthMiddleware(jwtMgr *userauth.JWTManager, logger *slog.Logger
 
 			claims, err := jwtMgr.ValidateAccessToken(parts[1])
 			if err != nil {
+				logger.Debug("optional JWT validation failed", "error", err)
 				next.ServeHTTP(w, r)
 				return
 			}

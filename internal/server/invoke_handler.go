@@ -175,7 +175,7 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 	invID := uuid.New().String()
 
 	// Send initial event.
-	fmt.Fprintf(w, "event: start\ndata: {\"id\":\"%s\",\"agent_id\":\"%s\"}\n\n", invID, agentID)
+	_, _ = fmt.Fprintf(w, "event: start\ndata: {\"id\":\"%s\",\"agent_id\":\"%s\"}\n\n", invID, agentID)
 	flusher.Flush()
 
 	var respBody string
@@ -199,17 +199,17 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 	duration := time.Since(start).Milliseconds()
 
 	if invokeErr != "" {
-		fmt.Fprintf(w, "event: error\ndata: {\"error\":\"%s\"}\n\n", invokeErr)
+		_, _ = fmt.Fprintf(w, "event: error\ndata: {\"error\":\"%s\"}\n\n", invokeErr)
 	} else {
 		msgData, _ := json.Marshal(map[string]any{
 			"content":  respBody,
 			"protocol": proto,
 		})
-		fmt.Fprintf(w, "event: message\ndata: %s\n\n", string(msgData))
+		_, _ = fmt.Fprintf(w, "event: message\ndata: %s\n\n", string(msgData))
 	}
 	flusher.Flush()
 
-	fmt.Fprintf(w, "event: done\ndata: {\"duration_ms\":%d}\n\n", duration)
+	_, _ = fmt.Fprintf(w, "event: done\ndata: {\"duration_ms\":%d}\n\n", duration)
 	flusher.Flush()
 
 	// Record invocation.

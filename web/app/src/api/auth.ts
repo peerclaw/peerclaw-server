@@ -49,9 +49,10 @@ async function authFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const { headers, ...rest } = options
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
+    ...rest,
+    headers: { "Content-Type": "application/json", ...headers },
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))

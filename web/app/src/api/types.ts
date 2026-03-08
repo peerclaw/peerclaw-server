@@ -248,10 +248,10 @@ export interface AdminUserListResponse {
 }
 
 export interface AdminAgentDetail {
-  agent: import("./types").Agent
+  agent: Agent
   owner?: AdminUser
   reputation_score?: number
-  reputation_events?: import("./types").ReputationEvent[]
+  reputation_events?: ReputationEvent[]
   review_summary?: ReviewSummary
   invocation_stats?: AgentInvocationStats
 }
