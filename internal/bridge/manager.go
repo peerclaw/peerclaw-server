@@ -71,6 +71,33 @@ func (m *Manager) Send(ctx context.Context, env *envelope.Envelope) error {
 	return b.Send(ctx, env)
 }
 
+// SendStream delivers an envelope using streaming if the bridge supports it.
+// Falls back to non-streaming Send and returns a single-chunk channel.
+func (m *Manager) SendStream(ctx context.Context, env *envelope.Envelope) (<-chan StreamChunk, error) {
+	b, err := m.GetBridge(string(env.Protocol))
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if bridge supports streaming.
+	if ss, ok := b.(StreamSender); ok {
+		return ss.SendStream(ctx, env)
+	}
+
+	// Fallback: non-streaming Send wrapped in a channel.
+	ch := make(chan StreamChunk, 2)
+	go func() {
+		defer close(ch)
+		err := b.Send(ctx, env)
+		if err != nil {
+			ch <- StreamChunk{Error: err}
+		} else {
+			ch <- StreamChunk{Data: "Message delivered to agent " + env.Destination, Done: true}
+		}
+	}()
+	return ch, nil
+}
+
 // Translate converts an envelope between protocols.
 func (m *Manager) Translate(ctx context.Context, env *envelope.Envelope, targetProtocol string) (*envelope.Envelope, error) {
 	b, err := m.GetBridge(string(env.Protocol))

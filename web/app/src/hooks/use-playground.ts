@@ -32,6 +32,7 @@ export function usePlayground() {
   const [error, setError] = useState<string | null>(null)
   const [lastRaw, setLastRaw] = useState<unknown>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const sessionIdRef = useRef<string | null>(null)
 
   const sendMessage = useCallback(
     async (agentId: string, message: string, stream = false) => {
@@ -72,7 +73,11 @@ export function usePlayground() {
               Authorization: `Bearer ${accessToken}`,
               Accept: "text/event-stream",
             },
-            body: JSON.stringify({ message: message.trim(), stream: true }),
+            body: JSON.stringify({
+              message: message.trim(),
+              stream: true,
+              ...(sessionIdRef.current ? { session_id: sessionIdRef.current } : {}),
+            }),
             signal: controller.signal,
           })
 
@@ -109,12 +114,18 @@ export function usePlayground() {
             // Parse SSE events
             const lines = chunk.split("\n")
             for (const line of lines) {
+              // Capture session_id from start event.
+              if (line.startsWith("event: start")) continue
               if (line.startsWith("data: ")) {
                 const data = line.slice(6)
                 if (data === "[DONE]") break
 
                 try {
                   const parsed = JSON.parse(data)
+                  // Capture session_id from start event payload.
+                  if (parsed.session_id) {
+                    sessionIdRef.current = parsed.session_id
+                  }
                   const content = parsed.content ?? parsed.text ?? parsed.delta ?? data
                   accumulated += typeof content === "string" ? content : JSON.stringify(content)
                 } catch {
@@ -142,7 +153,11 @@ export function usePlayground() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${accessToken}`,
             },
-            body: JSON.stringify({ message: message.trim(), stream: false }),
+            body: JSON.stringify({
+              message: message.trim(),
+              stream: false,
+              ...(sessionIdRef.current ? { session_id: sessionIdRef.current } : {}),
+            }),
             signal: controller.signal,
           })
 
@@ -153,6 +168,11 @@ export function usePlayground() {
 
           const data = await res.json()
           setLastRaw(data)
+
+          // Capture session_id for subsequent requests.
+          if (data.session_id) {
+            sessionIdRef.current = data.session_id
+          }
 
           const content =
             typeof data === "string"
@@ -197,6 +217,7 @@ export function usePlayground() {
       abortRef.current.abort()
       abortRef.current = null
     }
+    sessionIdRef.current = null
     setMessages([])
     setError(null)
     setLastRaw(null)

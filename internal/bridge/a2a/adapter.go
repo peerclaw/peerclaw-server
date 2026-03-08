@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -16,6 +17,7 @@ import (
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
+	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
 	"github.com/peerclaw/peerclaw-server/internal/security"
 )
@@ -164,6 +166,121 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	}
 
 	return nil
+}
+
+// SendStream delivers an envelope and returns a channel of response chunks.
+// If the remote agent returns SSE (text/event-stream), chunks are streamed in real time.
+// Otherwise, falls back to buffered Send and returns one chunk.
+func (a *Adapter) SendStream(ctx context.Context, env *envelope.Envelope) (<-chan bridge.StreamChunk, error) {
+	endpoint := env.Metadata["a2a.endpoint"]
+	if endpoint == "" {
+		return nil, fmt.Errorf("a2a: missing a2a.endpoint in metadata")
+	}
+	if err := security.ValidateURL(endpoint); err != nil {
+		return nil, fmt.Errorf("a2a: SSRF blocked: %w", err)
+	}
+
+	msg := EnvelopeToMessage(env)
+	params := SendMessageParams{
+		Message: msg,
+		Config:  &SendMessageConfig{Blocking: false}, // request streaming
+	}
+	req, err := jsonrpc.NewRequest("message/send", params)
+	if err != nil {
+		return nil, fmt.Errorf("a2a: build request: %w", err)
+	}
+
+	url := strings.TrimRight(endpoint, "/")
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("a2a: marshal request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("a2a: new http request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream, application/json")
+
+	httpResp, err := a.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("a2a: http post: %w", err)
+	}
+
+	ch := make(chan bridge.StreamChunk, 32)
+	ct := httpResp.Header.Get("Content-Type")
+
+	if strings.HasPrefix(ct, "text/event-stream") {
+		// SSE streaming response — parse and relay chunks.
+		go a.readSSEStream(httpResp, ch)
+	} else {
+		// Non-streaming response — read fully and send as single chunk.
+		go a.readBufferedResponse(httpResp, ch)
+	}
+
+	return ch, nil
+}
+
+func (a *Adapter) readSSEStream(resp *http.Response, ch chan<- bridge.StreamChunk) {
+	defer close(ch)
+	defer func() { _ = resp.Body.Close() }()
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 64*1024), 64*1024)
+
+	var eventType string
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "event: ") {
+			eventType = strings.TrimPrefix(line, "event: ")
+			continue
+		}
+		if strings.HasPrefix(line, "data: ") {
+			data := strings.TrimPrefix(line, "data: ")
+
+			if eventType == "error" {
+				ch <- bridge.StreamChunk{Data: data, Error: fmt.Errorf("remote error: %s", data)}
+				return
+			}
+			if eventType == "done" || eventType == "close" {
+				ch <- bridge.StreamChunk{Data: data, Done: true}
+				return
+			}
+			ch <- bridge.StreamChunk{Data: data}
+			eventType = ""
+			continue
+		}
+		// Empty line = event boundary, reset event type.
+		if line == "" {
+			eventType = ""
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		ch <- bridge.StreamChunk{Error: fmt.Errorf("sse read: %w", err)}
+		return
+	}
+	ch <- bridge.StreamChunk{Done: true}
+}
+
+func (a *Adapter) readBufferedResponse(resp *http.Response, ch chan<- bridge.StreamChunk) {
+	defer close(ch)
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
+	if err != nil {
+		ch <- bridge.StreamChunk{Error: fmt.Errorf("read response: %w", err)}
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		ch <- bridge.StreamChunk{Error: fmt.Errorf("status %d: %s", resp.StatusCode, string(body))}
+		return
+	}
+
+	ch <- bridge.StreamChunk{Data: string(body), Done: true}
 }
 
 func (a *Adapter) Receive(ctx context.Context) (<-chan *envelope.Envelope, error) {

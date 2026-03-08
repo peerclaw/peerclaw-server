@@ -87,6 +87,7 @@ export interface PublicAgentProfile {
   trusted: boolean
   reputation_score: number
   reputation_events: number
+  total_calls: number
   endpoint_url?: string
   registered_at: string
   review_summary?: ReviewSummary
@@ -106,7 +107,7 @@ export interface DirectoryParams {
   verified?: boolean
   min_score?: number
   search?: string
-  sort?: "reputation" | "name" | "registered_at"
+  sort?: "reputation" | "name" | "registered_at" | "popular"
   page_size?: number
   page_token?: string
   category?: string

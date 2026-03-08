@@ -1,12 +1,15 @@
 package server
 
 import (
+	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -226,3 +229,83 @@ func (sw *statusWriter) Write(b []byte) (int, error) {
 	}
 	return sw.ResponseWriter.Write(b)
 }
+
+// GzipMiddleware compresses responses when the client accepts gzip encoding.
+// It skips compression for SSE streams (text/event-stream) and small responses.
+func GzipMiddleware() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			gz := &gzipResponseWriter{
+				ResponseWriter: w,
+				Writer:         nil, // lazy init
+			}
+			defer func() {
+				if gz.Writer != nil {
+					_ = gz.Writer.Close()
+				}
+			}()
+
+			next.ServeHTTP(gz, r)
+		})
+	}
+}
+
+// gzipResponseWriter wraps http.ResponseWriter with gzip compression.
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	Writer      *gzip.Writer
+	wroteHeader bool
+}
+
+func (gz *gzipResponseWriter) WriteHeader(code int) {
+	if gz.wroteHeader {
+		return
+	}
+	gz.wroteHeader = true
+
+	ct := gz.ResponseWriter.Header().Get("Content-Type")
+	// Don't compress SSE streams — they need to be flushed immediately.
+	if strings.HasPrefix(ct, "text/event-stream") {
+		gz.ResponseWriter.WriteHeader(code)
+		return
+	}
+
+	gz.ResponseWriter.Header().Set("Content-Encoding", "gzip")
+	gz.ResponseWriter.Header().Set("Vary", "Accept-Encoding")
+	gz.ResponseWriter.Header().Del("Content-Length") // length changes with compression
+	gz.Writer = gzip.NewWriter(gz.ResponseWriter)
+	gz.ResponseWriter.WriteHeader(code)
+}
+
+func (gz *gzipResponseWriter) Write(b []byte) (int, error) {
+	if !gz.wroteHeader {
+		gz.WriteHeader(http.StatusOK)
+	}
+	if gz.Writer != nil {
+		return gz.Writer.Write(b)
+	}
+	return gz.ResponseWriter.Write(b)
+}
+
+func (gz *gzipResponseWriter) Flush() {
+	if gz.Writer != nil {
+		_ = gz.Writer.Flush()
+	}
+	if f, ok := gz.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap supports http.ResponseController.
+func (gz *gzipResponseWriter) Unwrap() http.ResponseWriter {
+	return gz.ResponseWriter
+}
+
+// Ensure gzipResponseWriter does not implement io.ReaderFrom
+// to prevent net/http from bypassing the gzip writer.
+var _ io.Writer = (*gzipResponseWriter)(nil)

@@ -28,3 +28,18 @@ type ProtocolBridge interface {
 	// Close releases resources held by this bridge.
 	Close() error
 }
+
+// StreamChunk represents a single chunk of a streamed response.
+type StreamChunk struct {
+	Data  string // chunk content
+	Error error  // non-nil signals end with error
+	Done  bool   // true when stream is complete
+}
+
+// StreamSender is an optional interface for bridges that support streaming responses.
+// Bridges implement this to enable real-time SSE passthrough for invoke calls.
+type StreamSender interface {
+	// SendStream delivers an envelope and returns a channel of response chunks.
+	// The channel is closed when the stream is complete.
+	SendStream(ctx context.Context, env *envelope.Envelope) (<-chan StreamChunk, error)
+}

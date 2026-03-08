@@ -11,6 +11,7 @@ import (
 	"github.com/peerclaw/peerclaw-core/protocol"
 	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
+	"github.com/peerclaw/peerclaw-server/internal/blob"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
@@ -59,6 +60,7 @@ type HTTPServer struct {
 	invokeRateLimiter      *IPRateLimiter
 	reviewService          *review.Service
 	claimToken             *claimtoken.Service
+	blob                   *blob.Service
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -90,6 +92,7 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 		RecoveryMiddleware(logger),
 		RequestIDMiddleware(),
 		LoggingMiddleware(logger),
+		GzipMiddleware(),
 	}
 
 	if opts != nil {
@@ -114,7 +117,7 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 		Addr:         addr,
 		Handler:      Chain(s.mux, middlewares...),
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 5 * time.Minute, // allow long-running SSE streams
 		IdleTimeout:  60 * time.Second,
 	}
 	return s
@@ -173,6 +176,11 @@ func (s *HTTPServer) SetReviewService(rs *review.Service) {
 // SetClaimToken sets the claim token service for agent pairing.
 func (s *HTTPServer) SetClaimToken(ct *claimtoken.Service) {
 	s.claimToken = ct
+}
+
+// SetBlob sets the blob service for file upload/download.
+func (s *HTTPServer) SetBlob(b *blob.Service) {
+	s.blob = b
 }
 
 func (s *HTTPServer) routes() {
@@ -235,6 +243,9 @@ func (s *HTTPServer) routes() {
 
 	// Claim token routes.
 	s.registerClaimTokenRoutes()
+
+	// Blob routes.
+	s.registerBlobRoutes()
 
 	// Admin routes.
 	s.registerAdminRoutes()
@@ -698,6 +709,28 @@ func (s *HTTPServer) registerClaimTokenRoutes() {
 
 	// Public: agent claims a token (token itself is the auth).
 	s.mux.HandleFunc("POST /api/v1/agents/claim", s.handleClaimAgent)
+}
+
+func (s *HTTPServer) registerBlobRoutes() {
+	if s.blob == nil {
+		return
+	}
+
+	wrapBlobAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+		})
+	}
+
+	// Upload requires authentication.
+	s.mux.Handle("POST /api/v1/blobs", wrapBlobAuth(s.handleBlobUpload))
+
+	// Download is public (blob ID is the secret).
+	s.mux.HandleFunc("GET /api/v1/blobs/{id}", s.handleBlobDownload)
 }
 
 func (s *HTTPServer) registerInvokeRoutes() {

@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -26,6 +27,7 @@ type PublicAgentProfile struct {
 	Trusted          bool                `json:"trusted"`
 	ReputationScore  float64             `json:"reputation_score"`
 	ReputationEvents int64               `json:"reputation_events"`
+	TotalCalls       int64               `json:"total_calls"`
 	EndpointURL      string              `json:"endpoint_url,omitempty"` // Only if public_endpoint=true
 	RegisteredAt     time.Time           `json:"registered_at"`
 	ReviewSummary    *reviewSummaryJSON   `json:"review_summary,omitempty"`
@@ -109,7 +111,12 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 		filter.Category = q.Get("category")
 	}
 
+	sortByPopular := filter.SortBy == "popular"
 	if filter.SortBy == "" {
+		filter.SortBy = "reputation"
+	}
+	// For popular sorting, fetch from DB with default order; we'll re-sort after enrichment.
+	if sortByPopular {
 		filter.SortBy = "reputation"
 	}
 
@@ -117,6 +124,18 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Build a map of agent call counts for popular sort.
+	callCounts := make(map[string]int64)
+	if sortByPopular && s.invocation != nil {
+		since := time.Now().AddDate(0, 0, -7) // last 7 days
+		topAgents, err := s.invocation.TopAgents(r.Context(), since, 200)
+		if err == nil {
+			for _, a := range topAgents {
+				callCounts[a.AgentID] = a.TotalCalls
+			}
+		}
 	}
 
 	profiles := make([]PublicAgentProfile, 0, len(result.Agents))
@@ -127,7 +146,18 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 			score, _ := s.reputation.GetScore(r.Context(), card.ID)
 			p.ReputationScore = score
 		}
+		// Enrich with call count.
+		if count, ok := callCounts[card.ID]; ok {
+			p.TotalCalls = count
+		}
 		profiles = append(profiles, p)
+	}
+
+	// Sort by popularity (call count in last 7 days, descending).
+	if sortByPopular {
+		sort.Slice(profiles, func(i, j int) bool {
+			return profiles[i].TotalCalls > profiles[j].TotalCalls
+		})
 	}
 
 	s.jsonResponse(w, http.StatusOK, DirectoryResponse{

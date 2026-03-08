@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,18 +16,20 @@ import (
 )
 
 type invokeRequest struct {
-	Message  string            `json:"message"`
-	Protocol string            `json:"protocol,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-	Stream   bool              `json:"stream,omitempty"`
+	Message   string            `json:"message"`
+	Protocol  string            `json:"protocol,omitempty"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
+	Stream    bool              `json:"stream,omitempty"`
+	SessionID string            `json:"session_id,omitempty"`
 }
 
 type invokeResponse struct {
-	ID       string `json:"id"`
-	AgentID  string `json:"agent_id"`
-	Response string `json:"response"`
-	Protocol string `json:"protocol"`
-	Duration int64  `json:"duration_ms"`
+	ID        string `json:"id"`
+	AgentID   string `json:"agent_id"`
+	Response  string `json:"response"`
+	Protocol  string `json:"protocol"`
+	Duration  int64  `json:"duration_ms"`
+	SessionID string `json:"session_id,omitempty"`
 }
 
 // handleInvoke handles POST /api/v1/invoke/{agent_id}.
@@ -89,6 +92,9 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	for k, v := range req.Metadata {
 		env.WithMetadata(k, v)
 	}
+	if req.SessionID != "" {
+		env.WithSessionID(req.SessionID)
+	}
 
 	start := time.Now()
 
@@ -150,16 +156,24 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Use the session ID from the request, or generate one for the client.
+	sessionID := req.SessionID
+	if sessionID == "" {
+		sessionID = uuid.New().String()
+	}
+
 	s.jsonResponse(w, http.StatusOK, invokeResponse{
-		ID:       invID,
-		AgentID:  agentID,
-		Response: respBody,
-		Protocol: proto,
-		Duration: duration,
+		ID:        invID,
+		AgentID:   agentID,
+		Response:  respBody,
+		Protocol:  proto,
+		Duration:  duration,
+		SessionID: sessionID,
 	})
 }
 
 // handleInvokeSSE handles streaming invocation with SSE.
+// When the bridge supports streaming, chunks are piped to the client in real time.
 func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env *envelope.Envelope, agentID, userID, proto, ipAddress string, start time.Time) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -173,9 +187,13 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 	w.WriteHeader(http.StatusOK)
 
 	invID := uuid.New().String()
+	sessionID := env.SessionID
+	if sessionID == "" {
+		sessionID = uuid.New().String()
+	}
 
 	// Send initial event.
-	_, _ = fmt.Fprintf(w, "event: start\ndata: {\"id\":\"%s\",\"agent_id\":\"%s\"}\n\n", invID, agentID)
+	_, _ = fmt.Fprintf(w, "event: start\ndata: {\"id\":\"%s\",\"agent_id\":\"%s\",\"session_id\":\"%s\"}\n\n", invID, agentID, sessionID)
 	flusher.Flush()
 
 	var respBody string
@@ -183,13 +201,38 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 	var invokeErr string
 
 	if s.bridges != nil {
-		err := s.bridges.Send(r.Context(), env)
+		chunks, err := s.bridges.SendStream(r.Context(), env)
 		if err != nil {
 			invokeErr = err.Error()
 			statusCode = 502
 		} else {
-			respBody = "Message delivered to agent " + agentID
 			statusCode = 200
+			var sb strings.Builder
+			for chunk := range chunks {
+				if chunk.Error != nil {
+					invokeErr = chunk.Error.Error()
+					statusCode = 502
+					_, _ = fmt.Fprintf(w, "event: error\ndata: %s\n\n",
+						escapeSSEData(invokeErr))
+					flusher.Flush()
+					break
+				}
+				if chunk.Data != "" {
+					sb.WriteString(chunk.Data)
+					msgData, _ := json.Marshal(map[string]any{
+						"content":  chunk.Data,
+						"protocol": proto,
+					})
+					_, _ = fmt.Fprintf(w, "event: message\ndata: %s\n\n", string(msgData))
+					flusher.Flush()
+				}
+				if chunk.Done {
+					break
+				}
+			}
+			if invokeErr == "" {
+				respBody = sb.String()
+			}
 		}
 	} else {
 		invokeErr = "bridge not available"
@@ -198,16 +241,10 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 
 	duration := time.Since(start).Milliseconds()
 
-	if invokeErr != "" {
-		_, _ = fmt.Fprintf(w, "event: error\ndata: {\"error\":\"%s\"}\n\n", invokeErr)
-	} else {
-		msgData, _ := json.Marshal(map[string]any{
-			"content":  respBody,
-			"protocol": proto,
-		})
-		_, _ = fmt.Fprintf(w, "event: message\ndata: %s\n\n", string(msgData))
+	if invokeErr != "" && statusCode >= 500 {
+		_, _ = fmt.Fprintf(w, "event: error\ndata: %s\n\n", escapeSSEData(invokeErr))
+		flusher.Flush()
 	}
-	flusher.Flush()
 
 	_, _ = fmt.Fprintf(w, "event: done\ndata: {\"duration_ms\":%d}\n\n", duration)
 	flusher.Flush()
@@ -236,6 +273,12 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr)
 		}
 	}
+}
+
+// escapeSSEData escapes a string for use in SSE data fields.
+func escapeSSEData(s string) string {
+	data, _ := json.Marshal(map[string]string{"error": s})
+	return string(data)
 }
 
 // handleListInvocations handles GET /api/v1/invocations.

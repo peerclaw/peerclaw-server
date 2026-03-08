@@ -6,7 +6,7 @@ import { AgentDirectoryCard } from "@/components/public/AgentDirectoryCard"
 import { CategoryFilter } from "@/components/public/CategoryFilter"
 import { Search } from "lucide-react"
 
-type SortOption = "reputation" | "name" | "registered_at"
+type SortOption = "reputation" | "name" | "registered_at" | "popular"
 
 export function DirectoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -99,6 +99,7 @@ export function DirectoryPage() {
           className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="reputation">Sort by Reputation</option>
+          <option value="popular">Sort by Popular</option>
           <option value="name">Sort by Name</option>
           <option value="registered_at">Sort by Newest</option>
         </select>

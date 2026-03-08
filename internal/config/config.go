@@ -22,6 +22,7 @@ type Config struct {
 	Federation    FederationConfig    `yaml:"federation"`
 	Auth          AuthConfig          `yaml:"auth"`
 	UserAuth      UserAuthConfig      `yaml:"user_auth"`
+	Blob          BlobConfig          `yaml:"blob"`
 }
 
 // AuthConfig holds authentication settings.
@@ -122,6 +123,15 @@ type FederationConfig struct {
 	AuthToken  string           `yaml:"auth_token"`
 }
 
+// BlobConfig holds blob storage settings.
+type BlobConfig struct {
+	Enabled     bool   `yaml:"enabled"`      // default true
+	StoragePath string `yaml:"storage_path"` // default "./blobs"
+	MaxFileSize string `yaml:"max_file_size"` // default "100MB"
+	OwnerQuota  string `yaml:"owner_quota"`   // default "1GB"
+	TTL         string `yaml:"ttl"`           // default "24h"
+}
+
 // FederationPeer holds connection details for a federated peer server.
 type FederationPeer struct {
 	Name    string `yaml:"name"`
@@ -181,6 +191,13 @@ func DefaultConfig() *Config {
 			AccessTTL:  "15m",
 			RefreshTTL: "168h",
 			BcryptCost: 12,
+		},
+		Blob: BlobConfig{
+			Enabled:     true,
+			StoragePath: "./blobs",
+			MaxFileSize: "100MB",
+			OwnerQuota:  "1GB",
+			TTL:         "24h",
 		},
 	}
 }
