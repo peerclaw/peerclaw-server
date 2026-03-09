@@ -370,6 +370,10 @@ func main() {
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)
 		sigHub.SetMetrics(otelMetrics)
+		if contactsService != nil {
+			sigHub.SetContacts(contactsService)
+			logger.Info("signaling hub contacts whitelist enabled")
+		}
 
 		// Configure signaling broker.
 		if cfg.Redis.Addr != "" {

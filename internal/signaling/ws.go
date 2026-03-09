@@ -31,6 +31,11 @@ type authFrame struct {
 	PublicKey string `json:"public_key"`
 }
 
+// ContactsChecker checks whether signaling between two agents is allowed.
+type ContactsChecker interface {
+	IsAllowed(ctx context.Context, fromAgentID, toAgentID string) (bool, error)
+}
+
 // Hub manages WebSocket connections for signaling between agents.
 type Hub struct {
 	mu           sync.RWMutex
@@ -42,6 +47,7 @@ type Hub struct {
 	metrics      *observability.Metrics
 	broker       Broker
 	verifier     *identity.Verifier
+	contacts     ContactsChecker
 	authRequired bool
 	authTimeout  time.Duration // default 5s
 }
@@ -86,6 +92,11 @@ func (h *Hub) SetMetrics(m *observability.Metrics) {
 // When set, Forward() delegates to the broker instead of delivering directly.
 func (h *Hub) SetBroker(b Broker) {
 	h.broker = b
+}
+
+// SetContacts sets the contacts checker for signaling whitelist enforcement.
+func (h *Hub) SetContacts(c ContactsChecker) {
+	h.contacts = c
 }
 
 // DeliverLocal delivers a signal message to a locally connected agent.
@@ -295,10 +306,30 @@ func abs64(n int64) int64 {
 	return n
 }
 
+// isSignalingType returns true for message types that establish P2P connections.
+func isSignalingType(t signaling.MessageType) bool {
+	return t == signaling.MessageTypeOffer ||
+		t == signaling.MessageTypeAnswer ||
+		t == signaling.MessageTypeICECandidate
+}
+
 // Forward sends a signal message to the target agent.
 // When a broker is set, messages are published through the broker for
 // cross-node delivery. Otherwise, messages are delivered locally.
 func (h *Hub) Forward(ctx context.Context, msg signaling.SignalMessage) {
+	// Whitelist check for signaling messages (offer/answer/ICE).
+	if h.contacts != nil && isSignalingType(msg.Type) {
+		allowed, err := h.contacts.IsAllowed(ctx, msg.From, msg.To)
+		if err != nil {
+			h.logger.Error("contacts check failed", "from", msg.From, "to", msg.To, "error", err)
+			return
+		}
+		if !allowed {
+			h.logger.Warn("signaling blocked: not in contacts", "from", msg.From, "to", msg.To, "type", msg.Type)
+			return
+		}
+	}
+
 	if h.broker != nil {
 		if err := h.broker.Publish(ctx, msg); err != nil {
 			h.logger.Error("broker publish failed", "from", msg.From, "to", msg.To, "error", err)

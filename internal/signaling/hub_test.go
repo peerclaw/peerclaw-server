@@ -688,7 +688,143 @@ func TestMessageLimiter(t *testing.T) {
 	}
 }
 
+func TestHubForward_ContactsWhitelistBlocks(t *testing.T) {
+	hub := NewHub(slog.Default(), nil, 0)
+	srv := newTestServer(hub)
+	defer srv.Close()
+
+	// Set up a contacts checker that blocks all signaling.
+	hub.SetContacts(&mockContacts{allowed: false})
+
+	sender := dialHub(t, srv, "sender")
+	defer sender.Close(websocket.StatusNormalClosure, "")
+	receiver := dialHub(t, srv, "receiver")
+	defer receiver.Close(websocket.StatusNormalClosure, "")
+
+	waitForAgent(t, hub, "sender", 2*time.Second)
+	waitForAgent(t, hub, "receiver", 2*time.Second)
+
+	// Send an offer from sender to receiver (via the websocket).
+	msg := signaling.SignalMessage{
+		Type: signaling.MessageTypeOffer,
+		From: "sender",
+		To:   "receiver",
+		SDP:  "test-sdp-offer",
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := sender.Write(ctx, websocket.MessageText, data); err != nil {
+		t.Fatalf("sender write: %v", err)
+	}
+
+	// The receiver should NOT get the message (blocked by contacts).
+	readCtx, readCancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer readCancel()
+	_, _, readErr := receiver.Read(readCtx)
+	if readErr == nil {
+		t.Error("receiver should not receive message when contacts check blocks it")
+	}
+}
+
+func TestHubForward_ContactsWhitelistAllows(t *testing.T) {
+	hub := NewHub(slog.Default(), nil, 0)
+	srv := newTestServer(hub)
+	defer srv.Close()
+
+	// Set up a contacts checker that allows all signaling.
+	hub.SetContacts(&mockContacts{allowed: true})
+
+	sender := dialHub(t, srv, "sender2")
+	defer sender.Close(websocket.StatusNormalClosure, "")
+	receiver := dialHub(t, srv, "receiver2")
+	defer receiver.Close(websocket.StatusNormalClosure, "")
+
+	waitForAgent(t, hub, "sender2", 2*time.Second)
+	waitForAgent(t, hub, "receiver2", 2*time.Second)
+
+	msg := signaling.SignalMessage{
+		Type: signaling.MessageTypeOffer,
+		From: "sender2",
+		To:   "receiver2",
+		SDP:  "test-sdp-offer",
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := sender.Write(ctx, websocket.MessageText, data); err != nil {
+		t.Fatalf("sender write: %v", err)
+	}
+
+	// The receiver should get the message.
+	got := readSignalMessage(t, receiver, 2*time.Second)
+	if got.Type != signaling.MessageTypeOffer {
+		t.Errorf("Type = %q, want %q", got.Type, signaling.MessageTypeOffer)
+	}
+	if got.SDP != "test-sdp-offer" {
+		t.Errorf("SDP = %q, want %q", got.SDP, "test-sdp-offer")
+	}
+}
+
+func TestHubForward_ContactsWhitelistSkipsNonSignaling(t *testing.T) {
+	hub := NewHub(slog.Default(), nil, 0)
+	srv := newTestServer(hub)
+	defer srv.Close()
+
+	// Contacts checker that blocks everything — but bridge_message should bypass it.
+	hub.SetContacts(&mockContacts{allowed: false})
+
+	sender := dialHub(t, srv, "sender3")
+	defer sender.Close(websocket.StatusNormalClosure, "")
+	receiver := dialHub(t, srv, "receiver3")
+	defer receiver.Close(websocket.StatusNormalClosure, "")
+
+	waitForAgent(t, hub, "sender3", 2*time.Second)
+	waitForAgent(t, hub, "receiver3", 2*time.Second)
+
+	// Send a bridge_message (not a signaling type) — should NOT be blocked.
+	msg := signaling.SignalMessage{
+		Type:    signaling.MessageTypeBridgeMessage,
+		From:    "sender3",
+		To:      "receiver3",
+		Payload: json.RawMessage(`{"data":"hello"}`),
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := sender.Write(ctx, websocket.MessageText, data); err != nil {
+		t.Fatalf("sender write: %v", err)
+	}
+
+	// The receiver SHOULD get this message since bridge_message is not a signaling type.
+	got := readSignalMessage(t, receiver, 2*time.Second)
+	if got.Type != signaling.MessageTypeBridgeMessage {
+		t.Errorf("Type = %q, want %q", got.Type, signaling.MessageTypeBridgeMessage)
+	}
+}
+
 // ---------- test doubles ----------
+
+// mockContacts implements ContactsChecker for testing.
+type mockContacts struct {
+	allowed bool
+}
+
+func (m *mockContacts) IsAllowed(_ context.Context, _, _ string) (bool, error) {
+	return m.allowed, nil
+}
 
 // recordingBroker is a Broker that records published messages.
 type recordingBroker struct {
