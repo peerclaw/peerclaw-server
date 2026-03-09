@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { useAdminAgents, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/card"
 
 export function AgentsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [search, setSearch] = useState("")
   const [protocol, setProtocol] = useState("")
@@ -74,15 +76,15 @@ export function AgentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Agents</h1>
+        <h1 className="text-2xl font-bold">{t('adminAgents.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {total} registered agent{total !== 1 ? "s" : ""}
+          {t('adminAgents.agentsRegistered', { count: total })}
         </p>
       </div>
 
       <div className="flex gap-3">
         <Input
-          placeholder="Search agents..."
+          placeholder={t('adminAgents.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
@@ -92,7 +94,7 @@ export function AgentsPage() {
           onChange={(e) => setProtocol(e.target.value)}
           className="rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          <option value="">All Protocols</option>
+          <option value="">{t('adminAgents.allProtocols')}</option>
           <option value="a2a">A2A</option>
           <option value="mcp">MCP</option>
           <option value="acp">ACP</option>
@@ -102,16 +104,16 @@ export function AgentsPage() {
           onChange={(e) => setStatus(e.target.value)}
           className="rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          <option value="">All Status</option>
-          <option value="online">Online</option>
-          <option value="offline">Offline</option>
-          <option value="degraded">Degraded</option>
+          <option value="">{t('adminAgents.allStatus')}</option>
+          <option value="online">{t('adminAgents.online')}</option>
+          <option value="offline">{t('adminAgents.offline')}</option>
+          <option value="degraded">{t('adminAgents.degraded')}</option>
         </select>
       </div>
 
       {loading ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading agents...</p>
+          <p className="text-sm text-muted-foreground">{t('adminAgents.loadingAgents')}</p>
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
@@ -123,12 +125,12 @@ export function AgentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Protocols</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Last Heartbeat</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('adminAgents.name')}</TableHead>
+                  <TableHead>{t('adminAgents.status')}</TableHead>
+                  <TableHead>{t('adminAgents.protocols')}</TableHead>
+                  <TableHead>{t('adminAgents.verified')}</TableHead>
+                  <TableHead>{t('adminAgents.lastHeartbeat')}</TableHead>
+                  <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -184,14 +186,14 @@ export function AgentsPage() {
                             variant="destructive"
                             onClick={() => handleDelete(agent.id)}
                           >
-                            Confirm
+                            {t('common.confirm')}
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setConfirmDelete(null)}
                           >
-                            Cancel
+                            {t('common.cancel')}
                           </Button>
                         </span>
                       ) : (
@@ -201,21 +203,21 @@ export function AgentsPage() {
                             variant="outline"
                             onClick={() => navigate(`/admin/agents/${agent.id}`)}
                           >
-                            View
+                            {t('common.view')}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleVerify(agent.id)}
                           >
-                            Verify
+                            {t('adminAgents.verify')}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleUnverify(agent.id)}
                           >
-                            Unverify
+                            {t('adminAgents.unverify')}
                           </Button>
                           <Button
                             size="sm"
@@ -223,7 +225,7 @@ export function AgentsPage() {
                             className="text-destructive"
                             onClick={() => setConfirmDelete(agent.id)}
                           >
-                            Delete
+                            {t('common.delete')}
                           </Button>
                         </>
                       )}
@@ -233,7 +235,7 @@ export function AgentsPage() {
                 {agents.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No agents found
+                      {t('adminAgents.noAgents')}
                     </TableCell>
                   </TableRow>
                 )}

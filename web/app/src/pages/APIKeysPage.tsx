@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
 import { createAPIKey, listAPIKeys, revokeAPIKey } from "@/api/auth"
 import type { APIKey } from "@/api/auth"
@@ -17,6 +18,7 @@ import {
 import { Plus, Copy, Check, Trash2, KeyRound, AlertTriangle } from "lucide-react"
 
 export function APIKeysPage() {
+  const { t } = useTranslation()
   const { accessToken } = useAuth()
   const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,7 +72,7 @@ export function APIKeysPage() {
   const handleRevoke = async (keyId: string) => {
     if (!accessToken) return
     const confirmed = window.confirm(
-      "Are you sure you want to revoke this API key? This action cannot be undone."
+      t('apiKeys.revokeConfirm')
     )
     if (!confirmed) return
 
@@ -103,14 +105,14 @@ export function APIKeysPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">API Keys</h1>
+          <h1 className="text-2xl font-bold">{t('apiKeys.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage API keys for programmatic access
+            {t('apiKeys.description')}
           </p>
         </div>
         <Button size="sm" onClick={() => setShowCreate(true)} disabled={showCreate}>
           <Plus className="size-4" />
-          Generate New Key
+          {t('apiKeys.generateNew')}
         </Button>
       </div>
 
@@ -122,7 +124,7 @@ export function APIKeysPage() {
       {showCreate && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Generate New API Key</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('apiKeys.generateTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {newKeySecret ? (
@@ -130,7 +132,7 @@ export function APIKeysPage() {
                 <div className="flex items-center gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
                   <AlertTriangle className="size-4 text-amber-500 shrink-0" />
                   <p className="text-sm text-amber-500">
-                    Copy this key now. You will not be able to see it again.
+                    {t('apiKeys.copyWarning')}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -157,7 +159,7 @@ export function APIKeysPage() {
                     setShowCreate(false)
                   }}
                 >
-                  Done
+                  {t('common.done')}
                 </Button>
               </div>
             ) : (
@@ -165,13 +167,13 @@ export function APIKeysPage() {
                 <Input
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
-                  placeholder="Key name (e.g. production, ci-cd)"
+                  placeholder={t('apiKeys.keyNamePlaceholder')}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleCreate()
                   }}
                 />
                 <Button onClick={handleCreate} disabled={creating || !newKeyName.trim()}>
-                  {creating ? "Creating..." : "Create"}
+                  {creating ? t('apiKeys.creating') : t('common.create')}
                 </Button>
                 <Button
                   variant="outline"
@@ -180,7 +182,7 @@ export function APIKeysPage() {
                     setNewKeyName("")
                   }}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             )}
@@ -191,7 +193,7 @@ export function APIKeysPage() {
       {/* Loading */}
       {loading && (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading API keys...</p>
+          <p className="text-sm text-muted-foreground">{t('apiKeys.loadingKeys')}</p>
         </div>
       )}
 
@@ -199,27 +201,27 @@ export function APIKeysPage() {
       {!loading && activeKeys.length === 0 && !showCreate && (
         <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
           <KeyRound className="size-8 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">No API keys yet.</p>
+          <p className="text-sm text-muted-foreground">{t('apiKeys.noKeys')}</p>
           <button
             onClick={() => setShowCreate(true)}
             className="text-sm text-primary hover:underline mt-1"
           >
-            Generate your first key
+            {t('apiKeys.generateFirst')}
           </button>
         </div>
       )}
 
       {!loading && activeKeys.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold mb-2">Active Keys</h2>
+          <h2 className="text-sm font-semibold mb-2">{t('apiKeys.activeKeys')}</h2>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Prefix</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Last Used</TableHead>
-                <TableHead>Expires</TableHead>
+                <TableHead>{t('apiKeys.name')}</TableHead>
+                <TableHead>{t('apiKeys.prefix')}</TableHead>
+                <TableHead>{t('apiKeys.created')}</TableHead>
+                <TableHead>{t('apiKeys.lastUsed')}</TableHead>
+                <TableHead>{t('apiKeys.expires')}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -238,12 +240,12 @@ export function APIKeysPage() {
                   <TableCell className="text-xs text-muted-foreground">
                     {key.last_used
                       ? new Date(key.last_used).toLocaleDateString()
-                      : "Never"}
+                      : t('common.never')}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {key.expires_at
                       ? new Date(key.expires_at).toLocaleDateString()
-                      : "Never"}
+                      : t('common.never')}
                   </TableCell>
                   <TableCell>
                     <Button
@@ -266,14 +268,14 @@ export function APIKeysPage() {
       {/* Revoked keys */}
       {!loading && revokedKeys.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold mb-2 text-muted-foreground">Revoked Keys</h2>
+          <h2 className="text-sm font-semibold mb-2 text-muted-foreground">{t('apiKeys.revokedKeys')}</h2>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Prefix</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t('apiKeys.name')}</TableHead>
+                <TableHead>{t('apiKeys.prefix')}</TableHead>
+                <TableHead>{t('apiKeys.created')}</TableHead>
+                <TableHead>{t('invocations.status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -289,7 +291,7 @@ export function APIKeysPage() {
                     {new Date(key.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="destructive">Revoked</Badge>
+                    <Badge variant="destructive">{t('apiKeys.revoked')}</Badge>
                   </TableCell>
                 </TableRow>
               ))}

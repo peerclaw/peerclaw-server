@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { fetchDirectory } from "@/api/client"
 import type { PublicAgentProfile } from "@/api/types"
 import { AgentDirectoryCard } from "@/components/public/AgentDirectoryCard"
@@ -20,6 +21,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function DirectoryPage() {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [agents, setAgents] = useState<PublicAgentProfile[]>([])
   const [total, setTotal] = useState(0)
@@ -97,9 +99,9 @@ export function DirectoryPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Agent Directory</h1>
+        <h1 className="text-2xl font-bold">{t('directory.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {total} agent{total !== 1 ? "s" : ""} registered
+          {t('directory.agentsRegistered', { count: total })}
         </p>
       </div>
 
@@ -120,7 +122,7 @@ export function DirectoryPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search agents..."
+            placeholder={t('directory.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -138,10 +140,10 @@ export function DirectoryPage() {
           }}
           className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="reputation">Sort by Reputation</option>
-          <option value="popular">Sort by Popular</option>
-          <option value="name">Sort by Name</option>
-          <option value="registered_at">Sort by Newest</option>
+          <option value="reputation">{t('directory.sortReputation')}</option>
+          <option value="popular">{t('directory.sortPopular')}</option>
+          <option value="name">{t('directory.sortName')}</option>
+          <option value="registered_at">{t('directory.sortNewest')}</option>
         </select>
 
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -154,18 +156,18 @@ export function DirectoryPage() {
             }}
             className="rounded border-input"
           />
-          Verified only
+          {t('directory.verifiedOnly')}
         </label>
       </div>
 
       {/* Grid */}
       {loading ? (
         <div className="flex h-48 items-center justify-center text-muted-foreground text-sm">
-          Loading...
+          {t('common.loading')}
         </div>
       ) : agents.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center text-muted-foreground">
-          <p className="text-sm">No agents found</p>
+          <p className="text-sm">{t('directory.noAgents')}</p>
           {(search || category) && (
             <button
               onClick={() => {
@@ -176,7 +178,7 @@ export function DirectoryPage() {
               }}
               className="mt-2 text-xs text-primary hover:underline"
             >
-              Clear filters
+              {t('directory.clearFilters')}
             </button>
           )}
         </div>
@@ -196,7 +198,7 @@ export function DirectoryPage() {
                 disabled={loadingMore}
                 className="rounded-lg border border-input bg-background px-6 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50"
               >
-                {loadingMore ? "Loading..." : `Load more (showing ${agents.length} of ${total})`}
+                {loadingMore ? t('directory.loadingMore') : t('directory.loadMore', { shown: agents.length, total })}
               </button>
             </div>
           )}

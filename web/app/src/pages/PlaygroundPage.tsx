@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useParams, useNavigate } from "react-router-dom"
 import { MessageSquare, Trash2, Zap } from "lucide-react"
 import { usePlayground } from "@/hooks/use-playground"
@@ -8,6 +9,7 @@ import { ChatInput } from "@/components/playground/ChatInput"
 import { RawToggle } from "@/components/playground/RawToggle"
 
 export function PlaygroundPage() {
+  const { t } = useTranslation()
   const { agentId: paramAgentId } = useParams<{ agentId?: string }>()
   const navigate = useNavigate()
 
@@ -55,13 +57,13 @@ export function PlaygroundPage() {
       <div className="flex w-72 shrink-0 flex-col border-r border-border p-4">
         <div className="mb-4 flex items-center gap-2">
           <MessageSquare className="size-5 text-primary" />
-          <h1 className="text-lg font-semibold">Playground</h1>
+          <h1 className="text-lg font-semibold">{t('playground.title')}</h1>
         </div>
 
         {/* Agent selector */}
         <div className="mb-4">
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-            Agent
+            {t('playground.agent')}
           </label>
           <AgentSelector
             selectedId={selectedAgentId}
@@ -88,10 +90,10 @@ export function PlaygroundPage() {
               />
             </button>
             <Zap className="size-3.5" />
-            Stream
+            {t('playground.stream')}
           </label>
           <p className="mt-1 text-[10px] text-muted-foreground/70">
-            Enable server-sent events for real-time responses
+            {t('playground.streamDesc')}
           </p>
         </div>
 
@@ -102,7 +104,7 @@ export function PlaygroundPage() {
           className="mt-auto flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         >
           <Trash2 className="size-3.5" />
-          Clear conversation
+          {t('playground.clearConversation')}
         </button>
       </div>
 
@@ -113,11 +115,11 @@ export function PlaygroundPage() {
           {messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
               <MessageSquare className="mb-3 size-10 opacity-30" />
-              <p className="text-sm font-medium">No messages yet</p>
+              <p className="text-sm font-medium">{t('playground.noMessages')}</p>
               <p className="mt-1 text-xs">
                 {selectedAgentId
-                  ? "Send a message to start the conversation"
-                  : "Select an agent to get started"}
+                  ? t('playground.sendToStart')
+                  : t('playground.selectAgentFirst')}
               </p>
             </div>
           ) : (
@@ -139,7 +141,7 @@ export function PlaygroundPage() {
                     <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
                     <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
                   </div>
-                  Agent is thinking...
+                  {t('playground.thinking')}
                 </div>
               )}
 
@@ -169,8 +171,8 @@ export function PlaygroundPage() {
             disabled={!selectedAgentId || loading}
             placeholder={
               selectedAgentId
-                ? "Type your message..."
-                : "Select an agent first"
+                ? t('playground.typeMessage')
+                : t('playground.selectFirst')
             }
           />
         </div>

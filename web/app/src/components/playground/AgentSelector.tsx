@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { ChevronDown, Search, Bot } from "lucide-react"
 import { fetchDirectory } from "@/api/client"
 import type { PublicAgentProfile } from "@/api/types"
@@ -9,6 +10,7 @@ interface AgentSelectorProps {
 }
 
 export function AgentSelector({ selectedId, onSelect }: AgentSelectorProps) {
+  const { t } = useTranslation()
   const [agents, setAgents] = useState<PublicAgentProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -61,7 +63,7 @@ export function AgentSelector({ selectedId, onSelect }: AgentSelectorProps) {
           {selectedAgent ? (
             <span className="truncate">{selectedAgent.name}</span>
           ) : (
-            <span className="text-muted-foreground">Select an agent...</span>
+            <span className="text-muted-foreground">{t('playground.selectAgent')}</span>
           )}
         </span>
         <ChevronDown
@@ -82,7 +84,7 @@ export function AgentSelector({ selectedId, onSelect }: AgentSelectorProps) {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search agents..."
+                placeholder={t('playground.searchAgents')}
                 className="w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring dark:bg-input/30"
                 autoFocus
               />
@@ -93,11 +95,11 @@ export function AgentSelector({ selectedId, onSelect }: AgentSelectorProps) {
           <div className="max-h-64 overflow-auto p-1">
             {loading ? (
               <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-                Loading agents...
+                {t('playground.loadingAgents')}
               </div>
             ) : filtered.length === 0 ? (
               <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-                No agents found
+                {t('playground.noAgents')}
               </div>
             ) : (
               filtered.map((agent) => (

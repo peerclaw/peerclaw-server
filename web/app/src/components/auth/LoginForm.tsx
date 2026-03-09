@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>
@@ -11,6 +12,7 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState("")
+  const { t } = useTranslation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,7 +21,7 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
     try {
       await onSubmit(email, password)
     } catch (err: any) {
-      setLocalError(err.message || "Login failed")
+      setLocalError(err.message || t('auth.loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -40,7 +42,7 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
           htmlFor="email"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Email
+          {t('auth.email')}
         </label>
         <input
           id="email"
@@ -59,7 +61,7 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
           htmlFor="password"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Password
+          {t('auth.password')}
         </label>
         <input
           id="password"
@@ -69,7 +71,7 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
           required
           autoComplete="current-password"
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="Enter your password"
+          placeholder={t('auth.enterPassword')}
         />
       </div>
 
@@ -78,13 +80,13 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
         disabled={loading}
         className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
-        {loading ? "Signing in..." : "Sign In"}
+        {loading ? t('auth.signingIn') : t('nav.signIn')}
       </button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
+        {t('auth.dontHaveAccount')}{" "}
         <Link to="/register" className="text-primary hover:underline">
-          Sign up
+          {t('auth.signUp')}
         </Link>
       </p>
     </form>

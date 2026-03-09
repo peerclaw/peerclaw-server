@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +15,7 @@ import { Copy, Check, Key, Loader2, RefreshCw } from "lucide-react"
 import { useClaimTokens, useGenerateClaimToken } from "@/hooks/use-provider"
 
 export function ClaimTokenSection() {
+  const { t } = useTranslation()
   const { data, loading, error, refetch } = useClaimTokens()
   const { generate } = useGenerateClaimToken()
 
@@ -46,7 +48,7 @@ export function ClaimTokenSection() {
 
   const handleGenerate = useCallback(async () => {
     if (!agentName.trim()) {
-      setGenError("Please enter an agent name")
+      setGenError(t('claim.enterAgentName'))
       return
     }
     setGenerating(true)
@@ -65,7 +67,7 @@ export function ClaimTokenSection() {
     } finally {
       setGenerating(false)
     }
-  }, [agentName, generate, refetch])
+  }, [agentName, generate, refetch, t])
 
   const prompt = generatedCode
     ? `curl -fsSL https://peerclaw.ai/install.sh | sh\npeerclaw agent claim --token ${generatedCode}`
@@ -97,7 +99,7 @@ export function ClaimTokenSection() {
 
   const statusLabel = (status: string, expiresAt: string) => {
     if (status === "pending" && new Date(expiresAt) < new Date()) {
-      return "expired"
+      return t('claim.expired')
     }
     return status
   }
@@ -106,9 +108,9 @@ export function ClaimTokenSection() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-base">Claim Tokens</CardTitle>
+          <CardTitle className="text-base">{t('claim.title')}</CardTitle>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Generate a one-time code to pair an Agent with your account
+            {t('claim.description')}
           </p>
         </div>
       </CardHeader>
@@ -118,14 +120,14 @@ export function ClaimTokenSection() {
         <div className="flex items-end gap-2">
           <div className="flex-1">
             <label className="text-sm font-medium mb-1 block">
-              Agent Name
+              {t('claim.agentName')}
             </label>
             <input
               type="text"
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-              placeholder="e.g., my-research-agent"
+              placeholder={t('claim.agentNamePlaceholder')}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -140,7 +142,7 @@ export function ClaimTokenSection() {
             ) : (
               <Key className="size-4" />
             )}
-            {generating ? "Generating..." : "Generate Token"}
+            {generating ? t('claim.generating') : t('claim.generateToken')}
           </Button>
         </div>
 
@@ -153,7 +155,7 @@ export function ClaimTokenSection() {
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">
-                Send this prompt to your Agent:
+                {t('claim.sendPrompt')}
               </p>
               <span className="text-sm text-muted-foreground tabular-nums">
                 {formatTime(remaining)}
@@ -172,21 +174,21 @@ export function ClaimTokenSection() {
               ) : (
                 <Copy className="size-4" />
               )}
-              {copied ? "Copied" : "Copy Prompt"}
+              {copied ? t('claim.copied') : t('claim.copyPrompt')}
             </Button>
           </div>
         )}
 
         {/* Token history table */}
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading tokens...</p>
+          <p className="text-sm text-muted-foreground">{t('claim.loadingTokens')}</p>
         ) : error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : data && data.tokens && data.tokens.length > 0 ? (
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-medium text-muted-foreground">
-                Token History
+                {t('claim.tokenHistory')}
               </h4>
               <Button variant="ghost" size="sm" onClick={refetch}>
                 <RefreshCw className="size-3" />
@@ -195,22 +197,22 @@ export function ClaimTokenSection() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Agent Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>{t('claim.code')}</TableHead>
+                  <TableHead>{t('claim.agentName')}</TableHead>
+                  <TableHead>{t('claim.status')}</TableHead>
+                  <TableHead>{t('apiKeys.created')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.tokens.slice(0, 10).map((t) => {
-                  const displayStatus = statusLabel(t.status, t.expires_at)
+                {data.tokens.slice(0, 10).map((tk) => {
+                  const displayStatus = statusLabel(tk.status, tk.expires_at)
                   return (
-                    <TableRow key={t.id}>
+                    <TableRow key={tk.id}>
                       <TableCell className="font-mono text-xs">
-                        {t.code}
+                        {tk.code}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {t.agent_name || "-"}
+                        {tk.agent_name || "-"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(displayStatus)}>
@@ -218,7 +220,7 @@ export function ClaimTokenSection() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
-                        {new Date(t.created_at).toLocaleString()}
+                        {new Date(tk.created_at).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   )
@@ -228,7 +230,7 @@ export function ClaimTokenSection() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            No tokens generated yet. Enter an agent name and click "Generate Token" to create a pairing code.
+            {t('claim.noTokens')}
           </p>
         )}
       </CardContent>

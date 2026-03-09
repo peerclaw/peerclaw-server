@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { useAdminCategories, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ const emptyForm: CategoryFormData = {
 }
 
 export function CategoriesPage() {
+  const { t } = useTranslation()
   const { data, loading, error, refetch } = useAdminCategories()
   const { createCategory, updateCategory, deleteCategory } = useAdminMutations()
   const [showForm, setShowForm] = useState(false)
@@ -89,9 +91,9 @@ export function CategoriesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Categories</h1>
+          <h1 className="text-2xl font-bold">{t('adminCategories.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {categories.length} categor{categories.length !== 1 ? "ies" : "y"}
+            {t('adminCategories.categoriesCount', { count: categories.length })}
           </p>
         </div>
         <Button
@@ -101,7 +103,7 @@ export function CategoriesPage() {
             setShowForm(true)
           }}
         >
-          Add Category
+          {t('adminCategories.addCategory')}
         </Button>
       </div>
 
@@ -109,37 +111,37 @@ export function CategoriesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">
-              {editingId ? "Edit Category" : "New Category"}
+              {editingId ? t('adminCategories.editCategory') : t('adminCategories.newCategory')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-muted-foreground">Name</label>
+                <label className="text-sm text-muted-foreground">{t('adminCategories.name')}</label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Category name"
+                  placeholder={t('adminCategories.namePlaceholder')}
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">Slug</label>
+                <label className="text-sm text-muted-foreground">{t('adminCategories.slug')}</label>
                 <Input
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                  placeholder="category-slug"
+                  placeholder={t('adminCategories.slugPlaceholder')}
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">Icon</label>
+                <label className="text-sm text-muted-foreground">{t('adminCategories.icon')}</label>
                 <Input
                   value={form.icon}
                   onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                  placeholder="Icon name"
+                  placeholder={t('adminCategories.iconPlaceholder')}
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">Sort Order</label>
+                <label className="text-sm text-muted-foreground">{t('adminCategories.sortOrder')}</label>
                 <Input
                   type="number"
                   value={form.sort_order}
@@ -149,17 +151,17 @@ export function CategoriesPage() {
                 />
               </div>
               <div className="col-span-2">
-                <label className="text-sm text-muted-foreground">Description</label>
+                <label className="text-sm text-muted-foreground">{t('adminCategories.description')}</label>
                 <Input
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Category description"
+                  placeholder={t('adminCategories.descPlaceholder')}
                 />
               </div>
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSubmit}>
-                {editingId ? "Update" : "Create"}
+                {editingId ? t('common.update') : t('common.create')}
               </Button>
               <Button
                 variant="ghost"
@@ -169,7 +171,7 @@ export function CategoriesPage() {
                   setForm(emptyForm)
                 }}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </CardContent>
@@ -178,7 +180,7 @@ export function CategoriesPage() {
 
       {loading ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading categories...</p>
+          <p className="text-sm text-muted-foreground">{t('adminCategories.loadingCategories')}</p>
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
@@ -190,12 +192,12 @@ export function CategoriesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Icon</TableHead>
-                  <TableHead>Sort Order</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('adminCategories.name')}</TableHead>
+                  <TableHead>{t('adminCategories.slug')}</TableHead>
+                  <TableHead>{t('adminCategories.description')}</TableHead>
+                  <TableHead>{t('adminCategories.icon')}</TableHead>
+                  <TableHead>{t('adminCategories.sortOrder')}</TableHead>
+                  <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -216,14 +218,14 @@ export function CategoriesPage() {
                             variant="destructive"
                             onClick={() => handleDelete(cat.id)}
                           >
-                            Confirm
+                            {t('common.confirm')}
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setConfirmDelete(null)}
                           >
-                            Cancel
+                            {t('common.cancel')}
                           </Button>
                         </span>
                       ) : (
@@ -233,7 +235,7 @@ export function CategoriesPage() {
                             variant="outline"
                             onClick={() => handleEdit(cat)}
                           >
-                            Edit
+                            {t('common.edit')}
                           </Button>
                           <Button
                             size="sm"
@@ -241,7 +243,7 @@ export function CategoriesPage() {
                             className="text-destructive"
                             onClick={() => setConfirmDelete(cat.id)}
                           >
-                            Delete
+                            {t('common.delete')}
                           </Button>
                         </>
                       )}
@@ -251,7 +253,7 @@ export function CategoriesPage() {
                 {categories.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No categories found
+                      {t('adminCategories.noCategories')}
                     </TableCell>
                   </TableRow>
                 )}

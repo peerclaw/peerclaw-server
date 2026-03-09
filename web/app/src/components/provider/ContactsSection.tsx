@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
   useAgentContacts,
   useAgentContactMutations,
@@ -21,6 +22,7 @@ interface ContactsSectionProps {
 }
 
 export function ContactsSection({ agentId }: ContactsSectionProps) {
+  const { t } = useTranslation()
   const { data, loading, error, refetch } = useAgentContacts(agentId)
   const { addContact, removeContact } = useAgentContactMutations(agentId)
   const [contactId, setContactId] = useState("")
@@ -63,30 +65,30 @@ export function ContactsSection({ agentId }: ContactsSectionProps) {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">
-          Contacts Whitelist
+          {t('contacts.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Only agents listed here can send messages to this agent.
+          {t('contacts.description')}
         </p>
 
         {/* Add contact form */}
         <form onSubmit={handleAdd} className="flex gap-2">
           <Input
-            placeholder="Contact Agent ID"
+            placeholder={t('contacts.contactAgentId')}
             value={contactId}
             onChange={(e) => setContactId(e.target.value)}
             className="flex-1"
           />
           <Input
-            placeholder="Alias (optional)"
+            placeholder={t('contacts.aliasOptional')}
             value={alias}
             onChange={(e) => setAlias(e.target.value)}
             className="w-40"
           />
           <Button type="submit" size="sm" disabled={submitting || !contactId.trim()}>
-            {submitting ? "Adding..." : "Add"}
+            {submitting ? t('contacts.adding') : t('common.add')}
           </Button>
         </form>
 
@@ -95,19 +97,18 @@ export function ContactsSection({ agentId }: ContactsSectionProps) {
 
         {/* Contacts table */}
         {loading ? (
-          <p className="text-xs text-muted-foreground">Loading contacts...</p>
+          <p className="text-xs text-muted-foreground">{t('contacts.loadingContacts')}</p>
         ) : contacts.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            No contacts yet. Add an agent ID to allow it to communicate with
-            this agent.
+            {t('contacts.noContacts')}
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Agent ID</TableHead>
-                <TableHead>Alias</TableHead>
-                <TableHead>Added</TableHead>
+                <TableHead>{t('contacts.agentId')}</TableHead>
+                <TableHead>{t('contacts.alias')}</TableHead>
+                <TableHead>{t('contacts.added')}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { useProviderDashboard } from "@/hooks/use-provider"
 import { AgentStatsCard } from "@/components/provider/AgentStatsCard"
 import { ClaimTokenSection } from "@/components/provider/ClaimTokenSection"
@@ -14,12 +15,13 @@ import {
 import { Bot, PhoneCall, CheckCircle, Timer } from "lucide-react"
 
 export function ProviderDashboardPage() {
+  const { t } = useTranslation()
   const { data, loading, error } = useProviderDashboard()
 
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        <p className="text-sm text-muted-foreground">{t('provider.loadingDashboard')}</p>
       </div>
     )
   }
@@ -48,31 +50,31 @@ export function ProviderDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Provider Dashboard</h1>
+        <h1 className="text-2xl font-bold">{t('provider.dashboard')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Overview of your agents and performance
+          {t('provider.overview')}
         </p>
       </div>
 
       {/* Stats cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AgentStatsCard
-          title="Total Agents"
+          title={t('provider.totalAgents')}
           value={data.total_agents}
           icon={Bot}
         />
         <AgentStatsCard
-          title="Total Calls"
+          title={t('provider.totalCalls')}
           value={data.total_calls.toLocaleString()}
           icon={PhoneCall}
         />
         <AgentStatsCard
-          title="Success Rate"
+          title={t('provider.successRate')}
           value={`${data.success_rate.toFixed(1)}%`}
           icon={CheckCircle}
         />
         <AgentStatsCard
-          title="Avg Latency"
+          title={t('provider.avgLatency')}
           value={`${data.avg_latency_ms.toFixed(0)}ms`}
           icon={Timer}
         />
@@ -83,27 +85,27 @@ export function ProviderDashboardPage() {
 
       {/* Agent list */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">My Agents</h2>
+        <h2 className="text-lg font-semibold mb-3">{t('provider.myAgents')}</h2>
         {data.agents.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
             <Bot className="size-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No agents published yet.</p>
+            <p className="text-sm text-muted-foreground">{t('provider.noAgentsPublished')}</p>
             <Link
               to="/console/publish"
               className="text-sm text-primary hover:underline mt-1"
             >
-              Publish your first agent
+              {t('provider.publishFirst')}
             </Link>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Calls</TableHead>
-                <TableHead>Success Rate</TableHead>
-                <TableHead>Avg Latency</TableHead>
+                <TableHead>{t('provider.name')}</TableHead>
+                <TableHead>{t('provider.status')}</TableHead>
+                <TableHead>{t('provider.calls')}</TableHead>
+                <TableHead>{t('provider.successRate')}</TableHead>
+                <TableHead>{t('provider.avgLatency')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

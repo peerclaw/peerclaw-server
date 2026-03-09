@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
+import { useTranslation } from "react-i18next"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import {
   LayoutDashboard,
   Bot,
@@ -10,17 +12,18 @@ import {
   Shield,
 } from "lucide-react"
 
-const navLinks = [
-  { to: "/console", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/console/agents", label: "My Agents", icon: Bot, end: false },
-  { to: "/console/publish", label: "Publish Agent", icon: PlusCircle, end: false },
-  { to: "/console/invocations", label: "Invocations", icon: Activity, end: false },
-  { to: "/console/api-keys", label: "API Keys", icon: KeyRound, end: false },
-]
-
 export function ConsoleLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
+
+  const navLinks = [
+    { to: "/console", label: t('nav.dashboard'), icon: LayoutDashboard, end: true },
+    { to: "/console/agents", label: t('nav.myAgents'), icon: Bot, end: false },
+    { to: "/console/publish", label: t('nav.publishAgent'), icon: PlusCircle, end: false },
+    { to: "/console/invocations", label: t('nav.invocations'), icon: Activity, end: false },
+    { to: "/console/api-keys", label: t('nav.apiKeys'), icon: KeyRound, end: false },
+  ]
 
   const handleLogout = async () => {
     await logout()
@@ -34,7 +37,7 @@ export function ConsoleLayout() {
         {/* Logo */}
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
           <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
-          <span className="font-semibold text-sm">PeerClaw Console</span>
+          <span className="font-semibold text-sm">{t('nav.peerclawConsole')}</span>
         </div>
 
         {/* Navigation */}
@@ -80,7 +83,7 @@ export function ConsoleLayout() {
               }
             >
               <Shield className="size-4" />
-              Admin Panel
+              {t('nav.adminPanel')}
             </NavLink>
           )}
           <button
@@ -88,14 +91,17 @@ export function ConsoleLayout() {
             className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
           >
             <LogOut className="size-4" />
-            Sign out
+            {t('nav.signOut')}
           </button>
           <NavLink
             to="/"
             className="block text-xs text-muted-foreground hover:text-foreground px-3"
           >
-            Back to Public Site
+            {t('nav.backToPublicSite')}
           </NavLink>
+          <div className="px-3 pt-1">
+            <LanguageSwitcher />
+          </div>
         </div>
       </aside>
 

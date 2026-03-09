@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { submitReport } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { Flag, X } from "lucide-react"
@@ -8,15 +9,8 @@ interface ReportDialogProps {
   targetId: string
 }
 
-const REASONS = [
-  "Spam or misleading",
-  "Malicious behavior",
-  "Inappropriate content",
-  "Impersonation",
-  "Other",
-]
-
 export function ReportDialog({ targetType, targetId }: ReportDialogProps) {
+  const { t } = useTranslation()
   const { accessToken } = useAuth()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState("")
@@ -24,6 +18,14 @@ export function ReportDialog({ targetType, targetId }: ReportDialogProps) {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState("")
+
+  const REASONS = [
+    t('report.spam'),
+    t('report.malicious'),
+    t('report.inappropriate'),
+    t('report.impersonation'),
+    t('report.other'),
+  ]
 
   if (!accessToken) return null
 
@@ -49,7 +51,7 @@ export function ReportDialog({ targetType, targetId }: ReportDialogProps) {
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
       >
         <Flag className="size-3" />
-        Report
+        {t('report.report')}
       </button>
     )
   }
@@ -58,7 +60,7 @@ export function ReportDialog({ targetType, targetId }: ReportDialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="w-full max-w-md rounded-lg border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-semibold">Report {targetType}</h3>
+          <h3 className="font-semibold">{t('report.title', { type: targetType })}</h3>
           <button onClick={() => setOpen(false)}>
             <X className="size-4 text-muted-foreground" />
           </button>
@@ -66,24 +68,24 @@ export function ReportDialog({ targetType, targetId }: ReportDialogProps) {
 
         {done ? (
           <div>
-            <p className="text-sm text-emerald-400">Report submitted. Thank you.</p>
+            <p className="text-sm text-emerald-400">{t('report.submitted')}</p>
             <button
               onClick={() => { setOpen(false); setDone(false) }}
               className="mt-3 rounded-lg bg-secondary px-4 py-1.5 text-xs"
             >
-              Close
+              {t('common.close')}
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs text-muted-foreground">Reason</label>
+              <label className="mb-1 block text-xs text-muted-foreground">{t('report.reason')}</label>
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="">Select a reason</option>
+                <option value="">{t('report.selectReason')}</option>
                 {REASONS.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
@@ -91,7 +93,7 @@ export function ReportDialog({ targetType, targetId }: ReportDialogProps) {
             </div>
             <div>
               <label className="mb-1 block text-xs text-muted-foreground">
-                Details (optional)
+                {t('report.details')}
               </label>
               <textarea
                 value={details}
@@ -107,14 +109,14 @@ export function ReportDialog({ targetType, targetId }: ReportDialogProps) {
                 onClick={() => setOpen(false)}
                 className="rounded-lg bg-secondary px-4 py-1.5 text-xs"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={submitting || !reason}
                 className="rounded-lg bg-destructive px-4 py-1.5 text-xs text-destructive-foreground disabled:opacity-50"
               >
-                {submitting ? "Submitting..." : "Submit Report"}
+                {submitting ? t('report.submitting') : t('report.submitReport')}
               </button>
             </div>
           </form>

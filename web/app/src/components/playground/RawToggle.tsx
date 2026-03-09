@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Code } from "lucide-react"
 
 interface RawToggleProps {
@@ -7,6 +8,8 @@ interface RawToggleProps {
 }
 
 export function RawToggle({ data, show, onToggle }: RawToggleProps) {
+  const { t } = useTranslation()
+
   if (!data) return null
 
   return (
@@ -16,7 +19,7 @@ export function RawToggle({ data, show, onToggle }: RawToggleProps) {
         className="flex w-full items-center gap-2 px-4 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
       >
         <Code className="size-3.5" />
-        {show ? "Hide" : "Show"} Raw Response
+        {show ? t('playground.hideRaw') : t('playground.showRaw')}
       </button>
 
       {show && (

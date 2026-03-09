@@ -11,20 +11,23 @@ import {
   ExternalLink,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
-
-const links = [
-  { to: "/admin", label: "Overview", icon: LayoutDashboard },
-  { to: "/admin/users", label: "Users", icon: Users },
-  { to: "/admin/agents", label: "Agents", icon: Bot },
-  { to: "/admin/reports", label: "Reports", icon: Flag },
-  { to: "/admin/categories", label: "Categories", icon: Tags },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/admin/invocations", label: "Invocations", icon: Activity },
-]
+import { useTranslation } from "react-i18next"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 
 export function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
+
+  const links = [
+    { to: "/admin", label: t('nav.overview'), icon: LayoutDashboard },
+    { to: "/admin/users", label: t('nav.users'), icon: Users },
+    { to: "/admin/agents", label: t('nav.agents'), icon: Bot },
+    { to: "/admin/reports", label: t('nav.reports'), icon: Flag },
+    { to: "/admin/categories", label: t('nav.categories'), icon: Tags },
+    { to: "/admin/analytics", label: t('nav.analytics'), icon: BarChart3 },
+    { to: "/admin/invocations", label: t('nav.invocations'), icon: Activity },
+  ]
 
   const handleLogout = async () => {
     await logout()
@@ -35,7 +38,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-56 flex-col border-r border-border bg-card">
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
         <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
-        <span className="font-semibold text-sm">PeerClaw Admin</span>
+        <span className="font-semibold text-sm">{t('nav.peerclawAdmin')}</span>
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
@@ -70,15 +73,18 @@ export function Sidebar() {
           className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
         >
           <LogOut className="size-4" />
-          Logout
+          {t('nav.logout')}
         </button>
         <NavLink
           to="/"
           className="flex items-center gap-2.5 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <ExternalLink className="size-3.5" />
-          Back to Public Site
+          {t('nav.backToPublicSite')}
         </NavLink>
+        <div className="px-3 pt-1">
+          <LanguageSwitcher />
+        </div>
       </div>
     </aside>
   )

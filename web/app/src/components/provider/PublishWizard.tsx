@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -12,21 +13,29 @@ interface PublishWizardProps {
   editMode?: boolean
 }
 
-const STEPS = [
-  { title: "Basic Info", description: "Name and description for your agent" },
-  { title: "Capabilities", description: "What your agent can do" },
-  { title: "Endpoint", description: "Where your agent is hosted" },
-  { title: "Authentication", description: "How callers authenticate" },
-  { title: "Preview", description: "Review and publish" },
-]
-
 const AUTH_TYPES = ["none", "api_key", "bearer_token", "oauth2"]
 const PROTOCOL_OPTIONS = ["a2a", "mcp", "http", "grpc"]
 
 export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizardProps) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const STEPS = [
+    { title: t('wizard.basicInfo'), description: t('wizard.basicInfoDesc') },
+    { title: t('wizard.capabilities'), description: t('wizard.capabilitiesDesc') },
+    { title: t('wizard.endpoint'), description: t('wizard.endpointDesc') },
+    { title: t('wizard.auth'), description: t('wizard.authDesc') },
+    { title: t('wizard.preview'), description: t('wizard.previewDesc') },
+  ]
+
+  const AUTH_TYPE_LABELS: Record<string, string> = {
+    none: t('wizard.none'),
+    api_key: t('wizard.apiKey'),
+    bearer_token: t('wizard.bearerToken'),
+    oauth2: t('wizard.oauth2'),
+  }
 
   // Form state
   const [name, setName] = useState(initialData?.name ?? "")
@@ -66,7 +75,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
   }
 
   const removeTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag))
+    setTags(tags.filter((tg) => tg !== tag))
   }
 
   // Protocol toggle
@@ -82,20 +91,20 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
 
     switch (s) {
       case 0:
-        if (!name.trim()) errors.name = "Name is required"
-        if (!description.trim()) errors.description = "Description is required"
-        if (!version.trim()) errors.version = "Version is required"
+        if (!name.trim()) errors.name = t('wizard.nameRequired')
+        if (!description.trim()) errors.description = t('wizard.descriptionRequired')
+        if (!version.trim()) errors.version = t('wizard.versionRequired')
         break
       case 1:
-        if (capabilities.length === 0) errors.capabilities = "Add at least one capability"
-        if (protocols.length === 0) errors.protocols = "Select at least one protocol"
+        if (capabilities.length === 0) errors.capabilities = t('wizard.capabilitiesRequired')
+        if (protocols.length === 0) errors.protocols = t('wizard.protocolsRequired')
         break
       case 2:
-        if (!endpointUrl.trim()) errors.endpointUrl = "Endpoint URL is required"
+        if (!endpointUrl.trim()) errors.endpointUrl = t('wizard.endpointRequired')
         try {
           new URL(endpointUrl)
         } catch {
-          if (endpointUrl.trim()) errors.endpointUrl = "Must be a valid URL"
+          if (endpointUrl.trim()) errors.endpointUrl = t('wizard.validUrl')
         }
         break
       case 3:
@@ -139,7 +148,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
     try {
       await onSubmit(data)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to publish agent")
+      setError(e instanceof Error ? e.message : t('wizard.failedPublish'))
     } finally {
       setSubmitting(false)
     }
@@ -156,28 +165,28 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
         return (
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground">Agent Name</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.agentName')}</label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="my-awesome-agent"
+                placeholder={t('wizard.agentNamePlaceholder')}
                 className="mt-1"
               />
               {renderFieldError("name")}
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Description</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.description')}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what your agent does..."
+                placeholder={t('wizard.descriptionPlaceholder')}
                 rows={3}
                 className="mt-1 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
               />
               {renderFieldError("description")}
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Version</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.version')}</label>
               <Input
                 value={version}
                 onChange={(e) => setVersion(e.target.value)}
@@ -187,12 +196,12 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
               {renderFieldError("version")}
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Tags</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.tags')}</label>
               <div className="flex gap-2 mt-1">
                 <Input
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Add a tag..."
+                  placeholder={t('wizard.addTag')}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault()
@@ -201,7 +210,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
                   }}
                 />
                 <Button type="button" variant="outline" size="sm" onClick={addTag}>
-                  Add
+                  {t('common.add')}
                 </Button>
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
@@ -222,12 +231,12 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
         return (
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground">Capabilities</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.capabilities')}</label>
               <div className="flex gap-2 mt-1">
                 <Input
                   value={capabilityInput}
                   onChange={(e) => setCapabilityInput(e.target.value)}
-                  placeholder="e.g. code-review, summarize, translate"
+                  placeholder={t('wizard.addCapability')}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault()
@@ -236,7 +245,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
                   }}
                 />
                 <Button type="button" variant="outline" size="sm" onClick={addCapability}>
-                  Add
+                  {t('common.add')}
                 </Button>
               </div>
               {renderFieldError("capabilities")}
@@ -252,7 +261,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Protocols</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.protocols')}</label>
               {renderFieldError("protocols")}
               <div className="flex flex-wrap gap-2 mt-2">
                 {PROTOCOL_OPTIONS.map((proto) => (
@@ -278,16 +287,16 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
         return (
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground">Endpoint URL</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.endpointUrl')}</label>
               <Input
                 value={endpointUrl}
                 onChange={(e) => setEndpointUrl(e.target.value)}
-                placeholder="https://api.example.com/agent"
+                placeholder={t('wizard.endpointUrlPlaceholder')}
                 className="mt-1"
               />
               {renderFieldError("endpointUrl")}
               <p className="text-xs text-muted-foreground mt-1">
-                The URL where your agent receives invocation requests.
+                {t('wizard.endpointHelp')}
               </p>
             </div>
           </div>
@@ -297,7 +306,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
         return (
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground">Authentication Type</label>
+              <label className="text-sm font-medium text-foreground">{t('wizard.authType')}</label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {AUTH_TYPES.map((type) => (
                   <button
@@ -310,13 +319,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
                         : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
                     }`}
                   >
-                    {type === "none"
-                      ? "None"
-                      : type === "api_key"
-                        ? "API Key"
-                        : type === "bearer_token"
-                          ? "Bearer Token"
-                          : "OAuth2"}
+                    {AUTH_TYPE_LABELS[type]}
                   </button>
                 ))}
               </div>
@@ -324,16 +327,16 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
             {authType !== "none" && (
               <div>
                 <label className="text-sm font-medium text-foreground">
-                  Auth Header Name
+                  {t('wizard.authHeader')}
                 </label>
                 <Input
                   value={authHeader}
                   onChange={(e) => setAuthHeader(e.target.value)}
-                  placeholder="X-API-Key"
+                  placeholder={t('wizard.authHeaderPlaceholder')}
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  The HTTP header callers should use for authentication.
+                  {t('wizard.authHeaderHelp')}
                 </p>
               </div>
             )}
@@ -343,22 +346,22 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
       case 4:
         return (
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-foreground">Review Your Agent</h3>
+            <h3 className="text-sm font-medium text-foreground">{t('wizard.reviewAgent')}</h3>
             <div className="grid gap-3 text-sm">
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Name</span>
+                <span className="text-muted-foreground">{t('wizard.agentName')}</span>
                 <span className="font-medium">{name}</span>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Version</span>
+                <span className="text-muted-foreground">{t('wizard.version')}</span>
                 <span className="font-medium">{version}</span>
               </div>
               <div className="border-b border-border pb-2">
-                <span className="text-muted-foreground">Description</span>
+                <span className="text-muted-foreground">{t('wizard.description')}</span>
                 <p className="mt-1 text-foreground">{description}</p>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Capabilities</span>
+                <span className="text-muted-foreground">{t('wizard.capabilities')}</span>
                 <div className="flex flex-wrap gap-1 justify-end">
                   {capabilities.map((c) => (
                     <Badge key={c} variant="secondary">
@@ -368,7 +371,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
                 </div>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Protocols</span>
+                <span className="text-muted-foreground">{t('wizard.protocols')}</span>
                 <div className="flex gap-1">
                   {protocols.map((p) => (
                     <Badge key={p} variant="outline">
@@ -378,20 +381,20 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
                 </div>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Endpoint</span>
+                <span className="text-muted-foreground">{t('wizard.endpoint')}</span>
                 <span className="font-mono text-xs">{endpointUrl}</span>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Auth Type</span>
+                <span className="text-muted-foreground">{t('wizard.authType')}</span>
                 <span className="font-medium">{authType}</span>
               </div>
               {tags.length > 0 && (
                 <div className="flex justify-between pb-2">
-                  <span className="text-muted-foreground">Tags</span>
+                  <span className="text-muted-foreground">{t('wizard.tags')}</span>
                   <div className="flex flex-wrap gap-1 justify-end">
-                    {tags.map((t) => (
-                      <Badge key={t} variant="secondary">
-                        {t}
+                    {tags.map((tg) => (
+                      <Badge key={tg} variant="secondary">
+                        {tg}
                       </Badge>
                     ))}
                   </div>
@@ -452,20 +455,20 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
             disabled={step === 0}
           >
             <ChevronLeft className="size-4" />
-            Back
+            {t('common.back')}
           </Button>
 
           {step < STEPS.length - 1 ? (
             <Button onClick={goNext}>
-              Next
+              {t('common.next')}
               <ChevronRight className="size-4" />
             </Button>
           ) : (
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="size-4 animate-spin" />}
               {submitting
-                ? editMode ? "Saving..." : "Publishing..."
-                : editMode ? "Save Changes" : "Publish Agent"}
+                ? editMode ? t('wizard.saving') : t('wizard.publishing')
+                : editMode ? t('wizard.saveChanges') : t('wizard.publishAgent')}
             </Button>
           )}
         </div>

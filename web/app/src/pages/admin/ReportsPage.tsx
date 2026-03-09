@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { useAdminReports, useAdminMutations } from "@/hooks/use-admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,20 +16,21 @@ import {
   CardContent,
 } from "@/components/ui/card"
 
-const STATUS_TABS = [
-  { label: "All", value: "" },
-  { label: "Pending", value: "pending" },
-  { label: "Reviewed", value: "reviewed" },
-  { label: "Dismissed", value: "dismissed" },
-  { label: "Actioned", value: "actioned" },
-]
-
 const PAGE_SIZE = 20
 
 export function ReportsPage() {
+  const { t } = useTranslation()
   const [statusFilter, setStatusFilter] = useState("")
   const [page, setPage] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
+  const STATUS_TABS = [
+    { label: t('common.all'), value: "" },
+    { label: t('adminReports.pending'), value: "pending" },
+    { label: t('adminReports.reviewed'), value: "reviewed" },
+    { label: t('adminReports.dismissed'), value: "dismissed" },
+    { label: t('adminReports.actioned'), value: "actioned" },
+  ]
 
   const { data, loading, error, refetch } = useAdminReports(
     statusFilter || undefined,
@@ -83,9 +85,9 @@ export function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Reports</h1>
+        <h1 className="text-2xl font-bold">{t('adminReports.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {total} abuse report{total !== 1 ? "s" : ""}
+          {t('adminReports.reportsCount', { count: total })}
         </p>
       </div>
 
@@ -107,7 +109,7 @@ export function ReportsPage() {
 
       {loading ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading reports...</p>
+          <p className="text-sm text-muted-foreground">{t('adminReports.loadingReports')}</p>
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
@@ -120,13 +122,13 @@ export function ReportsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Target Type</TableHead>
-                    <TableHead>Target ID</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Reporter</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('adminReports.targetType')}</TableHead>
+                    <TableHead>{t('adminReports.targetId')}</TableHead>
+                    <TableHead>{t('adminReports.reason')}</TableHead>
+                    <TableHead>{t('adminReports.reporter')}</TableHead>
+                    <TableHead>{t('adminReports.status')}</TableHead>
+                    <TableHead>{t('adminReports.createdAt')}</TableHead>
+                    <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -158,14 +160,14 @@ export function ReportsPage() {
                               variant="destructive"
                               onClick={() => handleDelete(report.id)}
                             >
-                              Confirm
+                              {t('common.confirm')}
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => setConfirmDelete(null)}
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                           </span>
                         ) : (
@@ -177,21 +179,21 @@ export function ReportsPage() {
                                   variant="outline"
                                   onClick={() => handleStatusChange(report.id, "reviewed")}
                                 >
-                                  Review
+                                  {t('adminReports.review')}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleStatusChange(report.id, "dismissed")}
                                 >
-                                  Dismiss
+                                  {t('adminReports.dismiss')}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleStatusChange(report.id, "actioned")}
                                 >
-                                  Action
+                                  {t('adminReports.action')}
                                 </Button>
                               </>
                             )}
@@ -201,7 +203,7 @@ export function ReportsPage() {
                               className="text-destructive"
                               onClick={() => setConfirmDelete(report.id)}
                             >
-                              Delete
+                              {t('common.delete')}
                             </Button>
                           </>
                         )}
@@ -211,7 +213,7 @@ export function ReportsPage() {
                   {(data?.reports ?? []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        No reports found
+                        {t('adminReports.noReports')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -223,7 +225,7 @@ export function ReportsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Page {page + 1} of {totalPages}
+                {t('common.page')} {page + 1} / {totalPages}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -232,7 +234,7 @@ export function ReportsPage() {
                   disabled={page === 0}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  Previous
+                  {t('common.previous')}
                 </Button>
                 <Button
                   size="sm"
@@ -240,7 +242,7 @@ export function ReportsPage() {
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('common.next')}
                 </Button>
               </div>
             </div>

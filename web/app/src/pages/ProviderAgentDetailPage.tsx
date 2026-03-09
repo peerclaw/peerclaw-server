@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   useProviderAgent,
   useAgentAnalytics,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react"
 
 export function ProviderAgentDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: agent, loading, error } = useProviderAgent(id)
@@ -33,7 +35,7 @@ export function ProviderAgentDetailPage() {
   const handleDelete = async () => {
     if (!id) return
     const confirmed = window.confirm(
-      "Are you sure you want to delete this agent? This action cannot be undone."
+      t('provider.deleteConfirm')
     )
     if (!confirmed) return
 
@@ -52,7 +54,7 @@ export function ProviderAgentDetailPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading agent details...</p>
+        <p className="text-sm text-muted-foreground">{t('provider.loadingAgent')}</p>
       </div>
     )
   }
@@ -88,7 +90,7 @@ export function ProviderAgentDetailPage() {
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
           >
             <ArrowLeft className="size-3" />
-            Back to agents
+            {t('provider.backToAgents')}
           </button>
           <h1 className="text-2xl font-bold">{agent.name}</h1>
           <p className="text-sm text-muted-foreground mt-1">{agent.description}</p>
@@ -100,7 +102,7 @@ export function ProviderAgentDetailPage() {
             onClick={() => navigate(`/console/agents/${id}/edit`)}
           >
             <Pencil className="size-4" />
-            Edit
+            {t('common.edit')}
           </Button>
           <Button
             variant="destructive"
@@ -109,7 +111,7 @@ export function ProviderAgentDetailPage() {
             disabled={deleting}
           >
             <Trash2 className="size-4" />
-            {deleting ? "Deleting..." : "Delete"}
+            {deleting ? t('provider.deleting') : t('common.delete')}
           </Button>
         </div>
       </div>
@@ -121,22 +123,22 @@ export function ProviderAgentDetailPage() {
       {/* Info card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Agent Details</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('provider.agentDetails')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <span className="text-muted-foreground">Status</span>
+              <span className="text-muted-foreground">{t('provider.status')}</span>
               <div className="mt-1">
                 <Badge variant={statusColor(agent.status)}>{agent.status}</Badge>
               </div>
             </div>
             <div>
-              <span className="text-muted-foreground">Version</span>
+              <span className="text-muted-foreground">{t('provider.version')}</span>
               <p className="mt-1 font-medium">{agent.version}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Endpoint</span>
+              <span className="text-muted-foreground">{t('provider.endpoint')}</span>
               <div className="mt-1 flex items-center gap-1">
                 <span className="font-mono text-xs truncate max-w-xs">
                   {agent.endpoint_url}
@@ -152,11 +154,11 @@ export function ProviderAgentDetailPage() {
               </div>
             </div>
             <div>
-              <span className="text-muted-foreground">Auth Type</span>
+              <span className="text-muted-foreground">{t('provider.authType')}</span>
               <p className="mt-1 font-medium">{agent.auth_type}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Capabilities</span>
+              <span className="text-muted-foreground">{t('provider.capabilities')}</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {agent.capabilities.map((cap) => (
                   <Badge key={cap} variant="secondary">
@@ -166,7 +168,7 @@ export function ProviderAgentDetailPage() {
               </div>
             </div>
             <div>
-              <span className="text-muted-foreground">Protocols</span>
+              <span className="text-muted-foreground">{t('provider.protocols')}</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {agent.protocols.map((proto) => (
                   <Badge key={proto} variant="outline">
@@ -177,7 +179,7 @@ export function ProviderAgentDetailPage() {
             </div>
             {agent.tags.length > 0 && (
               <div className="sm:col-span-2">
-                <span className="text-muted-foreground">Tags</span>
+                <span className="text-muted-foreground">{t('provider.tags')}</span>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {agent.tags.map((tag) => (
                     <Badge key={tag} variant="secondary">
@@ -188,13 +190,13 @@ export function ProviderAgentDetailPage() {
               </div>
             )}
             <div>
-              <span className="text-muted-foreground">Created</span>
+              <span className="text-muted-foreground">{t('provider.created')}</span>
               <p className="mt-1 text-xs">
                 {new Date(agent.created_at).toLocaleDateString()}
               </p>
             </div>
             <div>
-              <span className="text-muted-foreground">Last Updated</span>
+              <span className="text-muted-foreground">{t('provider.lastUpdated')}</span>
               <p className="mt-1 text-xs">
                 {new Date(agent.updated_at).toLocaleDateString()}
               </p>
@@ -211,17 +213,17 @@ export function ProviderAgentDetailPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-3">
             <AgentStatsCard
-              title="Total Calls"
+              title={t('provider.totalCalls')}
               value={analytics.total_calls.toLocaleString()}
               icon={PhoneCall}
             />
             <AgentStatsCard
-              title="Success Rate"
+              title={t('provider.successRate')}
               value={`${analytics.success_rate.toFixed(1)}%`}
               icon={CheckCircle}
             />
             <AgentStatsCard
-              title="Avg Latency"
+              title={t('provider.avgLatency')}
               value={`${analytics.avg_latency_ms.toFixed(0)}ms`}
               icon={Timer}
             />

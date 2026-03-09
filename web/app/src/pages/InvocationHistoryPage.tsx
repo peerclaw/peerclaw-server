@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useProviderInvocations } from "@/hooks/use-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,6 +16,7 @@ import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 const PAGE_SIZE = 20
 
 export function InvocationHistoryPage() {
+  const { t } = useTranslation()
   const [page, setPage] = useState(1)
   const { data, loading, error, refetch } = useProviderInvocations(page, PAGE_SIZE)
 
@@ -48,20 +50,20 @@ export function InvocationHistoryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Invocation History</h1>
+          <h1 className="text-2xl font-bold">{t('invocations.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            View all invocations across your agents
+            {t('invocations.description')}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t('common.refresh')}
         </Button>
       </div>
 
       {loading && !data && (
         <div className="flex h-64 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading invocations...</p>
+          <p className="text-sm text-muted-foreground">{t('invocations.loadingInvocations')}</p>
         </div>
       )}
 
@@ -75,17 +77,17 @@ export function InvocationHistoryPage() {
         <>
           {data.invocations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
-              <p className="text-sm text-muted-foreground">No invocations yet.</p>
+              <p className="text-sm text-muted-foreground">{t('invocations.noInvocations')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Error</TableHead>
+                  <TableHead>{t('invocations.agent')}</TableHead>
+                  <TableHead>{t('invocations.status')}</TableHead>
+                  <TableHead>{t('invocations.duration')}</TableHead>
+                  <TableHead>{t('invocations.time')}</TableHead>
+                  <TableHead>{t('invocations.error')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -118,7 +120,7 @@ export function InvocationHistoryPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} ({data.total} total)
+                {t('common.page')} {page} {t('common.of')} {totalPages} ({data.total} {t('common.total')})
               </p>
               <div className="flex gap-2">
                 <Button
@@ -128,7 +130,7 @@ export function InvocationHistoryPage() {
                   disabled={page <= 1}
                 >
                   <ChevronLeft className="size-4" />
-                  Previous
+                  {t('common.previous')}
                 </Button>
                 <Button
                   variant="outline"
@@ -136,7 +138,7 @@ export function InvocationHistoryPage() {
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
                 >
-                  Next
+                  {t('common.next')}
                   <ChevronRight className="size-4" />
                 </Button>
               </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { fetchPublicProfile, fetchReputationHistory } from "@/api/client"
 import type { PublicAgentProfile, ReputationEvent } from "@/api/types"
 import { VerifiedBadge } from "@/components/public/VerifiedBadge"
@@ -18,6 +19,7 @@ const statusColors: Record<string, string> = {
 
 export function PublicProfilePage() {
   const { id } = useParams<{ id: string }>()
+  const { t } = useTranslation()
   const [agent, setAgent] = useState<PublicAgentProfile | null>(null)
   const [events, setEvents] = useState<ReputationEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,7 +43,7 @@ export function PublicProfilePage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
-        Loading...
+        {t('common.loading')}
       </div>
     )
   }
@@ -49,9 +51,9 @@ export function PublicProfilePage() {
   if (error || !agent) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <p className="text-destructive">{error || "Agent not found"}</p>
+        <p className="text-destructive">{error || t('profile.agentNotFound')}</p>
         <Link to="/directory" className="mt-2 text-sm text-primary hover:underline">
-          Back to directory
+          {t('profile.backToDirectory')}
         </Link>
       </div>
     )
@@ -64,7 +66,7 @@ export function PublicProfilePage() {
         className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Back to directory
+        {t('profile.backToDirectory')}
       </Link>
 
       {/* Identity Header */}
@@ -116,7 +118,7 @@ export function PublicProfilePage() {
             <span className="font-medium text-yellow-400">
               {agent.review_summary.average_rating.toFixed(1)}
             </span>
-            <span>({agent.review_summary.total_reviews} reviews)</span>
+            <span>({agent.review_summary.total_reviews} {t('profile.reviews')})</span>
           </div>
         )}
 
@@ -127,7 +129,7 @@ export function PublicProfilePage() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Play className="size-4" />
-            Try in Playground
+            {t('profile.tryPlayground')}
           </Link>
           <ReportDialog targetType="agent" targetId={agent.id} />
         </div>
@@ -160,16 +162,16 @@ export function PublicProfilePage() {
         {/* Meta row */}
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span>
-            Registered{" "}
+            {t('profile.registered')}{" "}
             {new Date(agent.registered_at).toLocaleDateString()}
           </span>
           {agent.verified_at && (
             <span>
-              Verified{" "}
+              {t('profile.verified')}{" "}
               {new Date(agent.verified_at).toLocaleDateString()}
             </span>
           )}
-          <span>ID: {agent.id}</span>
+          <span>{t('profile.id')}: {agent.id}</span>
         </div>
       </div>
 
@@ -177,7 +179,7 @@ export function PublicProfilePage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {agent.capabilities && agent.capabilities.length > 0 && (
           <div className="rounded-lg border border-border bg-card p-4">
-            <h2 className="mb-2 text-sm font-semibold">Capabilities</h2>
+            <h2 className="mb-2 text-sm font-semibold">{t('profile.capabilities')}</h2>
             <div className="flex flex-wrap gap-1.5">
               {agent.capabilities.map((cap) => (
                 <span
@@ -193,7 +195,7 @@ export function PublicProfilePage() {
 
         {agent.protocols && agent.protocols.length > 0 && (
           <div className="rounded-lg border border-border bg-card p-4">
-            <h2 className="mb-2 text-sm font-semibold">Protocols</h2>
+            <h2 className="mb-2 text-sm font-semibold">{t('profile.protocols')}</h2>
             <div className="flex flex-wrap gap-1.5">
               {agent.protocols.map((p) => (
                 <span
@@ -211,7 +213,7 @@ export function PublicProfilePage() {
       {/* Skills */}
       {agent.skills && agent.skills.length > 0 && (
         <div className="mt-4 rounded-lg border border-border bg-card p-4">
-          <h2 className="mb-2 text-sm font-semibold">Skills</h2>
+          <h2 className="mb-2 text-sm font-semibold">{t('profile.skills')}</h2>
           <div className="space-y-2">
             {agent.skills.map((skill) => (
               <div key={skill.name}>
@@ -234,7 +236,7 @@ export function PublicProfilePage() {
 
       {/* Reputation History */}
       <div className="mt-4 rounded-lg border border-border bg-card p-4">
-        <h2 className="mb-4 text-sm font-semibold">Reputation History</h2>
+        <h2 className="mb-4 text-sm font-semibold">{t('profile.reputationHistory')}</h2>
         <ReputationChart events={events} />
 
         {events.length > 0 && (
@@ -242,10 +244,10 @@ export function PublicProfilePage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="pb-2 pr-3">Event</th>
-                  <th className="pb-2 pr-3">Weight</th>
-                  <th className="pb-2 pr-3">Score After</th>
-                  <th className="pb-2">Time</th>
+                  <th className="pb-2 pr-3">{t('profile.event')}</th>
+                  <th className="pb-2 pr-3">{t('profile.weight')}</th>
+                  <th className="pb-2 pr-3">{t('profile.scoreAfter')}</th>
+                  <th className="pb-2">{t('profile.time')}</th>
                 </tr>
               </thead>
               <tbody>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { TimeSeriesPoint } from "@/hooks/use-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -6,15 +7,19 @@ interface AnalyticsChartProps {
   title?: string
 }
 
-export function AnalyticsChart({ data, title = "Invocations Over Time" }: AnalyticsChartProps) {
+export function AnalyticsChart({ data, title }: AnalyticsChartProps) {
+  const { t } = useTranslation()
+
+  const displayTitle = title ?? t('analyticsChart.invocationsOverTime')
+
   if (!data.length) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <CardTitle className="text-sm font-medium">{displayTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No data available</p>
+          <p className="text-sm text-muted-foreground">{t('analyticsChart.noData')}</p>
         </CardContent>
       </Card>
     )
@@ -25,7 +30,7 @@ export function AnalyticsChart({ data, title = "Invocations Over Time" }: Analyt
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium">{displayTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-end gap-1 h-40">
@@ -58,9 +63,9 @@ export function AnalyticsChart({ data, title = "Invocations Over Time" }: Analyt
         </div>
         <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
           <span>
-            Total: {data.reduce((sum, d) => sum + d.count, 0)} invocations
+            {t('analyticsChart.total', { count: data.reduce((sum, d) => sum + d.count, 0) })}
           </span>
-          <span>Peak: {maxCount}</span>
+          <span>{t('analyticsChart.peak', { count: maxCount })}</span>
         </div>
       </CardContent>
     </Card>

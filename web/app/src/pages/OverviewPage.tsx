@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useAdminDashboard } from "@/hooks/use-admin"
 import {
   Card,
@@ -8,12 +9,13 @@ import {
 import { Badge } from "@/components/ui/badge"
 
 export function OverviewPage() {
+  const { t } = useTranslation()
   const { data, loading, error } = useAdminDashboard()
 
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        <p className="text-sm text-muted-foreground">{t('provider.loadingDashboard')}</p>
       </div>
     )
   }
@@ -29,21 +31,21 @@ export function OverviewPage() {
   if (!data) return null
 
   const stats = [
-    { label: "Total Users", value: data.total_users ?? 0 },
-    { label: "Total Agents", value: data.total_agents ?? 0 },
-    { label: "Connected Agents", value: data.connected_agents ?? 0 },
-    { label: "Total Invocations", value: data.total_invocations ?? 0 },
-    { label: "Total Reviews", value: data.total_reviews ?? 0 },
-    { label: "Pending Reports", value: data.pending_reports ?? 0 },
+    { label: t('admin.totalUsers'), value: data.total_users ?? 0 },
+    { label: t('admin.totalAgents'), value: data.total_agents ?? 0 },
+    { label: t('admin.connectedAgents'), value: data.connected_agents ?? 0 },
+    { label: t('admin.totalInvocations'), value: data.total_invocations ?? 0 },
+    { label: t('admin.totalReviews'), value: data.total_reviews ?? 0 },
+    { label: t('admin.pendingReports'), value: data.pending_reports ?? 0 },
   ]
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold">{t('admin.dashboard')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            System overview and health status
+            {t('admin.systemOverview')}
           </p>
         </div>
         <Badge variant={data.health?.status === "ok" ? "default" : "destructive"}>
@@ -68,18 +70,18 @@ export function OverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">System Health</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('admin.systemHealth')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Database</span>
+              <span className="text-sm text-muted-foreground">{t('admin.database')}</span>
               <Badge variant={data.health?.database === "ok" ? "default" : "destructive"}>
                 {data.health?.database ?? "n/a"}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Overall Status</span>
+              <span className="text-sm text-muted-foreground">{t('admin.overallStatus')}</span>
               <Badge variant={data.health?.status === "ok" ? "default" : "destructive"}>
                 {data.health?.status ?? "unknown"}
               </Badge>

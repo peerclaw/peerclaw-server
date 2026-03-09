@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useAdminInvocations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ import {
 const PAGE_SIZE = 50
 
 export function InvocationsPage() {
+  const { t } = useTranslation()
   const [agentFilter, setAgentFilter] = useState("")
   const [userFilter, setUserFilter] = useState("")
   const [page, setPage] = useState(0)
@@ -44,15 +46,15 @@ export function InvocationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Invocations</h1>
+        <h1 className="text-2xl font-bold">{t('adminInvocations.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {total} invocation record{total !== 1 ? "s" : ""}
+          {t('adminInvocations.records', { count: total })}
         </p>
       </div>
 
       <div className="flex gap-3">
         <Input
-          placeholder="Filter by Agent ID..."
+          placeholder={t('adminInvocations.filterAgent')}
           value={agentFilter}
           onChange={(e) => {
             setAgentFilter(e.target.value)
@@ -61,7 +63,7 @@ export function InvocationsPage() {
           className="max-w-xs"
         />
         <Input
-          placeholder="Filter by User ID..."
+          placeholder={t('adminInvocations.filterUser')}
           value={userFilter}
           onChange={(e) => {
             setUserFilter(e.target.value)
@@ -73,7 +75,7 @@ export function InvocationsPage() {
 
       {loading ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading invocations...</p>
+          <p className="text-sm text-muted-foreground">{t('adminInvocations.loadingInvocations')}</p>
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
@@ -86,14 +88,14 @@ export function InvocationsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Agent ID</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Protocol</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Error</TableHead>
-                    <TableHead>Created At</TableHead>
+                    <TableHead>{t('adminInvocations.id')}</TableHead>
+                    <TableHead>{t('adminInvocations.agentId')}</TableHead>
+                    <TableHead>{t('adminInvocations.userId')}</TableHead>
+                    <TableHead>{t('adminInvocations.protocol')}</TableHead>
+                    <TableHead>{t('adminInvocations.status')}</TableHead>
+                    <TableHead>{t('adminInvocations.duration')}</TableHead>
+                    <TableHead>{t('adminInvocations.error')}</TableHead>
+                    <TableHead>{t('adminInvocations.createdAt')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -132,7 +134,7 @@ export function InvocationsPage() {
                   {invocations.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                        No invocations found
+                        {t('adminInvocations.noInvocations')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -144,7 +146,7 @@ export function InvocationsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Page {page + 1} of {totalPages}
+                {t('common.page')} {page + 1} / {totalPages}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -153,7 +155,7 @@ export function InvocationsPage() {
                   disabled={page === 0}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  Previous
+                  {t('common.previous')}
                 </Button>
                 <Button
                   size="sm"
@@ -161,7 +163,7 @@ export function InvocationsPage() {
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('common.next')}
                 </Button>
               </div>
             </div>

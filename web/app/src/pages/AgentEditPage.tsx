@@ -1,9 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { useProviderAgent, useProviderMutations } from "@/hooks/use-provider"
 import { PublishWizard } from "@/components/provider/PublishWizard"
 import type { PublishAgentData } from "@/hooks/use-provider"
 
 export function AgentEditPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: agent, loading, error } = useProviderAgent(id)
@@ -18,7 +20,7 @@ export function AgentEditPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading agent...</p>
+        <p className="text-sm text-muted-foreground">{t('provider.loadingAgent')}</p>
       </div>
     )
   }
@@ -47,9 +49,9 @@ export function AgentEditPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold">Edit Agent</h1>
+        <h1 className="text-2xl font-bold">{t('provider.editAgent')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Update {agent.name} configuration
+          {t('provider.updateConfig', { name: agent.name })}
         </p>
       </div>
 

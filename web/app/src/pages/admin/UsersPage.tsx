@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { useAdminUsers, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ import {
 const PAGE_SIZE = 20
 
 export function UsersPage() {
+  const { t } = useTranslation()
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("")
   const [page, setPage] = useState(0)
@@ -65,15 +67,15 @@ export function UsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Users</h1>
+        <h1 className="text-2xl font-bold">{t('adminUsers.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {total} registered user{total !== 1 ? "s" : ""}
+          {t('adminUsers.usersRegistered', { count: total })}
         </p>
       </div>
 
       <div className="flex gap-3">
         <Input
-          placeholder="Search by email or name..."
+          placeholder={t('adminUsers.searchPlaceholder')}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
@@ -89,16 +91,16 @@ export function UsersPage() {
           }}
           className="rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          <option value="">All Roles</option>
-          <option value="user">User</option>
-          <option value="provider">Provider</option>
-          <option value="admin">Admin</option>
+          <option value="">{t('adminUsers.allRoles')}</option>
+          <option value="user">user</option>
+          <option value="provider">provider</option>
+          <option value="admin">admin</option>
         </select>
       </div>
 
       {loading ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading users...</p>
+          <p className="text-sm text-muted-foreground">{t('adminUsers.loadingUsers')}</p>
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
@@ -111,11 +113,11 @@ export function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Display Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('adminUsers.email')}</TableHead>
+                    <TableHead>{t('adminUsers.displayName')}</TableHead>
+                    <TableHead>{t('adminUsers.role')}</TableHead>
+                    <TableHead>{t('adminUsers.createdAt')}</TableHead>
+                    <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,7 +159,7 @@ export function UsersPage() {
                               variant="ghost"
                               onClick={() => setEditingUser(null)}
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                           </span>
                         ) : confirmDelete === user.id ? (
@@ -167,14 +169,14 @@ export function UsersPage() {
                               variant="destructive"
                               onClick={() => handleDelete(user.id)}
                             >
-                              Confirm Delete
+                              {t('adminUsers.confirmDelete')}
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => setConfirmDelete(null)}
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                           </span>
                         ) : (
@@ -186,7 +188,7 @@ export function UsersPage() {
                                 setEditingUser({ id: user.id, role: user.role })
                               }
                             >
-                              Edit Role
+                              {t('adminUsers.editRole')}
                             </Button>
                             <Button
                               size="sm"
@@ -194,7 +196,7 @@ export function UsersPage() {
                               className="text-destructive"
                               onClick={() => setConfirmDelete(user.id)}
                             >
-                              Delete
+                              {t('common.delete')}
                             </Button>
                           </>
                         )}
@@ -204,7 +206,7 @@ export function UsersPage() {
                   {(data?.users ?? []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        No users found
+                        {t('adminUsers.noUsers')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -216,7 +218,7 @@ export function UsersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Page {page + 1} of {totalPages}
+                {t('common.page')} {page + 1} / {totalPages}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -225,7 +227,7 @@ export function UsersPage() {
                   disabled={page === 0}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  Previous
+                  {t('common.previous')}
                 </Button>
                 <Button
                   size="sm"
@@ -233,7 +235,7 @@ export function UsersPage() {
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('common.next')}
                 </Button>
               </div>
             </div>

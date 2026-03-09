@@ -1,8 +1,11 @@
 import { Outlet, Link, NavLink } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
+import { useTranslation } from "react-i18next"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 
 export function PublicLayout() {
   const { user, logout } = useAuth()
+  const { t } = useTranslation()
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,7 +27,7 @@ export function PublicLayout() {
                 }`
               }
             >
-              Directory
+              {t('nav.directory')}
             </NavLink>
             <NavLink
               to="/playground"
@@ -36,7 +39,7 @@ export function PublicLayout() {
                 }`
               }
             >
-              Playground
+              {t('nav.playground')}
             </NavLink>
             {user ? (
               <>
@@ -50,7 +53,7 @@ export function PublicLayout() {
                     }`
                   }
                 >
-                  Console
+                  {t('nav.console')}
                 </NavLink>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
@@ -60,7 +63,7 @@ export function PublicLayout() {
                     onClick={() => logout()}
                     className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
-                    Sign Out
+                    {t('nav.signOut')}
                   </button>
                 </div>
               </>
@@ -69,9 +72,10 @@ export function PublicLayout() {
                 to="/login"
                 className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
-                Sign In
+                {t('nav.signIn')}
               </Link>
             )}
+            <LanguageSwitcher />
           </nav>
         </div>
       </header>

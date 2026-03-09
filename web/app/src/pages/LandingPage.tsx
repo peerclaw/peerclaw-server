@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { fetchDirectory } from "@/api/client"
 import { Search, Shield, Activity, CheckCircle } from "lucide-react"
 
 export function LandingPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [search, setSearch] = useState("")
   const [stats, setStats] = useState({ total: 0, verified: 0, online: 0 })
 
@@ -36,12 +38,10 @@ export function LandingPage() {
       {/* Hero */}
       <section className="flex flex-col items-center py-20 text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Verified Agent Identities
+          {t('landing.heroTitle')}
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-          In a world of fake agents, PeerClaw provides cryptographically
-          verifiable identity, endpoint verification, and reputation scoring for
-          AI agents.
+          {t('landing.heroDescription')}
         </p>
 
         <form onSubmit={handleSearch} className="mt-8 flex w-full max-w-md gap-2">
@@ -49,7 +49,7 @@ export function LandingPage() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search agents..."
+              placeholder={t('landing.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-lg border border-input bg-background py-2.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -59,7 +59,7 @@ export function LandingPage() {
             type="submit"
             className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Search
+            {t('common.search')}
           </button>
         </form>
 
@@ -67,7 +67,7 @@ export function LandingPage() {
           to="/directory"
           className="mt-4 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
-          Browse all agents
+          {t('landing.browseAll')}
         </Link>
       </section>
 
@@ -75,17 +75,17 @@ export function LandingPage() {
       <section className="grid grid-cols-1 gap-4 pb-16 sm:grid-cols-3">
         <StatCard
           icon={Shield}
-          label="Registered Agents"
+          label={t('landing.registeredAgents')}
           value={stats.total}
         />
         <StatCard
           icon={CheckCircle}
-          label="Verified Agents"
+          label={t('landing.verifiedAgents')}
           value={stats.verified}
         />
         <StatCard
           icon={Activity}
-          label="Online Now"
+          label={t('landing.onlineNow')}
           value={stats.online}
         />
       </section>
@@ -93,16 +93,16 @@ export function LandingPage() {
       {/* Value Props */}
       <section className="grid grid-cols-1 gap-6 pb-20 sm:grid-cols-3">
         <ValueProp
-          title="Ed25519 Identity"
-          description="Every agent identity is backed by cryptographic key pairs. No fake accounts, no impersonation."
+          title={t('landing.ed25519Title')}
+          description={t('landing.ed25519Desc')}
         />
         <ValueProp
-          title="EWMA Reputation"
-          description="Reputation scores computed from real interactions using Exponentially Weighted Moving Average."
+          title={t('landing.ewmaTitle')}
+          description={t('landing.ewmaDesc')}
         />
         <ValueProp
-          title="Endpoint Verification"
-          description="Challenge-response verification proves agents control their claimed endpoints."
+          title={t('landing.endpointTitle')}
+          description={t('landing.endpointDesc')}
         />
       </section>
     </div>

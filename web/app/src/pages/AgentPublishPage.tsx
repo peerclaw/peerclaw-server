@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { useProviderMutations } from "@/hooks/use-provider"
 import { PublishWizard } from "@/components/provider/PublishWizard"
 import type { PublishAgentData } from "@/hooks/use-provider"
 
 export function AgentPublishPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { publishAgent } = useProviderMutations()
 
@@ -15,9 +17,9 @@ export function AgentPublishPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold">Publish Agent</h1>
+        <h1 className="text-2xl font-bold">{t('provider.publishAgent')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Register a new agent on the PeerClaw network
+          {t('provider.registerAgent')}
         </p>
       </div>
 

@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown } from "lucide-react"
 
@@ -10,6 +11,8 @@ interface AgentStatsCardProps {
 }
 
 export function AgentStatsCard({ title, value, change, icon: Icon }: AgentStatsCardProps) {
+  const { t } = useTranslation()
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -35,7 +38,7 @@ export function AgentStatsCard({ title, value, change, icon: Icon }: AgentStatsC
               {change >= 0 ? "+" : ""}
               {change.toFixed(1)}%
             </span>
-            <span className="text-xs text-muted-foreground">vs last period</span>
+            <span className="text-xs text-muted-foreground">{t('common.vsLastPeriod')}</span>
           </div>
         )}
       </CardContent>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
   fetchReviews,
   fetchReviewSummary,
@@ -14,6 +15,7 @@ interface ReviewSectionProps {
 }
 
 export function ReviewSection({ agentId }: ReviewSectionProps) {
+  const { t } = useTranslation()
   const { user, accessToken } = useAuth()
   const [reviews, setReviews] = useState<Review[]>([])
   const [summary, setSummary] = useState<ReviewSummary | null>(null)
@@ -71,7 +73,7 @@ export function ReviewSection({ agentId }: ReviewSectionProps) {
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <h2 className="mb-4 text-sm font-semibold">Reviews</h2>
+      <h2 className="mb-4 text-sm font-semibold">{t('review.title')}</h2>
 
       {/* Summary */}
       {summary && summary.total_reviews > 0 && (
@@ -82,7 +84,7 @@ export function ReviewSection({ agentId }: ReviewSectionProps) {
             </div>
             <StarRating rating={Math.round(summary.average_rating)} size="sm" />
             <div className="mt-1 text-xs text-muted-foreground">
-              {summary.total_reviews} review{summary.total_reviews !== 1 ? "s" : ""}
+              {t('review.reviewCount', { count: summary.total_reviews })}
             </div>
           </div>
           <div className="flex-1 space-y-1">
@@ -114,11 +116,11 @@ export function ReviewSection({ agentId }: ReviewSectionProps) {
       {user && !myReview && (
         <form onSubmit={handleSubmit} className="mb-4 space-y-3 border-b border-border pb-4">
           <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Your rating</label>
+            <label className="mb-1 block text-xs text-muted-foreground">{t('review.yourRating')}</label>
             <StarRating rating={newRating} onChange={setNewRating} />
           </div>
           <textarea
-            placeholder="Write a review (optional)..."
+            placeholder={t('review.writeReview')}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -130,16 +132,16 @@ export function ReviewSection({ agentId }: ReviewSectionProps) {
             disabled={submitting || newRating === 0}
             className="rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {submitting ? "Submitting..." : "Submit Review"}
+            {submitting ? t('review.submitting') : t('review.submitReview')}
           </button>
         </form>
       )}
 
       {/* Review list */}
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading reviews...</p>
+        <p className="text-xs text-muted-foreground">{t('review.loadingReviews')}</p>
       ) : reviews.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No reviews yet.</p>
+        <p className="text-xs text-muted-foreground">{t('review.noReviews')}</p>
       ) : (
         <div className="space-y-3">
           {reviews.map((rev) => (
@@ -156,7 +158,7 @@ export function ReviewSection({ agentId }: ReviewSectionProps) {
                     onClick={handleDelete}
                     className="text-xs text-destructive hover:underline"
                   >
-                    Delete
+                    {t('review.delete')}
                   </button>
                 )}
               </div>

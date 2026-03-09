@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import {
   LineChart,
   Line,
@@ -10,6 +11,8 @@ import {
 import type { ReputationEvent } from "@/api/types"
 
 export function ReputationChart({ events }: { events: ReputationEvent[] }) {
+  const { t } = useTranslation()
+
   // Events come newest first, reverse for chronological display.
   const data = [...events].reverse().map((e) => ({
     time: new Date(e.created_at).toLocaleDateString(undefined, {
@@ -25,7 +28,7 @@ export function ReputationChart({ events }: { events: ReputationEvent[] }) {
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-muted-foreground text-sm">
-        No reputation events yet
+        {t('reputation.noEvents')}
       </div>
     )
   }

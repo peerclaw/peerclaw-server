@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { fetchCategories } from "@/api/client"
 import type { Category } from "@/api/types"
 
@@ -8,6 +9,7 @@ interface CategoryFilterProps {
 }
 
 export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
+  const { t } = useTranslation()
   const [categories, setCategories] = useState<Category[]>([])
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
             : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
         }`}
       >
-        All
+        {t('categoryFilter.all')}
       </button>
       {categories.map((cat) => (
         <button
