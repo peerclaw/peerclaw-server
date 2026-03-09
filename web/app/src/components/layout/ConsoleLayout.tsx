@@ -7,6 +7,7 @@ import {
   Activity,
   KeyRound,
   LogOut,
+  Shield,
 } from "lucide-react"
 
 const navLinks = [
@@ -66,6 +67,21 @@ export function ConsoleLayout() {
               </p>
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
+          )}
+          {user?.role === "admin" && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? "bg-accent text-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                }`
+              }
+            >
+              <Shield className="size-4" />
+              Admin Panel
+            </NavLink>
           )}
           <button
             onClick={handleLogout}

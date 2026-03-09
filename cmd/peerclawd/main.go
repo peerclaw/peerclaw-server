@@ -143,7 +143,7 @@ func main() {
 		}
 
 		jwtMgr := userauth.NewJWTManager(jwtSecret, accessTTL, refreshTTL)
-		userAuthService = userauth.NewService(uaStore, jwtMgr, cfg.UserAuth.BcryptCost, logger)
+		userAuthService = userauth.NewService(uaStore, jwtMgr, cfg.UserAuth.BcryptCost, cfg.UserAuth.AdminEmails, logger)
 		logger.Info("user authentication initialized",
 			"access_ttl", accessTTL,
 			"refresh_ttl", refreshTTL,

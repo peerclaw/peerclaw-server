@@ -16,25 +16,31 @@ import (
 
 // Service implements user authentication business logic.
 type Service struct {
-	store      Store
-	jwt        *JWTManager
-	bcryptCost int
-	logger     *slog.Logger
+	store       Store
+	jwt         *JWTManager
+	bcryptCost  int
+	adminEmails map[string]bool
+	logger      *slog.Logger
 }
 
 // NewService creates a new auth service.
-func NewService(store Store, jwt *JWTManager, bcryptCost int, logger *slog.Logger) *Service {
+func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []string, logger *slog.Logger) *Service {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	if bcryptCost <= 0 {
 		bcryptCost = 12
 	}
+	ae := make(map[string]bool, len(adminEmails))
+	for _, e := range adminEmails {
+		ae[strings.TrimSpace(strings.ToLower(e))] = true
+	}
 	return &Service{
-		store:      store,
-		jwt:        jwt,
-		bcryptCost: bcryptCost,
-		logger:     logger,
+		store:       store,
+		jwt:         jwt,
+		bcryptCost:  bcryptCost,
+		adminEmails: ae,
+		logger:      logger,
 	}
 }
 
@@ -76,13 +82,18 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, *To
 		displayName = strings.Split(email, "@")[0]
 	}
 
+	role := "user"
+	if s.adminEmails[email] {
+		role = "admin"
+	}
+
 	now := time.Now().UTC()
 	user := &User{
 		ID:           uuid.New().String(),
 		Email:        email,
 		PasswordHash: string(hash),
 		DisplayName:  displayName,
-		Role:         "user",
+		Role:         role,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -110,6 +121,13 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, ipAddress, userAg
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return nil, nil, fmt.Errorf("invalid email or password")
+	}
+
+	if s.adminEmails[user.Email] && user.Role != "admin" {
+		user.Role = "admin"
+		user.UpdatedAt = time.Now().UTC()
+		_ = s.store.UpdateUser(ctx, user)
+		s.logger.Info("user auto-promoted to admin", "user_id", user.ID, "email", user.Email)
 	}
 
 	tokens, err := s.generateTokenPair(ctx, user, ipAddress, userAgent)

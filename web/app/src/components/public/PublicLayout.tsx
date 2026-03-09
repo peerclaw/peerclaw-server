@@ -65,20 +65,12 @@ export function PublicLayout() {
                 </div>
               </>
             ) : (
-              <>
-                <Link
-                  to="/admin"
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Admin
-                </Link>
-                <Link
-                  to="/login"
-                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  Sign In
-                </Link>
-              </>
+              <Link
+                to="/login"
+                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                Sign In
+              </Link>
             )}
           </nav>
         </div>

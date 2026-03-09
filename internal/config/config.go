@@ -32,11 +32,12 @@ type AuthConfig struct {
 
 // UserAuthConfig holds user authentication settings.
 type UserAuthConfig struct {
-	Enabled    bool   `yaml:"enabled"`     // default true
-	JWTSecret  string `yaml:"jwt_secret"`  // supports ${ENV_VAR}
-	AccessTTL  string `yaml:"access_ttl"`  // default "15m"
-	RefreshTTL string `yaml:"refresh_ttl"` // default "168h" (7 days)
-	BcryptCost int    `yaml:"bcrypt_cost"` // default 12
+	Enabled     bool     `yaml:"enabled"`      // default true
+	JWTSecret   string   `yaml:"jwt_secret"`   // supports ${ENV_VAR}
+	AccessTTL   string   `yaml:"access_ttl"`   // default "15m"
+	RefreshTTL  string   `yaml:"refresh_ttl"`  // default "168h" (7 days)
+	BcryptCost  int      `yaml:"bcrypt_cost"`  // default 12
+	AdminEmails []string `yaml:"admin_emails"` // emails auto-promoted to admin on login/register
 }
 
 // ServerConfig holds HTTP and gRPC server settings.
