@@ -113,7 +113,8 @@ Open `http://localhost:8080` in your browser to access the web dashboard.
 | **Auth** | `internal/server/auth.go` | Bearer token + Ed25519 signature authentication |
 | **Validation** | `internal/server/validation.go` | Input validation for registration and heartbeat |
 | **Registry** | `internal/registry/` | Agent CRUD, capability indexing (SQLite/PostgreSQL) |
-| **Signaling** | `internal/signaling/` | WebSocket hub, connection auth, rate limiting |
+| **Signaling** | `internal/signaling/` | WebSocket hub, connection auth, rate limiting, contacts whitelist |
+| **Contacts** | `internal/contacts/` | Mutual contact management, whitelist enforcement for signaling |
 | **Bridge** | `internal/bridge/` | Protocol adapters (A2A, MCP, ACP) + negotiator |
 | **Router** | `internal/router/` | Capability-based message routing |
 | **Federation** | `internal/federation/` | Multi-server signal relay, DNS SRV discovery |
@@ -386,6 +387,7 @@ Features:
 - Per-connection rate limiting (10 msg/s)
 - Auto-push TURN configuration on connect
 - `bridge_message` type for delivering protocol-bridged envelopes
+- **Contacts whitelist enforcement** — signaling messages (offer/answer/ICE) are blocked unless both agents are mutual contacts via the `ContactsChecker` interface
 
 ## Deployment Patterns
 
@@ -457,6 +459,7 @@ Agents registered on different servers can discover and signal each other throug
 | **Rate Limiting** | Per-IP token bucket, trusted proxy support |
 | **Federation** | Constant-time token comparison, TLS 1.2 minimum |
 | **WebSocket** | Auth frame timeout, message size/rate limits |
+| **Signaling Whitelist** | Contacts-based whitelist on offer/answer/ICE — blocks unauthorized P2P connections at the relay |
 | **Secrets** | `${ENV_VAR}` config substitution — no plaintext in files |
 
 ## License

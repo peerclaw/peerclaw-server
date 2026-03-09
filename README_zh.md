@@ -113,7 +113,8 @@ curl http://localhost:8080/api/v1/health
 | **认证** | `internal/server/auth.go` | Bearer Token + Ed25519 签名认证 |
 | **校验** | `internal/server/validation.go` | 注册和心跳的输入校验 |
 | **注册中心** | `internal/registry/` | Agent CRUD、能力索引（SQLite/PostgreSQL） |
-| **信令** | `internal/signaling/` | WebSocket Hub、连接认证、消息限速 |
+| **信令** | `internal/signaling/` | WebSocket Hub、连接认证、消息限速、联系人白名单 |
+| **联系人** | `internal/contacts/` | 互相联系人管理、信令白名单强制执行 |
 | **桥接** | `internal/bridge/` | 协议适配器（A2A、MCP、ACP）+ 协商器 |
 | **路由** | `internal/router/` | 基于能力的消息路由 |
 | **联邦** | `internal/federation/` | 多服务器信令中转、DNS SRV 发现 |
@@ -386,6 +387,7 @@ redis:
 - 每连接限速（10 条/秒）
 - 连接时自动推送 TURN 配置
 - `bridge_message` 类型用于投递协议桥接的 Envelope
+- **联系人白名单强制执行** — 信令消息（offer/answer/ICE）在双方不是互相联系人时被拦截，通过 `ContactsChecker` 接口实现
 
 ## 部署模式
 
@@ -457,6 +459,7 @@ federation:
 | **限速** | 每 IP 令牌桶、受信代理支持 |
 | **联邦** | 恒时 token 比较、TLS 1.2 最低版本 |
 | **WebSocket** | 认证帧超时、消息大小/速率限制 |
+| **信令白名单** | 基于联系人的 offer/answer/ICE 白名单 — 在中转层拦截未授权的 P2P 连接 |
 | **密钥** | `${ENV_VAR}` 配置替换 — 文件中无明文密钥 |
 
 ## 许可证
