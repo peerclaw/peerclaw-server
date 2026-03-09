@@ -49,6 +49,11 @@ audit_log:
   enabled: true
   output: "stdout"                   # or "file:/var/log/peerclaw-audit.log"
 
+user_auth:
+  enabled: false
+  jwt_secret: "${JWT_SECRET}"    # Required when user_auth is enabled
+  admin_emails: []               # Emails auto-promoted to admin on login/register
+
 federation:
   enabled: false
   node_name: "node-1"

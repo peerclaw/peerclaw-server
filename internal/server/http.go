@@ -266,6 +266,9 @@ func (s *HTTPServer) routes() {
 	// Admin routes.
 	s.registerAdminRoutes()
 
+	// CLI install script.
+	s.mux.Handle("GET /install.sh", InstallScriptHandler())
+
 	// Dashboard SPA (catch-all, registered last).
 	s.mux.Handle("GET /", DashboardHandler())
 }
