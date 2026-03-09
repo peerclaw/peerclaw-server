@@ -9,9 +9,7 @@ export function PublicLayout() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="size-7 rounded-md bg-primary flex items-center justify-center">
-              <span className="text-xs font-bold text-primary-foreground">PC</span>
-            </div>
+            <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
             <span className="font-semibold text-sm">PeerClaw</span>
           </Link>
 

@@ -34,9 +34,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-border bg-card">
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-        <div className="size-7 rounded-md bg-primary flex items-center justify-center">
-          <span className="text-xs font-bold text-primary-foreground">PC</span>
-        </div>
+        <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
         <span className="font-semibold text-sm">PeerClaw Admin</span>
       </div>
 
