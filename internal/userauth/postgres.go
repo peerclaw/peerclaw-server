@@ -60,14 +60,16 @@ func (s *PostgresStore) Migrate(ctx context.Context) error {
 			return fmt.Errorf("userauth migrate: %w", err)
 		}
 	}
+	// Add description column if it doesn't exist.
+	_, _ = s.db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''")
 	return nil
 }
 
 func (s *PostgresStore) CreateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (id, email, password_hash, display_name, role, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Role,
+		`INSERT INTO users (id, email, password_hash, display_name, description, role, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role,
 		user.CreatedAt.UTC(), user.UpdatedAt.UTC(),
 	)
 	return err
@@ -76,9 +78,9 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *User) error {
 func (s *PostgresStore) GetUserByID(ctx context.Context, id string) (*User, error) {
 	var u User
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
 		 FROM users WHERE id = $1`, id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -91,9 +93,9 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id string) (*User, erro
 func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
 		 FROM users WHERE email = $1`, email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -105,8 +107,8 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 
 func (s *PostgresStore) UpdateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET display_name = $1, role = $2, updated_at = $3 WHERE id = $4`,
-		user.DisplayName, user.Role, user.UpdatedAt.UTC(), user.ID,
+		`UPDATE users SET email = $1, password_hash = $2, display_name = $3, description = $4, role = $5, updated_at = $6 WHERE id = $7`,
+		user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.UpdatedAt.UTC(), user.ID,
 	)
 	return err
 }
@@ -257,7 +259,7 @@ func (s *PostgresStore) ListUsers(ctx context.Context, search, role string, limi
 
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		fmt.Sprintf("SELECT id, email, password_hash, display_name, role, created_at, updated_at FROM users WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
+		fmt.Sprintf("SELECT id, email, password_hash, display_name, description, role, created_at, updated_at FROM users WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
 		args...,
 	)
 	if err != nil {
@@ -268,7 +270,7 @@ func (s *PostgresStore) ListUsers(ctx context.Context, search, role string, limi
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		users = append(users, u)

@@ -62,14 +62,22 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 			return fmt.Errorf("userauth migrate: %w", err)
 		}
 	}
+	// Add description column if it doesn't exist.
+	var colCount int
+	_ = s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pragma_table_info('users') WHERE name='description'").Scan(&colCount)
+	if colCount == 0 {
+		if _, err := s.db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN description TEXT NOT NULL DEFAULT ''"); err != nil {
+			return fmt.Errorf("userauth migrate description: %w", err)
+		}
+	}
 	return nil
 }
 
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (id, email, password_hash, display_name, role, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Role,
+		`INSERT INTO users (id, email, password_hash, display_name, description, role, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role,
 		user.CreatedAt.UTC().Format(time.RFC3339),
 		user.UpdatedAt.UTC().Format(time.RFC3339),
 	)
@@ -80,9 +88,9 @@ func (s *SQLiteStore) GetUserByID(ctx context.Context, id string) (*User, error)
 	var u User
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &createdAt, &updatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &createdAt, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -98,9 +106,9 @@ func (s *SQLiteStore) GetUserByEmail(ctx context.Context, email string) (*User, 
 	var u User
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
 		 FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &createdAt, &updatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &createdAt, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -114,8 +122,8 @@ func (s *SQLiteStore) GetUserByEmail(ctx context.Context, email string) (*User, 
 
 func (s *SQLiteStore) UpdateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET display_name = ?, role = ?, updated_at = ? WHERE id = ?`,
-		user.DisplayName, user.Role, user.UpdatedAt.UTC().Format(time.RFC3339), user.ID,
+		`UPDATE users SET email = ?, password_hash = ?, display_name = ?, description = ?, role = ?, updated_at = ? WHERE id = ?`,
+		user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.UpdatedAt.UTC().Format(time.RFC3339), user.ID,
 	)
 	return err
 }
@@ -279,7 +287,7 @@ func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit,
 
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, email, password_hash, display_name, role, created_at, updated_at FROM users WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		"SELECT id, email, password_hash, display_name, description, role, created_at, updated_at FROM users WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
 		args...,
 	)
 	if err != nil {
@@ -291,7 +299,7 @@ func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit,
 	for rows.Next() {
 		var u User
 		var createdAt, updatedAt string
-		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Role, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &createdAt, &updatedAt); err != nil {
 			return nil, 0, err
 		}
 		u.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)

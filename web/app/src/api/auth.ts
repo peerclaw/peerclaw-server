@@ -10,6 +10,7 @@ export interface AuthUser {
   id: string
   email: string
   display_name: string
+  description: string
   role: string
   created_at: string
   updated_at: string
@@ -105,12 +106,24 @@ export function getMe(accessToken: string): Promise<AuthUser> {
 
 export function updateMe(
   accessToken: string,
-  displayName: string
+  data: { display_name?: string; email?: string; description?: string }
 ): Promise<AuthUser> {
   return authFetch<AuthUser>("/auth/me", {
     method: "PUT",
     headers: { Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ display_name: displayName }),
+    body: JSON.stringify(data),
+  })
+}
+
+export function changePassword(
+  accessToken: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  return authFetch<void>("/auth/password", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   })
 }
 

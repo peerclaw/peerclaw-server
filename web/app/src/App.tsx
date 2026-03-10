@@ -23,6 +23,7 @@ import { AgentEditPage } from "@/pages/AgentEditPage"
 import { InvocationHistoryPage } from "@/pages/InvocationHistoryPage"
 import { AccessRequestsPage } from "@/pages/AccessRequestsPage"
 import { APIKeysPage } from "@/pages/APIKeysPage"
+import { ProfilePage } from "@/pages/ProfilePage"
 import { UsersPage } from "@/pages/admin/UsersPage"
 import { ReportsPage } from "@/pages/admin/ReportsPage"
 import { CategoriesPage } from "@/pages/admin/CategoriesPage"
@@ -63,6 +64,7 @@ export function App() {
             <Route path="invocations" element={<InvocationHistoryPage />} />
             <Route path="access-requests" element={<AccessRequestsPage />} />
             <Route path="api-keys" element={<APIKeysPage />} />
+            <Route path="profile" element={<ProfilePage />} />
           </Route>
 
           {/* Admin routes (admin role required) */}

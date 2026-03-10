@@ -7,13 +7,13 @@ import {
   Tags,
   BarChart3,
   Activity,
-  LogOut,
   ExternalLink,
   Github,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { UserMenu } from "@/components/layout/UserMenu"
 
 export function Sidebar() {
   const { user, logout } = useAuth()
@@ -64,18 +64,8 @@ export function Sidebar() {
 
       <div className="border-t border-border p-3 space-y-2">
         {user && (
-          <div className="px-3 py-1">
-            <p className="text-xs font-medium truncate">{user.display_name || user.email}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          </div>
+          <UserMenu user={user} onLogout={handleLogout} />
         )}
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
-        >
-          <LogOut className="size-4" />
-          {t('nav.logout')}
-        </button>
         <NavLink
           to="/"
           className="flex items-center gap-2.5 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"

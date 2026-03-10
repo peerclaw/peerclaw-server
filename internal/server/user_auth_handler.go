@@ -112,21 +112,45 @@ func (s *HTTPServer) handleAuthUpdateMe(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var req struct {
-		DisplayName string `json:"display_name"`
-	}
+	var req userauth.UpdateProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	user, err := s.userAuth.UpdateProfile(r.Context(), userID, req.DisplayName)
+	user, err := s.userAuth.UpdateProfile(r.Context(), userID, req)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	s.jsonResponse(w, http.StatusOK, sanitizeUser(user))
+}
+
+// handleAuthChangePassword handles POST /api/v1/auth/password.
+func (s *HTTPServer) handleAuthChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID, ok := identity.UserIDFromContext(r.Context())
+	if !ok {
+		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req userauth.ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.userAuth.ChangePassword(r.Context(), userID, req); err != nil {
+		status := http.StatusBadRequest
+		if err.Error() == "current password is incorrect" {
+			status = http.StatusUnauthorized
+		}
+		s.jsonError(w, err.Error(), status)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleAuthCreateAPIKey handles POST /api/v1/auth/api-keys.
@@ -206,6 +230,7 @@ func sanitizeUser(u *userauth.User) map[string]any {
 		"id":           u.ID,
 		"email":        u.Email,
 		"display_name": u.DisplayName,
+		"description":  u.Description,
 		"role":         u.Role,
 		"created_at":   u.CreatedAt,
 		"updated_at":   u.UpdatedAt,

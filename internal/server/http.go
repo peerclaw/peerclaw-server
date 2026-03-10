@@ -895,6 +895,7 @@ func (s *HTTPServer) registerUserAuthRoutes() {
 	s.mux.Handle("POST /api/v1/auth/api-keys", wrapUserAuth(s.handleAuthCreateAPIKey))
 	s.mux.Handle("GET /api/v1/auth/api-keys", wrapUserAuth(s.handleAuthListAPIKeys))
 	s.mux.Handle("DELETE /api/v1/auth/api-keys/{key_id}", wrapUserAuth(s.handleAuthRevokeAPIKey))
+	s.mux.Handle("POST /api/v1/auth/password", wrapUserAuth(s.handleAuthChangePassword))
 }
 
 // --- Helpers ---

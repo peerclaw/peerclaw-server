@@ -52,7 +52,8 @@
     "analytics": "Analytics",
     "logout": "Logout",
     "github": "GitHub",
-    "about": "About"
+    "about": "About",
+    "profile": "Profile"
   },
   "auth": {
     "email": "Email",
@@ -550,5 +551,25 @@
     "rejectReason": "Reject Reason",
     "expiresAt": "Expires",
     "noRequests": "No access requests"
+  },
+  "profilePage": {
+    "title": "Profile Settings",
+    "profileSection": "Profile Information",
+    "displayName": "Display Name",
+    "email": "Email",
+    "description": "Bio / Description",
+    "descriptionPlaceholder": "Tell us about yourself...",
+    "saveProfile": "Save Profile",
+    "saving": "Saving...",
+    "profileUpdated": "Profile updated successfully",
+    "passwordSection": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "changePassword": "Change Password",
+    "changing": "Changing...",
+    "passwordChanged": "Password changed successfully",
+    "passwordMismatch": "New passwords do not match",
+    "passwordMinLength": "Password must be at least 8 characters"
   }
 }

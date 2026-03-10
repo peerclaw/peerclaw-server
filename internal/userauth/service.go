@@ -183,20 +183,73 @@ func (s *Service) GetUser(ctx context.Context, userID string) (*User, error) {
 	return s.store.GetUserByID(ctx, userID)
 }
 
-// UpdateProfile updates the user's display name.
-func (s *Service) UpdateProfile(ctx context.Context, userID, displayName string) (*User, error) {
+// UpdateProfileRequest holds profile update parameters.
+type UpdateProfileRequest struct {
+	DisplayName *string `json:"display_name"`
+	Email       *string `json:"email"`
+	Description *string `json:"description"`
+}
+
+// UpdateProfile updates the user's profile fields.
+func (s *Service) UpdateProfile(ctx context.Context, userID string, req UpdateProfileRequest) (*User, error) {
 	user, err := s.store.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
 	}
-	if displayName != "" {
-		user.DisplayName = strings.TrimSpace(displayName)
+	if req.DisplayName != nil && strings.TrimSpace(*req.DisplayName) != "" {
+		user.DisplayName = strings.TrimSpace(*req.DisplayName)
+	}
+	if req.Email != nil {
+		newEmail := strings.TrimSpace(strings.ToLower(*req.Email))
+		if newEmail == "" || !strings.Contains(newEmail, "@") {
+			return nil, fmt.Errorf("invalid email address")
+		}
+		if newEmail != user.Email {
+			if existing, _ := s.store.GetUserByEmail(ctx, newEmail); existing != nil {
+				return nil, fmt.Errorf("email already registered")
+			}
+			user.Email = newEmail
+		}
+	}
+	if req.Description != nil {
+		user.Description = *req.Description
 	}
 	user.UpdatedAt = time.Now().UTC()
 	if err := s.store.UpdateUser(ctx, user); err != nil {
 		return nil, fmt.Errorf("update user: %w", err)
 	}
 	return user, nil
+}
+
+// ChangePasswordRequest holds password change parameters.
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+// ChangePassword changes the user's password after verifying the current one.
+func (s *Service) ChangePassword(ctx context.Context, userID string, req ChangePasswordRequest) error {
+	user, err := s.store.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		return fmt.Errorf("current password is incorrect")
+	}
+	if len(req.NewPassword) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), s.bcryptCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	user.PasswordHash = string(hash)
+	user.UpdatedAt = time.Now().UTC()
+	if err := s.store.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+	s.logger.Info("user password changed", "user_id", userID)
+	return nil
 }
 
 // GenerateAPIKey creates a new API key for a user.

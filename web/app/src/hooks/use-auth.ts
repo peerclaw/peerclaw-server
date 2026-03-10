@@ -23,6 +23,8 @@ interface AuthContextValue {
   ) => Promise<void>
   logout: () => Promise<void>
   refreshAccessToken: () => Promise<string | null>
+  updateProfile: (data: { display_name?: string; email?: string; description?: string }) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -144,6 +146,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const updateProfileFn = useCallback(async (data: { display_name?: string; email?: string; description?: string }) => {
+    if (!accessToken) throw new Error("not authenticated")
+    const updated = await authAPI.updateMe(accessToken, data)
+    setUser(updated)
+  }, [accessToken])
+
+  const changePasswordFn = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!accessToken) throw new Error("not authenticated")
+    await authAPI.changePassword(accessToken, currentPassword, newPassword)
+  }, [accessToken])
+
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     const tokens = loadTokens()
     if (!tokens) return null
@@ -172,8 +185,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register: registerFn,
       logout: logoutFn,
       refreshAccessToken,
+      updateProfile: updateProfileFn,
+      changePassword: changePasswordFn,
     }),
-    [user, accessToken, loading, loginFn, registerFn, logoutFn, refreshAccessToken]
+    [user, accessToken, loading, loginFn, registerFn, logoutFn, refreshAccessToken, updateProfileFn, changePasswordFn]
   )
 
   return createElement(AuthContext.Provider, { value }, children)

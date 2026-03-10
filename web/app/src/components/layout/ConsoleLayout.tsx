@@ -2,14 +2,13 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { UserMenu } from "@/components/layout/UserMenu"
 import {
   LayoutDashboard,
   Bot,
   PlusCircle,
   Activity,
   KeyRound,
-  LogOut,
-  Shield,
   Github,
   Lock,
 } from "lucide-react"
@@ -64,38 +63,15 @@ export function ConsoleLayout() {
           ))}
         </nav>
 
-        {/* User / Sign Out */}
+        {/* User menu + utility links */}
         <div className="border-t border-border p-3 space-y-2">
           {user && (
-            <div className="px-3 py-1">
-              <p className="text-sm font-medium text-foreground truncate">
-                {user.display_name || user.email}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-            </div>
+            <UserMenu
+              user={user}
+              onLogout={handleLogout}
+              showAdminLink={user.role === "admin"}
+            />
           )}
-          {user?.role === "admin" && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                  isActive
-                    ? "bg-accent text-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                }`
-              }
-            >
-              <Shield className="size-4" />
-              {t('nav.adminPanel')}
-            </NavLink>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-          >
-            <LogOut className="size-4" />
-            {t('nav.signOut')}
-          </button>
           <NavLink
             to="/"
             className="block text-xs text-muted-foreground hover:text-foreground px-3"
