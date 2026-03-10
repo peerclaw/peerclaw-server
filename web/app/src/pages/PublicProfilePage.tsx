@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { fetchPublicProfile, fetchReputationHistory, fetchAccessRequestStatus, submitAccessRequest } from "@/api/client"
+import { fetchPublicProfile, fetchReputationHistory, fetchAccessRequestStatus } from "@/api/client"
 import type { PublicAgentProfile, ReputationEvent } from "@/api/types"
 import { useAuth } from "@/hooks/use-auth"
 import { VerifiedBadge } from "@/components/public/VerifiedBadge"
@@ -11,7 +11,7 @@ import { ReputationChart } from "@/components/public/ReputationChart"
 import { ReviewSection } from "@/components/public/ReviewSection"
 import { ReportDialog } from "@/components/public/ReportDialog"
 import { AccessRequestDialog } from "@/components/public/AccessRequestDialog"
-import { ArrowLeft, ExternalLink, Key, Play, Clock, CheckCircle } from "lucide-react"
+import { ArrowLeft, ExternalLink, Key, Play, Clock } from "lucide-react"
 
 const statusColors: Record<string, string> = {
   online: "bg-emerald-500",
