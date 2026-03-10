@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { fetchPublicProfile, fetchReputationHistory } from "@/api/client"
+import { fetchPublicProfile, fetchReputationHistory, fetchAccessRequestStatus, submitAccessRequest } from "@/api/client"
 import type { PublicAgentProfile, ReputationEvent } from "@/api/types"
+import { useAuth } from "@/hooks/use-auth"
 import { VerifiedBadge } from "@/components/public/VerifiedBadge"
 import { TrustedBadge } from "@/components/public/TrustedBadge"
 import { ReputationMeter } from "@/components/public/ReputationMeter"
 import { ReputationChart } from "@/components/public/ReputationChart"
 import { ReviewSection } from "@/components/public/ReviewSection"
 import { ReportDialog } from "@/components/public/ReportDialog"
-import { ArrowLeft, ExternalLink, Key, Play } from "lucide-react"
+import { AccessRequestDialog } from "@/components/public/AccessRequestDialog"
+import { ArrowLeft, ExternalLink, Key, Play, Clock, CheckCircle } from "lucide-react"
 
 const statusColors: Record<string, string> = {
   online: "bg-emerald-500",
@@ -20,10 +22,12 @@ const statusColors: Record<string, string> = {
 export function PublicProfilePage() {
   const { id } = useParams<{ id: string }>()
   const { t } = useTranslation()
+  const { accessToken } = useAuth()
   const [agent, setAgent] = useState<PublicAgentProfile | null>(null)
   const [events, setEvents] = useState<ReputationEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [accessStatus, setAccessStatus] = useState<string>("none")
 
   useEffect(() => {
     if (!id) return
@@ -39,6 +43,13 @@ export function PublicProfilePage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (!id || !accessToken) return
+    fetchAccessRequestStatus(id, accessToken)
+      .then((res) => setAccessStatus(res.status))
+      .catch(() => {})
+  }, [id, accessToken])
 
   if (loading) {
     return (
@@ -124,13 +135,32 @@ export function PublicProfilePage() {
 
         {/* Action buttons */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            to={`/playground/${agent.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Play className="size-4" />
-            {t('profile.tryPlayground')}
-          </Link>
+          {agent.playground_enabled || accessStatus === "approved" ? (
+            <Link
+              to={`/playground/${agent.id}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Play className="size-4" />
+              {t('profile.tryPlayground')}
+            </Link>
+          ) : accessStatus === "pending" ? (
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-4 py-2 text-sm font-medium text-muted-foreground cursor-not-allowed">
+              <Clock className="size-4" />
+              {t('accessRequest.accessPending')}
+            </span>
+          ) : accessToken ? (
+            <AccessRequestDialog
+              agentId={agent.id}
+              onSubmitted={() => setAccessStatus("pending")}
+            />
+          ) : (
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              {t('auth.signIn')}
+            </Link>
+          )}
           <ReportDialog targetType="agent" targetId={agent.id} />
         </div>
 

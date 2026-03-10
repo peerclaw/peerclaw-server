@@ -21,6 +21,7 @@ import { AgentPublishPage } from "@/pages/AgentPublishPage"
 import { ProviderAgentDetailPage } from "@/pages/ProviderAgentDetailPage"
 import { AgentEditPage } from "@/pages/AgentEditPage"
 import { InvocationHistoryPage } from "@/pages/InvocationHistoryPage"
+import { AccessRequestsPage } from "@/pages/AccessRequestsPage"
 import { APIKeysPage } from "@/pages/APIKeysPage"
 import { UsersPage } from "@/pages/admin/UsersPage"
 import { ReportsPage } from "@/pages/admin/ReportsPage"
@@ -60,6 +61,7 @@ export function App() {
             <Route path="agents/:id" element={<ProviderAgentDetailPage />} />
             <Route path="agents/:id/edit" element={<AgentEditPage />} />
             <Route path="invocations" element={<InvocationHistoryPage />} />
+            <Route path="access-requests" element={<AccessRequestsPage />} />
             <Route path="api-keys" element={<APIKeysPage />} />
           </Route>
 

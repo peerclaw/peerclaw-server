@@ -5,6 +5,8 @@ import {
   useProviderAgent,
   useAgentAnalytics,
   useProviderMutations,
+  useAgentAccessRequests,
+  useAccessRequestMutations,
 } from "@/hooks/use-provider"
 import { AnalyticsChart } from "@/components/provider/AnalyticsChart"
 import { AgentStatsCard } from "@/components/provider/AgentStatsCard"
@@ -20,6 +22,9 @@ import {
   Trash2,
   ExternalLink,
   ArrowLeft,
+  Check,
+  X,
+  RotateCcw,
 } from "lucide-react"
 
 export function ProviderAgentDetailPage() {
@@ -28,6 +33,8 @@ export function ProviderAgentDetailPage() {
   const navigate = useNavigate()
   const { data: agent, loading, error } = useProviderAgent(id)
   const { data: analytics } = useAgentAnalytics(id)
+  const { data: accessRequestsData, refetch: refetchRequests } = useAgentAccessRequests(id)
+  const { approve, reject, revoke } = useAccessRequestMutations(id)
   const { deleteAgent } = useProviderMutations()
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -207,6 +214,89 @@ export function ProviderAgentDetailPage() {
 
       {/* Contacts Whitelist */}
       {id && <ContactsSection agentId={id} />}
+
+      {/* Access Requests */}
+      {accessRequestsData && accessRequestsData.requests.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">{t('accessRequest.title')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {accessRequestsData.requests.map((req) => (
+                <div
+                  key={req.id}
+                  className="flex items-center justify-between rounded-md border border-border p-3 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate">{req.user_id}</span>
+                      <Badge
+                        variant={
+                          req.status === "approved"
+                            ? "default"
+                            : req.status === "pending"
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {req.status}
+                      </Badge>
+                    </div>
+                    {req.message && (
+                      <p className="mt-1 text-xs text-muted-foreground truncate">{req.message}</p>
+                    )}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {new Date(req.created_at).toLocaleDateString()}
+                      {req.expires_at && (
+                        <> &middot; {t('accessRequest.expiresAt')}: {new Date(req.expires_at).toLocaleDateString()}</>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex gap-1 ml-2 shrink-0">
+                    {req.status === "pending" && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            await approve(req.id)
+                            refetchRequests()
+                          }}
+                        >
+                          <Check className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            await reject(req.id)
+                            refetchRequests()
+                          }}
+                        >
+                          <X className="size-3.5" />
+                        </Button>
+                      </>
+                    )}
+                    {req.status === "approved" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          await revoke(req.id)
+                          refetchRequests()
+                        }}
+                      >
+                        <RotateCcw className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analytics */}
       {analytics && (

@@ -18,7 +18,7 @@ export function AgentSelector({ selectedId, onSelect }: AgentSelectorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetchDirectory({ page_size: 100 })
+    fetchDirectory({ page_size: 100, playground_only: true })
       .then((res) => setAgents(res.agents ?? []))
       .catch(() => setAgents([]))
       .finally(() => setLoading(false))

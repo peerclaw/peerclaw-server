@@ -49,6 +49,8 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
   const [endpointUrl, setEndpointUrl] = useState(initialData?.endpoint_url ?? "")
   const [authType, setAuthType] = useState(initialData?.auth_type ?? "none")
   const [authHeader, setAuthHeader] = useState(initialData?.auth_config?.header ?? "")
+  const [playgroundEnabled, setPlaygroundEnabled] = useState(initialData?.playground_enabled ?? false)
+  const [visibility, setVisibility] = useState(initialData?.visibility ?? "public")
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
@@ -137,6 +139,8 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
       endpoint_url: endpointUrl.trim(),
       auth_type: authType,
       tags,
+      playground_enabled: playgroundEnabled,
+      visibility,
     }
 
     if (authType !== "none" && authHeader.trim()) {
@@ -340,6 +344,51 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
                 </p>
               </div>
             )}
+
+            {/* Playground toggle */}
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">{t('wizard.playgroundEnabled')}</label>
+                <p className="text-xs text-muted-foreground">{t('wizard.playgroundEnabledDesc')}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={playgroundEnabled}
+                onClick={() => setPlaygroundEnabled(!playgroundEnabled)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  playgroundEnabled ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
+                    playgroundEnabled ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Visibility selector */}
+            <div>
+              <label className="text-sm font-medium text-foreground">{t('wizard.visibility')}</label>
+              <div className="flex gap-2 mt-2">
+                {["public", "private"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setVisibility(v)}
+                    className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                      visibility === v
+                        ? "border-primary bg-primary/10 text-primary font-medium"
+                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {v === "public" ? t('wizard.visibilityPublic') : t('wizard.visibilityPrivate')}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{t('wizard.visibilityDesc')}</p>
+            </div>
           </div>
         )
 
@@ -387,6 +436,14 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">{t('wizard.authType')}</span>
                 <span className="font-medium">{authType}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">{t('wizard.playgroundEnabled')}</span>
+                <span className="font-medium">{playgroundEnabled ? "Yes" : "No"}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">{t('wizard.visibility')}</span>
+                <span className="font-medium capitalize">{visibility}</span>
               </div>
               {tags.length > 0 && (
                 <div className="flex justify-between pb-2">

@@ -42,6 +42,7 @@
     "myAgents": "我的 Agent",
     "publishAgent": "发布 Agent",
     "invocations": "调用记录",
+    "accessRequests": "访问请求",
     "apiKeys": "API 密钥",
     "overview": "概览",
     "users": "用户",
@@ -285,7 +286,13 @@
     "saving": "保存中...",
     "publishAgent": "发布 Agent",
     "saveChanges": "保存更改",
-    "failedPublish": "发布 Agent 失败"
+    "failedPublish": "发布 Agent 失败",
+    "playgroundEnabled": "启用体验场",
+    "playgroundEnabledDesc": "允许任何已认证用户从体验场调用此 Agent。",
+    "visibility": "可见性",
+    "visibilityPublic": "公开",
+    "visibilityPrivate": "私有",
+    "visibilityDesc": "私有 Agent 不会显示在公共目录中。"
   },
   "contacts": {
     "title": "联系人白名单",
@@ -297,7 +304,8 @@
     "added": "添加时间",
     "adding": "添加中...",
     "noContacts": "暂无联系人。添加 Agent ID 以允许其与此 Agent 通信。",
-    "loadingContacts": "加载联系人..."
+    "loadingContacts": "加载联系人...",
+    "expiresAt": "过期时间"
   },
   "analyticsChart": {
     "invocationsOverTime": "随时间变化的调用量",
@@ -522,5 +530,25 @@
     "openSourceTitle": "开源与社区驱动",
     "openSourceDesc": "PeerClaw 完全开源。透明、可审计和社区贡献是我们构建一切的核心。",
     "viewOnGithub": "在 GitHub 上查看"
+  },
+  "accessRequest": {
+    "title": "访问请求",
+    "myRequestsDesc": "查看您在所有 Agent 上的访问请求",
+    "submitRequest": "申请访问",
+    "submitRequestDesc": "向 Agent 提供方说明您需要访问权限的原因。",
+    "messagePlaceholder": "描述您需要访问此 Agent 的原因...",
+    "requestAccess": "申请访问",
+    "accessPending": "等待审核",
+    "agentId": "Agent",
+    "message": "留言",
+    "pending": "待审核",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "approve": "批准",
+    "reject": "拒绝",
+    "revoke": "撤销",
+    "rejectReason": "拒绝原因",
+    "expiresAt": "过期时间",
+    "noRequests": "暂无访问请求"
   }
 }

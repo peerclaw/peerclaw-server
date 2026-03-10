@@ -44,6 +44,8 @@ export function AgentEditPage() {
     endpoint_url: agent.endpoint_url,
     auth_type: agent.auth_type,
     tags: agent.tags,
+    playground_enabled: agent.playground_enabled,
+    visibility: agent.visibility,
   }
 
   return (

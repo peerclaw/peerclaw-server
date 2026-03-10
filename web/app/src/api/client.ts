@@ -78,6 +78,7 @@ export function fetchDirectory(
   if (params?.page_size) query.set("page_size", String(params.page_size))
   if (params?.page_token) query.set("page_token", params.page_token)
   if (params?.category) query.set("category", params.category)
+  if (params?.playground_only) query.set("playground_only", "true")
   const qs = query.toString()
   return fetchJSON<DirectoryResponse>(`/directory${qs ? `?${qs}` : ""}`)
 }
@@ -185,6 +186,42 @@ export function invokeAgent(
     }
     return res.json() as Promise<InvokeResponse>
   })
+}
+
+// Access Request API
+
+export function submitAccessRequest(
+  agentId: string,
+  message: string,
+  accessToken: string
+): Promise<{ id: string; status: string }> {
+  return fetchWithAuth<{ id: string; status: string }>(
+    `/agents/${agentId}/access-requests`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }
+  )
+}
+
+export function fetchAccessRequestStatus(
+  agentId: string,
+  accessToken: string
+): Promise<{ status: string; id?: string }> {
+  return fetchWithAuth<{ status: string; id?: string }>(
+    `/agents/${agentId}/access-requests/me`,
+    accessToken
+  )
+}
+
+export function fetchMyAccessRequests(
+  accessToken: string
+): Promise<{ requests: import("./types").AccessRequest[] }> {
+  return fetchWithAuth<{ requests: import("./types").AccessRequest[] }>(
+    "/user/access-requests",
+    accessToken
+  )
 }
 
 export function invokeAgentStream(

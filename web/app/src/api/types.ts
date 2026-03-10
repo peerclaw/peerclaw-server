@@ -92,6 +92,7 @@ export interface PublicAgentProfile {
   registered_at: string
   review_summary?: ReviewSummary
   categories?: string[]
+  playground_enabled?: boolean
 }
 
 export interface DirectoryResponse {
@@ -111,6 +112,7 @@ export interface DirectoryParams {
   page_size?: number
   page_token?: string
   category?: string
+  playground_only?: boolean
 }
 
 export interface ReputationEvent {
@@ -226,7 +228,22 @@ export interface AgentContact {
   owner_agent_id: string
   contact_agent_id: string
   alias: string
+  expires_at?: string
   created_at: string
+}
+
+// Access Request types
+
+export interface AccessRequest {
+  id: string
+  agent_id: string
+  user_id: string
+  status: "pending" | "approved" | "rejected"
+  message: string
+  reject_reason?: string
+  expires_at?: string
+  created_at: string
+  updated_at: string
 }
 
 // Claim Token types

@@ -42,6 +42,7 @@
     "myAgents": "My Agents",
     "publishAgent": "Publish Agent",
     "invocations": "Invocations",
+    "accessRequests": "Access Requests",
     "apiKeys": "API Keys",
     "overview": "Overview",
     "users": "Users",
@@ -285,7 +286,13 @@
     "saving": "Saving...",
     "publishAgent": "Publish Agent",
     "saveChanges": "Save Changes",
-    "failedPublish": "Failed to publish agent"
+    "failedPublish": "Failed to publish agent",
+    "playgroundEnabled": "Enable Playground",
+    "playgroundEnabledDesc": "Allow any authenticated user to invoke this agent from the playground.",
+    "visibility": "Visibility",
+    "visibilityPublic": "Public",
+    "visibilityPrivate": "Private",
+    "visibilityDesc": "Private agents are hidden from the public directory."
   },
   "contacts": {
     "title": "Contacts Whitelist",
@@ -297,7 +304,8 @@
     "added": "Added",
     "adding": "Adding...",
     "noContacts": "No contacts yet. Add an agent ID to allow it to communicate with this agent.",
-    "loadingContacts": "Loading contacts..."
+    "loadingContacts": "Loading contacts...",
+    "expiresAt": "Expires"
   },
   "analyticsChart": {
     "invocationsOverTime": "Invocations Over Time",
@@ -522,5 +530,25 @@
     "openSourceTitle": "Open Source & Community Driven",
     "openSourceDesc": "PeerClaw is fully open source. Transparency, auditability, and community contribution are at the heart of everything we build.",
     "viewOnGithub": "View on GitHub"
+  },
+  "accessRequest": {
+    "title": "Access Requests",
+    "myRequestsDesc": "View your access requests across all agents",
+    "submitRequest": "Request Access",
+    "submitRequestDesc": "Send a message to the agent provider explaining why you need access.",
+    "messagePlaceholder": "Describe why you need access to this agent...",
+    "requestAccess": "Request Access",
+    "accessPending": "Access Pending",
+    "agentId": "Agent",
+    "message": "Message",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "approve": "Approve",
+    "reject": "Reject",
+    "revoke": "Revoke",
+    "rejectReason": "Reject Reason",
+    "expiresAt": "Expires",
+    "noRequests": "No access requests"
   }
 }

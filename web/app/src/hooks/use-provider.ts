@@ -3,6 +3,7 @@ import { fetchWithAuth } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { generateClaimToken, listClaimTokens } from "@/api/claim"
 import type {
+  AccessRequest,
   AgentContact,
   ClaimToken,
   GenerateClaimTokenRequest,
@@ -27,6 +28,8 @@ export interface ProviderAgent {
   avg_latency_ms: number
   created_at: string
   updated_at: string
+  playground_enabled?: boolean
+  visibility?: string
 }
 
 export interface ProviderDashboardData {
@@ -59,6 +62,8 @@ export interface PublishAgentData {
   auth_type: string
   auth_config?: Record<string, string>
   tags: string[]
+  playground_enabled?: boolean
+  visibility?: string
 }
 
 export interface Invocation {
@@ -284,4 +289,69 @@ export function useGenerateClaimToken() {
   )
 
   return { generate }
+}
+
+// ----- Access Request Hooks -----
+
+export function useAgentAccessRequests(
+  agentId: string | undefined
+): UseQueryResult<{ requests: AccessRequest[] }> {
+  return useProviderQuery<{ requests: AccessRequest[] }>(
+    `/provider/agents/${agentId}/access-requests`,
+    !agentId
+  )
+}
+
+export function useAccessRequestMutations(agentId: string | undefined) {
+  const { accessToken } = useAuth()
+
+  const approve = useCallback(
+    async (requestId: string, expiresAt?: string): Promise<void> => {
+      if (!accessToken) throw new Error("Not authenticated")
+      if (!agentId) throw new Error("Agent ID required")
+      await fetchWithAuth<{ status: string }>(
+        `/provider/agents/${agentId}/access-requests/${requestId}`,
+        accessToken,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            action: "approve",
+            ...(expiresAt ? { expires_at: expiresAt } : {}),
+          }),
+        }
+      )
+    },
+    [accessToken, agentId]
+  )
+
+  const reject = useCallback(
+    async (requestId: string, reason = ""): Promise<void> => {
+      if (!accessToken) throw new Error("Not authenticated")
+      if (!agentId) throw new Error("Agent ID required")
+      await fetchWithAuth<{ status: string }>(
+        `/provider/agents/${agentId}/access-requests/${requestId}`,
+        accessToken,
+        {
+          method: "PUT",
+          body: JSON.stringify({ action: "reject", reject_reason: reason }),
+        }
+      )
+    },
+    [accessToken, agentId]
+  )
+
+  const revoke = useCallback(
+    async (requestId: string): Promise<void> => {
+      if (!accessToken) throw new Error("Not authenticated")
+      if (!agentId) throw new Error("Agent ID required")
+      await fetchWithAuth<void>(
+        `/provider/agents/${agentId}/access-requests/${requestId}`,
+        accessToken,
+        { method: "DELETE" }
+      )
+    },
+    [accessToken, agentId]
+  )
+
+  return { approve, reject, revoke }
 }

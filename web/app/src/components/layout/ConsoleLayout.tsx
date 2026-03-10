@@ -11,6 +11,7 @@ import {
   LogOut,
   Shield,
   Github,
+  Lock,
 } from "lucide-react"
 
 export function ConsoleLayout() {
@@ -23,6 +24,7 @@ export function ConsoleLayout() {
     { to: "/console/agents", label: t('nav.myAgents'), icon: Bot, end: false },
     { to: "/console/publish", label: t('nav.publishAgent'), icon: PlusCircle, end: false },
     { to: "/console/invocations", label: t('nav.invocations'), icon: Activity, end: false },
+    { to: "/console/access-requests", label: t('nav.accessRequests'), icon: Lock, end: false },
     { to: "/console/api-keys", label: t('nav.apiKeys'), icon: KeyRound, end: false },
   ]
 
