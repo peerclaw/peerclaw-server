@@ -16,6 +16,7 @@ import { RegisterPage } from "@/pages/RegisterPage"
 import { PlaygroundPage } from "@/pages/PlaygroundPage"
 import { AboutPage } from "@/pages/AboutPage"
 import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage"
+import { ProviderAgentsPage } from "@/pages/ProviderAgentsPage"
 import { AgentPublishPage } from "@/pages/AgentPublishPage"
 import { ProviderAgentDetailPage } from "@/pages/ProviderAgentDetailPage"
 import { AgentEditPage } from "@/pages/AgentEditPage"
@@ -55,6 +56,7 @@ export function App() {
           >
             <Route index element={<ProviderDashboardPage />} />
             <Route path="publish" element={<AgentPublishPage />} />
+            <Route path="agents" element={<ProviderAgentsPage />} />
             <Route path="agents/:id" element={<ProviderAgentDetailPage />} />
             <Route path="agents/:id/edit" element={<AgentEditPage />} />
             <Route path="invocations" element={<InvocationHistoryPage />} />
