@@ -49,7 +49,8 @@
     "reports": "举报",
     "categories": "分类",
     "analytics": "分析",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "github": "GitHub"
   },
   "auth": {
     "email": "邮箱",

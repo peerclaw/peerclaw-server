@@ -2,6 +2,7 @@ import { Outlet, Link, NavLink } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { Github } from "lucide-react"
 
 export function PublicLayout() {
   const { user, logout } = useAuth()
@@ -75,6 +76,15 @@ export function PublicLayout() {
                 {t('nav.signIn')}
               </Link>
             )}
+            <a
+              href="https://github.com/peerclaw/peerclaw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title={t('nav.github')}
+            >
+              <Github className="size-[18px]" />
+            </a>
             <LanguageSwitcher />
           </nav>
         </div>

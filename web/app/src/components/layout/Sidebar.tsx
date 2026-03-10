@@ -9,6 +9,7 @@ import {
   Activity,
   LogOut,
   ExternalLink,
+  Github,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
@@ -82,6 +83,15 @@ export function Sidebar() {
           <ExternalLink className="size-3.5" />
           {t('nav.backToPublicSite')}
         </NavLink>
+        <a
+          href="https://github.com/peerclaw/peerclaw"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Github className="size-3.5" />
+          {t('nav.github')}
+        </a>
         <div className="px-3 pt-1">
           <LanguageSwitcher />
         </div>

@@ -37,6 +37,11 @@ export function LandingPage() {
     <div className="mx-auto max-w-6xl px-4">
       {/* Hero */}
       <section className="flex flex-col items-center py-20 text-center">
+        <img
+          src="/logo.jpg"
+          alt="PeerClaw"
+          className="size-28 rounded-2xl object-cover mb-6"
+        />
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
           {t('landing.heroTitle')}
         </h1>

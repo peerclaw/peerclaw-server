@@ -10,6 +10,7 @@ import {
   KeyRound,
   LogOut,
   Shield,
+  Github,
 } from "lucide-react"
 
 export function ConsoleLayout() {
@@ -99,6 +100,15 @@ export function ConsoleLayout() {
           >
             {t('nav.backToPublicSite')}
           </NavLink>
+          <a
+            href="https://github.com/peerclaw/peerclaw"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground px-3"
+          >
+            <Github className="size-3.5" />
+            {t('nav.github')}
+          </a>
           <div className="px-3 pt-1">
             <LanguageSwitcher />
           </div>

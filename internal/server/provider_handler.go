@@ -283,26 +283,72 @@ func (s *HTTPServer) handleProviderDashboard(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Get agent count.
+	// Get all agents owned by this user.
 	result, err := s.registry.ListAgents(r.Context(), registry.ListFilter{
 		OwnerUserID: userID,
-		PageSize:    1,
 	})
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	dashboard := map[string]any{
-		"agent_count": result.TotalCount,
+	// Build per-agent entries with invocation stats.
+	allTimeSince := time.Time{} // zero value = all time
+	agents := make([]map[string]any, 0, len(result.Agents))
+	for _, card := range result.Agents {
+		agent := map[string]any{
+			"id":           card.ID,
+			"name":         card.Name,
+			"description":  card.Description,
+			"version":      card.Version,
+			"capabilities": card.Capabilities,
+			"protocols":    card.Protocols,
+			"status":       card.Status,
+			"endpoint_url": card.Endpoint.URL,
+			"auth_type":    card.Auth.Type,
+			"tags":         card.PeerClaw.Tags,
+			"created_at":   card.RegisteredAt,
+			"updated_at":   card.LastHeartbeat,
+		}
+
+		var totalCalls, successCalls int64
+		var avgLatency float64
+		if s.invocation != nil {
+			if st, err := s.invocation.AgentStats(r.Context(), card.ID, allTimeSince); err == nil {
+				totalCalls = st.TotalCalls
+				successCalls = st.SuccessCalls
+				avgLatency = st.AvgDurationMs
+			}
+		}
+		var successRate float64
+		if totalCalls > 0 {
+			successRate = float64(successCalls) / float64(totalCalls) * 100
+		}
+		agent["total_calls"] = totalCalls
+		agent["success_rate"] = successRate
+		agent["avg_latency_ms"] = avgLatency
+
+		agents = append(agents, agent)
 	}
 
+	// Aggregated top-level stats.
+	var totalCalls int64
+	var successRate, avgLatency float64
 	if s.invocation != nil {
-		stats, err := s.invocation.ProviderDashboardStats(r.Context(), userID)
-		if err == nil {
-			dashboard["invocation_stats"] = stats
+		if stats, err := s.invocation.ProviderDashboardStats(r.Context(), userID); err == nil {
+			totalCalls = stats.TotalCalls
+			avgLatency = stats.AvgDurationMs
+			if stats.TotalCalls > 0 {
+				successRate = float64(stats.SuccessCalls) / float64(stats.TotalCalls) * 100
+			}
 		}
 	}
 
-	s.jsonResponse(w, http.StatusOK, dashboard)
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"total_agents":  result.TotalCount,
+		"total_calls":   totalCalls,
+		"success_rate":  successRate,
+		"avg_latency_ms": avgLatency,
+		"agents":        agents,
+	})
 }
