@@ -34,7 +34,7 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 		return err
 	}
 	// Add expires_at column if it doesn't exist.
-	s.db.ExecContext(ctx, `ALTER TABLE agent_contacts ADD COLUMN expires_at DATETIME`)
+	_, _ = s.db.ExecContext(ctx, `ALTER TABLE agent_contacts ADD COLUMN expires_at DATETIME`)
 	return nil
 }
 

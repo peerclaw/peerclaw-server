@@ -13,6 +13,6 @@ func InstallScriptHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Write(installScript)
+		_, _ = w.Write(installScript)
 	})
 }

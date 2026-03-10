@@ -98,7 +98,7 @@ func TestService_ListByUserAndAgent(t *testing.T) {
 	}
 
 	// List by agent.
-	records, total, err = svc.ListByAgent(ctx, "agent-a", 10, 0)
+	_, total, err = svc.ListByAgent(ctx, "agent-a", 10, 0)
 	if err != nil {
 		t.Fatalf("ListByAgent: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestService_ListByUserAndAgent(t *testing.T) {
 	}
 
 	// List by agent that has only 1 record.
-	records, total, err = svc.ListByAgent(ctx, "agent-b", 10, 0)
+	_, total, err = svc.ListByAgent(ctx, "agent-b", 10, 0)
 	if err != nil {
 		t.Fatalf("ListByAgent agent-b: %v", err)
 	}

@@ -33,7 +33,7 @@ func (s *PostgresStore) Migrate(ctx context.Context) error {
 		return err
 	}
 	// Add expires_at column if it doesn't exist.
-	s.db.ExecContext(ctx, `ALTER TABLE agent_contacts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`)
+	_, _ = s.db.ExecContext(ctx, `ALTER TABLE agent_contacts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`)
 	return nil
 }
 
