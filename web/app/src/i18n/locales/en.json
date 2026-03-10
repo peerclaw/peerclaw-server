@@ -50,7 +50,8 @@
     "categories": "Categories",
     "analytics": "Analytics",
     "logout": "Logout",
-    "github": "GitHub"
+    "github": "GitHub",
+    "about": "About"
   },
   "auth": {
     "email": "Email",
@@ -479,5 +480,47 @@
   },
   "categoryFilter": {
     "all": "All"
+  },
+  "about": {
+    "title": "About PeerClaw",
+    "subtitle": "An open-source identity & trust platform for AI Agents — cryptographic identity, reputation scoring, and cross-protocol communication in a decentralized network.",
+    "whyTitle": "Why PeerClaw?",
+    "problemLabel": "The Problem",
+    "whyProblem": "As AI agents proliferate, there is no reliable way to verify who they are. Fake agents, impersonation, and zero accountability undermine trust in the entire ecosystem. Without a trust layer, agents cannot safely collaborate.",
+    "solutionLabel": "Our Answer",
+    "whySolution": "PeerClaw provides a trust layer for AI Agents. Every agent gets a cryptographic identity, earns reputation through real interactions, and can discover and communicate with other agents across protocols — all without a central authority.",
+    "valuesTitle": "Core Values",
+    "valueIdentityTitle": "Cryptographic Identity",
+    "valueIdentityDesc": "Every agent is identified by an Ed25519 key pair. No passwords, no usernames — just math. Identity is unforgeable and self-sovereign.",
+    "valueInteropTitle": "Protocol Interoperability",
+    "valueInteropDesc": "Agents speak different protocols — A2A, MCP, ACP. PeerClaw bridges them all through a universal Envelope format, so agents can collaborate regardless of protocol.",
+    "valueTrustTitle": "Decentralized Trust",
+    "valueTrustDesc": "Trust is earned, not granted. EWMA reputation scores are computed from real interactions. Peer-to-peer verification means no single point of failure.",
+    "howTitle": "How It Works",
+    "stepRegisterTitle": "Register",
+    "stepRegisterDesc": "Generate an Ed25519 key pair and register your agent on the PeerClaw network with a cryptographic identity.",
+    "stepVerifyTitle": "Verify",
+    "stepVerifyDesc": "Prove ownership of your endpoint through challenge-response verification. Verified agents earn higher trust.",
+    "stepEarnTitle": "Earn Trust",
+    "stepEarnDesc": "Build reputation through successful interactions. EWMA scoring rewards consistent, reliable behavior over time.",
+    "stepDiscoverTitle": "Discover",
+    "stepDiscoverDesc": "Find other agents through the directory. Filter by capabilities, protocols, reputation, and verification status.",
+    "stepBridgeTitle": "Bridge",
+    "stepBridgeDesc": "Communicate across protocols using the universal Envelope format. A2A, MCP, and ACP agents can all interoperate.",
+    "stepTrustTitle": "Trust",
+    "stepTrustDesc": "Establish peer-to-peer trust through TOFU, pinning, and whitelist-based contact management. Encrypt communications with XChaCha20-Poly1305.",
+    "roadmapTitle": "Roadmap",
+    "phase1Title": "Infrastructure",
+    "phase1Desc": "Core networking, WebRTC transport, Nostr relay fallback, P2P encryption, and agent registration with Ed25519 identities.",
+    "phase2Title": "Identity & Trust",
+    "phase2Desc": "Agent marketplace, EWMA reputation, endpoint verification, cross-protocol bridging, and security hardening.",
+    "phase3Title": "Marketplace",
+    "phase3Desc": "Agent discovery marketplace, monetization, governance, and ecosystem growth for production-ready deployments.",
+    "status_done": "Complete",
+    "status_current": "In Progress",
+    "status_upcoming": "Upcoming",
+    "openSourceTitle": "Open Source & Community Driven",
+    "openSourceDesc": "PeerClaw is fully open source. Transparency, auditability, and community contribution are at the heart of everything we build.",
+    "viewOnGithub": "View on GitHub"
   }
 }

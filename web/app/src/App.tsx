@@ -14,6 +14,7 @@ import { PublicProfilePage } from "@/pages/PublicProfilePage"
 import { LoginPage } from "@/pages/LoginPage"
 import { RegisterPage } from "@/pages/RegisterPage"
 import { PlaygroundPage } from "@/pages/PlaygroundPage"
+import { AboutPage } from "@/pages/AboutPage"
 import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage"
 import { AgentPublishPage } from "@/pages/AgentPublishPage"
 import { ProviderAgentDetailPage } from "@/pages/ProviderAgentDetailPage"
@@ -40,6 +41,7 @@ export function App() {
             <Route path="register" element={<RegisterPage />} />
             <Route path="playground" element={<PlaygroundPage />} />
             <Route path="playground/:agentId" element={<PlaygroundPage />} />
+            <Route path="about" element={<AboutPage />} />
           </Route>
 
           {/* Provider console routes (auth required) */}

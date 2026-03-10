@@ -42,6 +42,18 @@ export function PublicLayout() {
             >
               {t('nav.playground')}
             </NavLink>
+            <NavLink
+              to="/about"
+              className={({ isActive }) =>
+                `text-sm transition-colors ${
+                  isActive
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground hover:text-foreground"
+                }`
+              }
+            >
+              {t('nav.about')}
+            </NavLink>
             {user ? (
               <>
                 <NavLink

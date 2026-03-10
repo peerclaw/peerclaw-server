@@ -50,7 +50,8 @@
     "categories": "分类",
     "analytics": "分析",
     "logout": "退出登录",
-    "github": "GitHub"
+    "github": "GitHub",
+    "about": "关于"
   },
   "auth": {
     "email": "邮箱",
@@ -479,5 +480,47 @@
   },
   "categoryFilter": {
     "all": "全部"
+  },
+  "about": {
+    "title": "关于 PeerClaw",
+    "subtitle": "一个面向 AI Agent 的开源身份与信任平台 — 提供密码学身份、信誉评分和跨协议通信的去中心化网络。",
+    "whyTitle": "为什么选择 PeerClaw？",
+    "problemLabel": "问题",
+    "whyProblem": "随着 AI Agent 的爆发式增长，目前没有可靠的方式来验证它们的身份。虚假 Agent、冒充行为和零问责制正在破坏整个生态系统的信任基础。没有信任层，Agent 之间无法安全协作。",
+    "solutionLabel": "我们的方案",
+    "whySolution": "PeerClaw 为 AI Agent 提供信任层。每个 Agent 都获得密码学身份，通过真实交互积累信誉，并能跨协议发现和通信 — 一切都无需中心化权威。",
+    "valuesTitle": "核心价值",
+    "valueIdentityTitle": "密码学身份",
+    "valueIdentityDesc": "每个 Agent 都由 Ed25519 密钥对标识。无需密码，无需用户名 — 只靠数学。身份不可伪造且自主可控。",
+    "valueInteropTitle": "协议互操作性",
+    "valueInteropDesc": "Agent 使用不同的协议 — A2A、MCP、ACP。PeerClaw 通过通用 Envelope 格式桥接所有协议，让 Agent 无论使用何种协议都能协作。",
+    "valueTrustTitle": "去中心化信任",
+    "valueTrustDesc": "信任靠积累，而非授权。EWMA 信誉评分由真实交互计算而来。点对点验证意味着没有单点故障。",
+    "howTitle": "工作原理",
+    "stepRegisterTitle": "注册",
+    "stepRegisterDesc": "生成 Ed25519 密钥对，以密码学身份在 PeerClaw 网络上注册您的 Agent。",
+    "stepVerifyTitle": "验证",
+    "stepVerifyDesc": "通过挑战-响应验证证明端点所有权。已验证的 Agent 获得更高的信任等级。",
+    "stepEarnTitle": "积累信誉",
+    "stepEarnDesc": "通过成功的交互建立信誉。EWMA 评分奖励持续、可靠的行为表现。",
+    "stepDiscoverTitle": "发现",
+    "stepDiscoverDesc": "通过目录发现其他 Agent。按能力、协议、信誉和验证状态进行筛选。",
+    "stepBridgeTitle": "桥接",
+    "stepBridgeDesc": "使用通用 Envelope 格式跨协议通信。A2A、MCP 和 ACP Agent 都可以互操作。",
+    "stepTrustTitle": "建立信任",
+    "stepTrustDesc": "通过 TOFU、密钥固定和基于白名单的联系人管理建立点对点信任。使用 XChaCha20-Poly1305 加密通信。",
+    "roadmapTitle": "路线图",
+    "phase1Title": "基础设施",
+    "phase1Desc": "核心网络、WebRTC 传输、Nostr 中继备选、P2P 加密和 Ed25519 身份的 Agent 注册。",
+    "phase2Title": "身份与信任",
+    "phase2Desc": "Agent 市场、EWMA 信誉、端点验证、跨协议桥接和安全加固。",
+    "phase3Title": "市场",
+    "phase3Desc": "Agent 发现市场、商业化、治理和生态系统增长，面向生产级部署。",
+    "status_done": "已完成",
+    "status_current": "进行中",
+    "status_upcoming": "即将开始",
+    "openSourceTitle": "开源与社区驱动",
+    "openSourceDesc": "PeerClaw 完全开源。透明、可审计和社区贡献是我们构建一切的核心。",
+    "viewOnGithub": "在 GitHub 上查看"
   }
 }
