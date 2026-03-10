@@ -172,6 +172,12 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 		conditions = append(conditions, "id IN (SELECT agent_id FROM agent_categories ac INNER JOIN categories c ON c.id = ac.category_id WHERE c.slug = ?)")
 		args = append(args, filter.Category)
 	}
+	if filter.PlaygroundOnly {
+		conditions = append(conditions, "playground_enabled = 1")
+	}
+	if filter.PublicOnly {
+		conditions = append(conditions, "COALESCE(visibility, 'public') = 'public'")
+	}
 
 	where := ""
 	if len(conditions) > 0 {
@@ -310,6 +316,29 @@ func (s *SQLiteStore) ListByOwner(ctx context.Context, userID string, filter Lis
 
 func (s *SQLiteStore) GetDB() interface{} {
 	return s.db
+}
+
+func (s *SQLiteStore) GetAccessFlags(ctx context.Context, id string) (*AccessFlags, error) {
+	var playgroundEnabled bool
+	var visibility string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(playground_enabled, 0), COALESCE(visibility, 'public') FROM agents WHERE id = ?`, id,
+	).Scan(&playgroundEnabled, &visibility)
+	if err != nil {
+		return nil, fmt.Errorf("get access flags: %w", err)
+	}
+	return &AccessFlags{
+		PlaygroundEnabled: playgroundEnabled,
+		Visibility:        visibility,
+	}, nil
+}
+
+func (s *SQLiteStore) SetAccessFlags(ctx context.Context, id string, flags *AccessFlags) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE agents SET playground_enabled = ?, visibility = ? WHERE id = ?`,
+		flags.PlaygroundEnabled, flags.Visibility, id,
+	)
+	return err
 }
 
 func (s *SQLiteStore) Close() error {

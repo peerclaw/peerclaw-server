@@ -51,6 +51,8 @@ func (s *PostgresStore) Migrate(ctx context.Context) error {
 		{"verified_at", "TIMESTAMPTZ"},
 		{"public_endpoint", "BOOLEAN DEFAULT FALSE"},
 		{"owner_user_id", "TEXT DEFAULT ''"},
+		{"playground_enabled", "BOOLEAN DEFAULT FALSE"},
+		{"visibility", "TEXT DEFAULT 'public'"},
 	}
 
 	for _, col := range columns {

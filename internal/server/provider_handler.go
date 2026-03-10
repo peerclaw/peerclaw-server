@@ -69,6 +69,22 @@ func (s *HTTPServer) handleProviderPublishAgent(w http.ResponseWriter, r *http.R
 
 	s.engine.UpdateFromCard(card)
 
+	// Set access flags if provided.
+	if req.PlaygroundEnabled != nil || req.Visibility != "" {
+		flags := &registry.AccessFlags{}
+		if req.PlaygroundEnabled != nil {
+			flags.PlaygroundEnabled = *req.PlaygroundEnabled
+		}
+		if req.Visibility != "" {
+			flags.Visibility = req.Visibility
+		} else {
+			flags.Visibility = "public"
+		}
+		if err := s.registry.SetAccessFlags(r.Context(), card.ID, flags); err != nil {
+			s.logger.Warn("failed to set access flags", "agent_id", card.ID, "error", err)
+		}
+	}
+
 	if s.reputation != nil {
 		_ = s.reputation.RecordEvent(r.Context(), card.ID, "registration", "")
 	}
@@ -94,7 +110,33 @@ func (s *HTTPServer) handleProviderListAgents(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	s.jsonResponse(w, http.StatusOK, result)
+	agents := make([]map[string]any, 0, len(result.Agents))
+	for _, card := range result.Agents {
+		agent := map[string]any{
+			"id":           card.ID,
+			"name":         card.Name,
+			"description":  card.Description,
+			"version":      card.Version,
+			"capabilities": card.Capabilities,
+			"protocols":    card.Protocols,
+			"status":       card.Status,
+			"endpoint_url": card.Endpoint.URL,
+			"auth_type":    card.Auth.Type,
+			"tags":         card.PeerClaw.Tags,
+			"created_at":   card.RegisteredAt,
+			"updated_at":   card.LastHeartbeat,
+		}
+		if flags, err := s.registry.GetAccessFlags(r.Context(), card.ID); err == nil && flags != nil {
+			agent["playground_enabled"] = flags.PlaygroundEnabled
+			agent["visibility"] = flags.Visibility
+		}
+		agents = append(agents, agent)
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"agents":      agents,
+		"total_count": result.TotalCount,
+	})
 }
 
 // handleProviderGetAgent handles GET /api/v1/provider/agents/{id}.
@@ -118,7 +160,27 @@ func (s *HTTPServer) handleProviderGetAgent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	s.jsonResponse(w, http.StatusOK, card)
+	// Enrich response with access flags.
+	flags, _ := s.registry.GetAccessFlags(r.Context(), id)
+	resp := map[string]any{
+		"id":           card.ID,
+		"name":         card.Name,
+		"description":  card.Description,
+		"version":      card.Version,
+		"capabilities": card.Capabilities,
+		"protocols":    card.Protocols,
+		"status":       card.Status,
+		"endpoint_url": card.Endpoint.URL,
+		"auth_type":    card.Auth.Type,
+		"tags":         card.PeerClaw.Tags,
+		"created_at":   card.RegisteredAt,
+		"updated_at":   card.LastHeartbeat,
+	}
+	if flags != nil {
+		resp["playground_enabled"] = flags.PlaygroundEnabled
+		resp["visibility"] = flags.Visibility
+	}
+	s.jsonResponse(w, http.StatusOK, resp)
 }
 
 // handleProviderUpdateAgent handles PUT /api/v1/provider/agents/{id}.
@@ -186,6 +248,24 @@ func (s *HTTPServer) handleProviderUpdateAgent(w http.ResponseWriter, r *http.Re
 	}
 
 	s.engine.UpdateFromCard(existing)
+
+	// Update access flags if provided.
+	if req.PlaygroundEnabled != nil || req.Visibility != "" {
+		existingFlags, _ := s.registry.GetAccessFlags(r.Context(), id)
+		if existingFlags == nil {
+			existingFlags = &registry.AccessFlags{Visibility: "public"}
+		}
+		if req.PlaygroundEnabled != nil {
+			existingFlags.PlaygroundEnabled = *req.PlaygroundEnabled
+		}
+		if req.Visibility != "" {
+			existingFlags.Visibility = req.Visibility
+		}
+		if err := s.registry.SetAccessFlags(r.Context(), id, existingFlags); err != nil {
+			s.logger.Warn("failed to update access flags", "agent_id", id, "error", err)
+		}
+	}
+
 	s.jsonResponse(w, http.StatusOK, existing)
 }
 

@@ -20,6 +20,8 @@ type ListFilter struct {
 	SortBy      string // "reputation", "name", "registered_at"
 	OwnerUserID string // Filter by owner user ID.
 	Category    string // Filter by category slug.
+	PlaygroundOnly bool   // Only return agents with playground_enabled=true
+	PublicOnly     bool   // Only return agents with visibility='public'
 }
 
 // ListResult holds a page of agents and pagination info.
@@ -27,6 +29,12 @@ type ListResult struct {
 	Agents        []*agentcard.Card
 	NextPageToken string
 	TotalCount    int
+}
+
+// AccessFlags holds security-critical flags for agent access control.
+type AccessFlags struct {
+	PlaygroundEnabled bool   `json:"playground_enabled"`
+	Visibility        string `json:"visibility"` // "public" or "private"
 }
 
 // Store defines the persistence interface for agent registration data.
@@ -54,6 +62,12 @@ type Store interface {
 
 	// GetDB returns the underlying *sql.DB for shared use by other modules.
 	GetDB() interface{}
+
+	// GetAccessFlags returns access control flags for an agent.
+	GetAccessFlags(ctx context.Context, id string) (*AccessFlags, error)
+
+	// SetAccessFlags updates access control flags for an agent.
+	SetAccessFlags(ctx context.Context, id string, flags *AccessFlags) error
 
 	// Close releases resources.
 	Close() error

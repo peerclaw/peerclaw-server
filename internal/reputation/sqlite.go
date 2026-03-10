@@ -53,6 +53,8 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 		{"verified_at", "DATETIME"},
 		{"public_endpoint", "BOOLEAN DEFAULT 0"},
 		{"owner_user_id", "TEXT DEFAULT ''"},
+		{"playground_enabled", "BOOLEAN DEFAULT 0"},
+		{"visibility", "TEXT DEFAULT 'public'"},
 	}
 
 	for _, col := range columns {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"log/slog"
@@ -64,6 +65,7 @@ type HTTPServer struct {
 	blob                   *blob.Service
 	contacts               *contacts.Service
 	bridgeRateLimiter      *IPRateLimiter
+	useracl                interface{ IsAllowed(ctx context.Context, agentID, userID string) (bool, error) }
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -194,6 +196,11 @@ func (s *HTTPServer) SetContacts(c *contacts.Service) {
 // SetBridgeRateLimiter sets the per-agent rate limiter for bridge sends.
 func (s *HTTPServer) SetBridgeRateLimiter(rl *IPRateLimiter) {
 	s.bridgeRateLimiter = rl
+}
+
+// SetUserACL sets the user access control service.
+func (s *HTTPServer) SetUserACL(ua interface{ IsAllowed(ctx context.Context, agentID, userID string) (bool, error) }) {
+	s.useracl = ua
 }
 
 func (s *HTTPServer) routes() {
@@ -355,7 +362,9 @@ type registerRequest struct {
 	Protocols    []string          `json:"protocols"`
 	Auth         authReq           `json:"auth"`
 	Metadata     map[string]string `json:"metadata"`
-	PeerClaw     peerclawReq       `json:"peerclaw"`
+	PeerClaw          peerclawReq       `json:"peerclaw"`
+	PlaygroundEnabled *bool             `json:"playground_enabled,omitempty"`
+	Visibility        string            `json:"visibility,omitempty"`
 }
 
 type endpointReq struct {
@@ -784,18 +793,34 @@ func (s *HTTPServer) registerBlobRoutes() {
 }
 
 func (s *HTTPServer) registerInvokeRoutes() {
-	// Invoke with optional auth (anonymous allowed with rate limiting).
-	wrapOptionalAuth := func(h http.HandlerFunc) http.Handler {
+	// Invoke with dual-auth: agent auth headers or JWT.
+	wrapInvokeAuth := func(h http.HandlerFunc) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if s.userAuth != nil {
-				OptionalUserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+			// Check for agent auth headers first.
+			agentID := r.Header.Get("X-PeerClaw-Agent-ID")
+			sig := r.Header.Get("X-PeerClaw-Signature")
+			pubKey := r.Header.Get("X-PeerClaw-PublicKey")
+			authHeader := r.Header.Get("Authorization")
+
+			hasAgentAuth := (agentID != "" && authHeader != "") || (sig != "" && pubKey != "")
+
+			if hasAgentAuth {
+				// Agent path: use existing AuthMiddleware.
+				AuthMiddleware(s.authCfg, s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
 				return
 			}
-			h(w, r)
+
+			// User path: require JWT.
+			if s.userAuth != nil {
+				UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+				return
+			}
+
+			s.jsonError(w, "authentication required", http.StatusUnauthorized)
 		})
 	}
 
-	wrapInvokeAuth := func(h http.HandlerFunc) http.Handler {
+	wrapUserAuth := func(h http.HandlerFunc) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if s.userAuth != nil {
 				UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
@@ -805,9 +830,9 @@ func (s *HTTPServer) registerInvokeRoutes() {
 		})
 	}
 
-	s.mux.Handle("POST /api/v1/invoke/{agent_id}", wrapOptionalAuth(s.handleInvoke))
-	s.mux.Handle("GET /api/v1/invocations", wrapInvokeAuth(s.handleListInvocations))
-	s.mux.Handle("GET /api/v1/invocations/{id}", wrapInvokeAuth(s.handleGetInvocation))
+	s.mux.Handle("POST /api/v1/invoke/{agent_id}", wrapInvokeAuth(s.handleInvoke))
+	s.mux.Handle("GET /api/v1/invocations", wrapUserAuth(s.handleListInvocations))
+	s.mux.Handle("GET /api/v1/invocations/{id}", wrapUserAuth(s.handleGetInvocation))
 }
 
 func (s *HTTPServer) registerUserAuthRoutes() {

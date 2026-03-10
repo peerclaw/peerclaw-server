@@ -27,6 +27,7 @@ type PublicAgentProfile struct {
 	Trusted          bool                `json:"trusted"`
 	ReputationScore  float64             `json:"reputation_score"`
 	ReputationEvents int64               `json:"reputation_events"`
+	PlaygroundEnabled bool                `json:"playground_enabled"`
 	TotalCalls       int64               `json:"total_calls"`
 	EndpointURL      string              `json:"endpoint_url,omitempty"` // Only if public_endpoint=true
 	RegisteredAt     time.Time           `json:"registered_at"`
@@ -111,6 +112,12 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 		filter.Category = q.Get("category")
 	}
 
+	if q.Get("playground_only") == "true" {
+		filter.PlaygroundOnly = true
+	}
+	// Always filter out private agents in public directory.
+	filter.PublicOnly = true
+
 	sortByPopular := filter.SortBy == "popular"
 	if filter.SortBy == "" {
 		filter.SortBy = "reputation"
@@ -141,6 +148,9 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 	profiles := make([]PublicAgentProfile, 0, len(result.Agents))
 	for _, card := range result.Agents {
 		p := toPublicProfile(card)
+		if flags, err := s.registry.GetAccessFlags(r.Context(), card.ID); err == nil && flags != nil {
+			p.PlaygroundEnabled = flags.PlaygroundEnabled
+		}
 		// Enrich with reputation data from the engine if available.
 		if s.reputation != nil {
 			score, _ := s.reputation.GetScore(r.Context(), card.ID)
@@ -176,7 +186,18 @@ func (s *HTTPServer) handlePublicProfile(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Check visibility.
+	flags, _ := s.registry.GetAccessFlags(r.Context(), id)
+	if flags != nil && flags.Visibility == "private" {
+		s.jsonError(w, "agent not found", http.StatusNotFound)
+		return
+	}
+
 	profile := toPublicProfile(card)
+
+	if flags != nil {
+		profile.PlaygroundEnabled = flags.PlaygroundEnabled
+	}
 
 	// Enrich with live reputation data.
 	if s.reputation != nil {

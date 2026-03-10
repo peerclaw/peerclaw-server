@@ -139,6 +139,16 @@ func (s *Service) Discover(ctx context.Context, capabilities []string, proto str
 	return s.store.FindByCapabilities(ctx, capabilities, proto, maxResults)
 }
 
+// GetAccessFlags returns access control flags for an agent.
+func (s *Service) GetAccessFlags(ctx context.Context, agentID string) (*AccessFlags, error) {
+	return s.store.GetAccessFlags(ctx, agentID)
+}
+
+// SetAccessFlags updates access control flags for an agent.
+func (s *Service) SetAccessFlags(ctx context.Context, agentID string, flags *AccessFlags) error {
+	return s.store.SetAccessFlags(ctx, agentID, flags)
+}
+
 // DiscoverFederated finds agents by capabilities, including federated peers.
 // For now, same as Discover. Federation integration adds remote results at the HTTP layer.
 func (s *Service) DiscoverFederated(ctx context.Context, capabilities []string, proto string, maxResults int) ([]*agentcard.Card, error) {

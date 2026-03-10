@@ -50,8 +50,11 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check contacts whitelist for agent-to-agent invocations.
+	// Extract caller identity.
 	callerAgentID, isAgent := identity.AgentIDFromContext(r.Context())
+	userID, _ := identity.UserIDFromContext(r.Context())
+
+	// Check contacts whitelist for agent-to-agent invocations.
 	if isAgent && s.contacts != nil {
 		allowed, err := s.contacts.IsAllowed(r.Context(), callerAgentID, agentID)
 		if err != nil {
@@ -62,6 +65,37 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 			s.jsonError(w, "not in destination agent's contact list", http.StatusForbidden)
 			return
 		}
+	}
+
+	// User access check: require playground_enabled (P2 adds ACL fallback).
+	if !isAgent {
+		if userID == "" {
+			s.jsonError(w, "authentication required", http.StatusUnauthorized)
+			return
+		}
+		flags, err := s.registry.GetAccessFlags(r.Context(), agentID)
+		if err != nil {
+			s.jsonError(w, "agent not found", http.StatusNotFound)
+			return
+		}
+		if !flags.PlaygroundEnabled {
+			// Check user ACL (P2).
+			if s.useracl != nil {
+				allowed, err := s.useracl.IsAllowed(r.Context(), agentID, userID)
+				if err != nil {
+					s.jsonError(w, "failed to check access", http.StatusInternalServerError)
+					return
+				}
+				if !allowed {
+					s.jsonError(w, "access denied: request access from the agent provider", http.StatusForbidden)
+					return
+				}
+			} else {
+				s.jsonError(w, "access denied: agent does not allow playground access", http.StatusForbidden)
+				return
+			}
+		}
+		// Set userID for later use (already in context from middleware).
 	}
 
 	// Look up agent.
@@ -80,17 +114,15 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		proto = "a2a"
 	}
 
-	// Get user ID if authenticated.
-	userID, _ := identity.UserIDFromContext(r.Context())
-
 	// Get IP.
 	ipAddress := r.RemoteAddr
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
 		ipAddress = fwd
 	}
 
-	// Rate limiting: keyed by IP for anonymous, by user ID for authenticated.
-	if s.invokeRateLimiter != nil {
+	// Rate limiting: skip for agent-to-agent (controlled by whitelist).
+	// For user invocations: keyed by user ID.
+	if !isAgent && s.invokeRateLimiter != nil {
 		key := ipAddress
 		if userID != "" {
 			key = "user:" + userID

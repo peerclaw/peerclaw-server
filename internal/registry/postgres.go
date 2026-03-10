@@ -167,6 +167,12 @@ func (s *PostgresStore) List(ctx context.Context, filter ListFilter) (*ListResul
 		args = append(args, string(filter.Status))
 		argIdx++
 	}
+	if filter.PlaygroundOnly {
+		conditions = append(conditions, "COALESCE(playground_enabled, FALSE) = TRUE")
+	}
+	if filter.PublicOnly {
+		conditions = append(conditions, "COALESCE(visibility, 'public') = 'public'")
+	}
 
 	where := ""
 	if len(conditions) > 0 {
@@ -307,6 +313,29 @@ func (s *PostgresStore) ListByOwner(ctx context.Context, userID string, filter L
 
 func (s *PostgresStore) GetDB() interface{} {
 	return s.db
+}
+
+func (s *PostgresStore) GetAccessFlags(ctx context.Context, id string) (*AccessFlags, error) {
+	var playgroundEnabled bool
+	var visibility string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(playground_enabled, FALSE), COALESCE(visibility, 'public') FROM agents WHERE id = $1`, id,
+	).Scan(&playgroundEnabled, &visibility)
+	if err != nil {
+		return nil, fmt.Errorf("get access flags: %w", err)
+	}
+	return &AccessFlags{
+		PlaygroundEnabled: playgroundEnabled,
+		Visibility:        visibility,
+	}, nil
+}
+
+func (s *PostgresStore) SetAccessFlags(ctx context.Context, id string, flags *AccessFlags) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE agents SET playground_enabled = $1, visibility = $2 WHERE id = $3`,
+		flags.PlaygroundEnabled, flags.Visibility, id,
+	)
+	return err
 }
 
 func (s *PostgresStore) Close() error {
