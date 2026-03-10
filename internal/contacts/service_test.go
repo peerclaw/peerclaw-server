@@ -33,7 +33,7 @@ func TestService_AddListRemove(t *testing.T) {
 	ctx := context.Background()
 
 	// Add a contact.
-	contact, err := svc.Add(ctx, "agent-owner", "agent-friend", "My Friend")
+	contact, err := svc.Add(ctx, "agent-owner", "agent-friend", "My Friend", nil)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -91,18 +91,18 @@ func TestService_AddValidation(t *testing.T) {
 	ctx := context.Background()
 
 	// Cannot add self as contact.
-	_, err := svc.Add(ctx, "agent-1", "agent-1", "")
+	_, err := svc.Add(ctx, "agent-1", "agent-1", "", nil)
 	if err == nil {
 		t.Fatal("expected error for self-contact, got nil")
 	}
 
 	// Cannot add with empty IDs.
-	_, err = svc.Add(ctx, "", "agent-2", "")
+	_, err = svc.Add(ctx, "", "agent-2", "", nil)
 	if err == nil {
 		t.Fatal("expected error for empty owner, got nil")
 	}
 
-	_, err = svc.Add(ctx, "agent-1", "", "")
+	_, err = svc.Add(ctx, "agent-1", "", "", nil)
 	if err == nil {
 		t.Fatal("expected error for empty contact, got nil")
 	}

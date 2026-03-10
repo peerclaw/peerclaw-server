@@ -35,7 +35,7 @@ func NewStore(driver string, db *sql.DB) Store {
 }
 
 // Add adds a contact to the owner's whitelist.
-func (s *Service) Add(ctx context.Context, ownerAgentID, contactAgentID, alias string) (*Contact, error) {
+func (s *Service) Add(ctx context.Context, ownerAgentID, contactAgentID, alias string, expiresAt *time.Time) (*Contact, error) {
 	if ownerAgentID == "" || contactAgentID == "" {
 		return nil, fmt.Errorf("owner and contact agent IDs are required")
 	}
@@ -48,6 +48,7 @@ func (s *Service) Add(ctx context.Context, ownerAgentID, contactAgentID, alias s
 		OwnerAgentID:   ownerAgentID,
 		ContactAgentID: contactAgentID,
 		Alias:          alias,
+		ExpiresAt:      expiresAt,
 		CreatedAt:      time.Now().UTC(),
 	}
 

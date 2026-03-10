@@ -29,14 +29,20 @@ func (s *PostgresStore) Migrate(ctx context.Context) error {
 	CREATE INDEX IF NOT EXISTS idx_contacts_owner ON agent_contacts(owner_agent_id);
 	`
 	_, err := s.db.ExecContext(ctx, schema)
-	return err
+	if err != nil {
+		return err
+	}
+	// Add expires_at column if it doesn't exist.
+	s.db.ExecContext(ctx, `ALTER TABLE agent_contacts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`)
+	return nil
 }
 
 func (s *PostgresStore) Add(ctx context.Context, contact *Contact) error {
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO agent_contacts (id, owner_agent_id, contact_agent_id, alias, created_at)
-		VALUES ($1, $2, $3, $4, $5)`,
+		INSERT INTO agent_contacts (id, owner_agent_id, contact_agent_id, alias, expires_at, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)`,
 		contact.ID, contact.OwnerAgentID, contact.ContactAgentID, contact.Alias,
+		contact.ExpiresAt,
 		contact.CreatedAt.UTC(),
 	)
 	return err
@@ -61,7 +67,8 @@ func (s *PostgresStore) IsAllowed(ctx context.Context, ownerAgentID, contactAgen
 	var count int
 	err := s.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM agent_contacts
-		WHERE owner_agent_id = $1 AND contact_agent_id = $2`,
+		WHERE owner_agent_id = $1 AND contact_agent_id = $2
+		AND (expires_at IS NULL OR expires_at > NOW())`,
 		ownerAgentID, contactAgentID,
 	).Scan(&count)
 	if err != nil {
@@ -72,7 +79,7 @@ func (s *PostgresStore) IsAllowed(ctx context.Context, ownerAgentID, contactAgen
 
 func (s *PostgresStore) ListByOwner(ctx context.Context, ownerAgentID string) ([]Contact, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, owner_agent_id, contact_agent_id, COALESCE(alias, ''), created_at
+		SELECT id, owner_agent_id, contact_agent_id, COALESCE(alias, ''), expires_at, created_at
 		FROM agent_contacts WHERE owner_agent_id = $1 ORDER BY created_at DESC`, ownerAgentID)
 	if err != nil {
 		return nil, err
@@ -82,8 +89,12 @@ func (s *PostgresStore) ListByOwner(ctx context.Context, ownerAgentID string) ([
 	var contacts []Contact
 	for rows.Next() {
 		var c Contact
-		if err := rows.Scan(&c.ID, &c.OwnerAgentID, &c.ContactAgentID, &c.Alias, &c.CreatedAt); err != nil {
+		var expiresAt sql.NullTime
+		if err := rows.Scan(&c.ID, &c.OwnerAgentID, &c.ContactAgentID, &c.Alias, &expiresAt, &c.CreatedAt); err != nil {
 			return nil, err
+		}
+		if expiresAt.Valid {
+			c.ExpiresAt = &expiresAt.Time
 		}
 		contacts = append(contacts, c)
 	}

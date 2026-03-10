@@ -30,14 +30,24 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 	CREATE INDEX IF NOT EXISTS idx_contacts_owner ON agent_contacts(owner_agent_id);
 	`
 	_, err := s.db.ExecContext(ctx, schema)
-	return err
+	if err != nil {
+		return err
+	}
+	// Add expires_at column if it doesn't exist.
+	s.db.ExecContext(ctx, `ALTER TABLE agent_contacts ADD COLUMN expires_at DATETIME`)
+	return nil
 }
 
 func (s *SQLiteStore) Add(ctx context.Context, contact *Contact) error {
+	var expiresAt any
+	if contact.ExpiresAt != nil {
+		expiresAt = contact.ExpiresAt.UTC().Format(time.RFC3339)
+	}
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO agent_contacts (id, owner_agent_id, contact_agent_id, alias, created_at)
-		VALUES (?, ?, ?, ?, ?)`,
+		INSERT INTO agent_contacts (id, owner_agent_id, contact_agent_id, alias, expires_at, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
 		contact.ID, contact.OwnerAgentID, contact.ContactAgentID, contact.Alias,
+		expiresAt,
 		contact.CreatedAt.UTC().Format(time.RFC3339),
 	)
 	return err
@@ -62,8 +72,9 @@ func (s *SQLiteStore) IsAllowed(ctx context.Context, ownerAgentID, contactAgentI
 	var count int
 	err := s.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM agent_contacts
-		WHERE owner_agent_id = ? AND contact_agent_id = ?`,
-		ownerAgentID, contactAgentID,
+		WHERE owner_agent_id = ? AND contact_agent_id = ?
+		AND (expires_at IS NULL OR expires_at > ?)`,
+		ownerAgentID, contactAgentID, time.Now().UTC().Format(time.RFC3339),
 	).Scan(&count)
 	if err != nil {
 		return false, err
@@ -73,7 +84,7 @@ func (s *SQLiteStore) IsAllowed(ctx context.Context, ownerAgentID, contactAgentI
 
 func (s *SQLiteStore) ListByOwner(ctx context.Context, ownerAgentID string) ([]Contact, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, owner_agent_id, contact_agent_id, COALESCE(alias, ''), created_at
+		SELECT id, owner_agent_id, contact_agent_id, COALESCE(alias, ''), expires_at, created_at
 		FROM agent_contacts WHERE owner_agent_id = ? ORDER BY created_at DESC`, ownerAgentID)
 	if err != nil {
 		return nil, err
@@ -83,12 +94,19 @@ func (s *SQLiteStore) ListByOwner(ctx context.Context, ownerAgentID string) ([]C
 	var contacts []Contact
 	for rows.Next() {
 		var c Contact
-		var createdAt string
-		if err := rows.Scan(&c.ID, &c.OwnerAgentID, &c.ContactAgentID, &c.Alias, &createdAt); err != nil {
+		var expiresAt, createdAt sql.NullString
+		if err := rows.Scan(&c.ID, &c.OwnerAgentID, &c.ContactAgentID, &c.Alias, &expiresAt, &createdAt); err != nil {
 			return nil, err
 		}
-		if parsed, err := time.Parse(time.RFC3339, createdAt); err == nil {
-			c.CreatedAt = parsed
+		if expiresAt.Valid {
+			if t, err := time.Parse(time.RFC3339, expiresAt.String); err == nil {
+				c.ExpiresAt = &t
+			}
+		}
+		if createdAt.Valid {
+			if parsed, err := time.Parse(time.RFC3339, createdAt.String); err == nil {
+				c.CreatedAt = parsed
+			}
 		}
 		contacts = append(contacts, c)
 	}

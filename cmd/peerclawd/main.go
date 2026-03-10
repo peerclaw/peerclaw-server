@@ -33,6 +33,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/invocation"
 	"github.com/peerclaw/peerclaw-server/internal/review"
+	"github.com/peerclaw/peerclaw-server/internal/useracl"
 	"github.com/peerclaw/peerclaw-server/internal/userauth"
 	"github.com/peerclaw/peerclaw-server/internal/verification"
 	goredis "github.com/redis/go-redis/v9"
@@ -237,6 +238,18 @@ func main() {
 		logger.Info("contacts service initialized")
 	}
 
+	// Initialize user ACL service.
+	var userACLService *useracl.Service
+	if sqlDB != nil {
+		uaclStore := useracl.NewStore(cfg.Database.Driver, sqlDB)
+		if err := uaclStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate user ACL tables", "error", err)
+			os.Exit(1)
+		}
+		userACLService = useracl.NewService(uaclStore, logger)
+		logger.Info("user ACL service initialized")
+	}
+
 	// Initialize services.
 	regService := registry.NewService(store, logger)
 	routeTable := router.NewTable()
@@ -366,6 +379,9 @@ func main() {
 		defer stopBridgeCleanup()
 		httpServer.SetBridgeRateLimiter(bridgeRL)
 		logger.Info("bridge per-agent rate limiter enabled", "rate", 1.0, "burst", 10)
+	}
+	if userACLService != nil {
+		httpServer.SetUserACL(userACLService)
 	}
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)

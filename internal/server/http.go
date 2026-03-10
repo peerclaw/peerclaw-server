@@ -267,6 +267,9 @@ func (s *HTTPServer) routes() {
 	// Contacts routes.
 	s.registerContactRoutes()
 
+	// User ACL routes.
+	s.registerUserACLRoutes()
+
 	// Blob routes.
 	s.registerBlobRoutes()
 
@@ -768,6 +771,28 @@ func (s *HTTPServer) registerContactRoutes() {
 	s.mux.Handle("POST /api/v1/provider/agents/{id}/contacts", wrapProviderAuth(s.handleProviderAddContact))
 	s.mux.Handle("GET /api/v1/provider/agents/{id}/contacts", wrapProviderAuth(s.handleProviderListContacts))
 	s.mux.Handle("DELETE /api/v1/provider/agents/{id}/contacts/{contact_id}", wrapProviderAuth(s.handleProviderRemoveContact))
+}
+
+func (s *HTTPServer) registerUserACLRoutes() {
+	wrapUserAuth := func(h http.HandlerFunc) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.userAuth == nil {
+				s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+				return
+			}
+			UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
+		})
+	}
+
+	// User-facing.
+	s.mux.Handle("POST /api/v1/agents/{id}/access-requests", wrapUserAuth(s.handleSubmitAccessRequest))
+	s.mux.Handle("GET /api/v1/agents/{id}/access-requests/me", wrapUserAuth(s.handleGetAccessRequestStatus))
+	s.mux.Handle("GET /api/v1/user/access-requests", wrapUserAuth(s.handleListMyAccessRequests))
+
+	// Provider-facing.
+	s.mux.Handle("GET /api/v1/provider/agents/{id}/access-requests", wrapUserAuth(s.handleProviderListAccessRequests))
+	s.mux.Handle("PUT /api/v1/provider/agents/{id}/access-requests/{request_id}", wrapUserAuth(s.handleProviderUpdateAccessRequest))
+	s.mux.Handle("DELETE /api/v1/provider/agents/{id}/access-requests/{request_id}", wrapUserAuth(s.handleProviderRevokeAccessRequest))
 }
 
 func (s *HTTPServer) registerBlobRoutes() {

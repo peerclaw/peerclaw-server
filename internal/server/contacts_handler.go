@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/peerclaw/peerclaw-server/internal/contacts"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
@@ -14,8 +15,9 @@ var errForbiddenNotOwner = fmt.Errorf("forbidden: not the owner")
 // --- Agent-side contacts handlers (AuthMiddleware + OwnerOnlyMiddleware) ---
 
 type addContactRequest struct {
-	ContactAgentID string `json:"contact_agent_id"`
-	Alias          string `json:"alias"`
+	ContactAgentID string  `json:"contact_agent_id"`
+	Alias          string  `json:"alias"`
+	ExpiresAt      *string `json:"expires_at,omitempty"`
 }
 
 // handleAgentAddContact handles POST /api/v1/agents/{id}/contacts.
@@ -36,7 +38,13 @@ func (s *HTTPServer) handleAgentAddContact(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	contact, err := s.contacts.Add(r.Context(), ownerID, req.ContactAgentID, req.Alias)
+	var expiresAt *time.Time
+	if req.ExpiresAt != nil {
+		if t, err := time.Parse(time.RFC3339, *req.ExpiresAt); err == nil {
+			expiresAt = &t
+		}
+	}
+	contact, err := s.contacts.Add(r.Context(), ownerID, req.ContactAgentID, req.Alias, expiresAt)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -114,7 +122,13 @@ func (s *HTTPServer) handleProviderAddContact(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	contact, err := s.contacts.Add(r.Context(), agentID, req.ContactAgentID, req.Alias)
+	var expiresAt *time.Time
+	if req.ExpiresAt != nil {
+		if t, err := time.Parse(time.RFC3339, *req.ExpiresAt); err == nil {
+			expiresAt = &t
+		}
+	}
+	contact, err := s.contacts.Add(r.Context(), agentID, req.ContactAgentID, req.Alias, expiresAt)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusBadRequest)
 		return

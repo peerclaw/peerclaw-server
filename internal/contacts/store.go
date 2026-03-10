@@ -5,14 +5,16 @@ import (
 	"time"
 )
 
+
 // Contact represents a whitelist entry allowing one agent to communicate with another.
 // The OwnerAgentID manages the list; ContactAgentID is the agent allowed to send messages.
 type Contact struct {
-	ID             string    `json:"id"`
-	OwnerAgentID   string    `json:"owner_agent_id"`
-	ContactAgentID string    `json:"contact_agent_id"`
-	Alias          string    `json:"alias"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID             string     `json:"id"`
+	OwnerAgentID   string     `json:"owner_agent_id"`
+	ContactAgentID string     `json:"contact_agent_id"`
+	Alias          string     `json:"alias"`
+	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 // Store defines the persistence interface for agent contacts.
