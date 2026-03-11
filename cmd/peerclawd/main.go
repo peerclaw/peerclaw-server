@@ -467,7 +467,7 @@ func main() {
 		logger.Info("blob cleanup goroutine started", "interval", "15m")
 	}
 
-	grpcServer := server.NewGRPCServer(cfg.Server.GRPCAddr, logger)
+	grpcServer := server.NewGRPCServer(cfg.Server.GRPCAddr, logger, cfg.Server.Debug)
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)

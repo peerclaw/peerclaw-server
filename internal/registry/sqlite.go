@@ -67,9 +67,24 @@ func (s *SQLiteStore) migrate() error {
 	);
 	CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
 	CREATE INDEX IF NOT EXISTS idx_agents_name ON agents(name);
+	CREATE INDEX IF NOT EXISTS idx_agents_public_key ON agents(public_key);
 	`
+
 	_, err := s.db.Exec(schema)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Separate migration for columns that may not exist in older schemas.
+	optionalIndexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_agents_owner ON agents(owner_user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_agents_visibility ON agents(visibility)",
+		"CREATE INDEX IF NOT EXISTS idx_agents_playground ON agents(playground_enabled)",
+	}
+	for _, stmt := range optionalIndexes {
+		_, _ = s.db.Exec(stmt) // ignore errors from missing columns
+	}
+	return nil
 }
 
 func (s *SQLiteStore) Put(ctx context.Context, card *agentcard.Card) error {

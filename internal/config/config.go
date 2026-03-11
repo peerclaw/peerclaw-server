@@ -45,6 +45,7 @@ type ServerConfig struct {
 	HTTPAddr    string   `yaml:"http_addr"`
 	GRPCAddr    string   `yaml:"grpc_addr"`
 	CORSOrigins []string `yaml:"cors_origins"`
+	Debug       bool     `yaml:"debug"` // Enable debug features (e.g., gRPC reflection)
 }
 
 // DatabaseConfig holds database settings.

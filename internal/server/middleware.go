@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/peerclaw/peerclaw-server/internal/invocation"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -198,6 +199,7 @@ func CORSMiddleware(allowedOrigins []string) Middleware {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-PeerClaw-Signature, X-PeerClaw-PublicKey, X-PeerClaw-Agent-ID")
+			w.Header().Set("Vary", "Origin")
 
 			// Handle preflight.
 			if r.Method == http.MethodOptions {
@@ -361,3 +363,25 @@ func (gz *gzipResponseWriter) Unwrap() http.ResponseWriter {
 // Ensure gzipResponseWriter does not implement io.ReaderFrom
 // to prevent net/http from bypassing the gzip writer.
 var _ io.Writer = (*gzipResponseWriter)(nil)
+
+// recordBridgeInvocation is the shared implementation for recording bridge invocations.
+func (s *HTTPServer) recordBridgeInvocation(ctx context.Context, bridgeName, agentID, proto, reqBody, respBody string, statusCode int, durationMs int64, invokeErr, ipAddress string) {
+	if s.invocation == nil {
+		return
+	}
+	if err := s.invocation.Record(ctx, &invocation.InvocationRecord{
+		ID:           uuid.New().String(),
+		AgentID:      agentID,
+		UserID:       bridgeName,
+		Protocol:     proto,
+		RequestBody:  reqBody,
+		ResponseBody: respBody,
+		StatusCode:   statusCode,
+		DurationMs:   durationMs,
+		Error:        invokeErr,
+		IPAddress:    ipAddress,
+		CreatedAt:    time.Now().UTC(),
+	}); err != nil {
+		slog.Debug("failed to record bridge invocation", "bridge", bridgeName, "agent_id", agentID, "error", err)
+	}
+}

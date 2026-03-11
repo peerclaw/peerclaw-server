@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,7 +18,6 @@ import (
 	coreprotocol "github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
-	"github.com/peerclaw/peerclaw-server/internal/invocation"
 )
 
 // a2aBridgeTasks holds in-memory A2A task state for the bridge.
@@ -29,14 +29,14 @@ type a2aBridgeTasks struct {
 	pushConfigs sync.Map // taskID → *a2a.PushNotificationConfig
 }
 
-func (s *HTTPServer) registerA2ABridgeRoutes() {
+func (s *HTTPServer) registerA2ABridgeRoutes(ctx context.Context) {
 	s.a2aTasks = &a2aBridgeTasks{}
 	s.mux.HandleFunc("POST /a2a/{agent_id}", s.handleA2ABridgeMessages)
 	s.mux.HandleFunc("GET /a2a/{agent_id}/.well-known/agent.json", s.handleA2ABridgeAgentCard)
 	s.mux.HandleFunc("GET /a2a/{agent_id}/tasks/{task_id}", s.handleA2ABridgeGetTaskREST)
 
-	// Start background cleanup.
-	go s.a2aBridgeCleanup(time.Hour)
+	// Start background cleanup (stops when ctx is cancelled).
+	go s.a2aBridgeCleanup(ctx, time.Hour)
 }
 
 // handleA2ABridgeMessages handles POST /a2a/{agent_id} — JSON-RPC dispatch.
@@ -127,6 +127,13 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 			writeA2ABridgeError(w, req.ID, -32002, "rate limit exceeded")
 			return
 		}
+	}
+
+	// Reject if too many in-flight tasks.
+	const maxA2ATasks = 10000
+	if s.a2aTasks.taskCount.Load() >= maxA2ATasks {
+		writeA2ABridgeError(w, req.ID, -32003, "too many in-flight tasks")
+		return
 	}
 
 	// Create task.
@@ -532,18 +539,25 @@ func cardToA2AAgentCard(card *agentcard.Card, baseURL string) a2a.AgentCard {
 	return ac
 }
 
-// requestBaseURL derives the base URL from the request (X-Forwarded-Proto/Host take priority).
+// requestBaseURL derives the base URL from the request.
+// Only trusts X-Forwarded-Proto/Host from loopback/private IPs.
 func requestBaseURL(r *http.Request) string {
 	scheme := "http"
-	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-		scheme = proto
-	} else if r.TLS != nil {
+	if r.TLS != nil {
 		scheme = "https"
 	}
 
 	host := r.Host
-	if fwd := r.Header.Get("X-Forwarded-Host"); fwd != "" {
-		host = fwd
+
+	// Only trust forwarded headers from trusted proxies (loopback/private).
+	remoteHost, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if ip := net.ParseIP(remoteHost); ip != nil && (ip.IsLoopback() || ip.IsPrivate()) {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto == "http" || proto == "https" {
+			scheme = proto
+		}
+		if fwd := r.Header.Get("X-Forwarded-Host"); fwd != "" {
+			host = fwd
+		}
 	}
 
 	return scheme + "://" + host
@@ -575,24 +589,9 @@ func (s *HTTPServer) updateTaskState(task *a2a.Task, state a2a.TaskState, messag
 	return cp
 }
 
-// recordA2ABridgeInvocation records an invocation to the invocation service.
+// recordA2ABridgeInvocation records an A2A bridge invocation.
 func (s *HTTPServer) recordA2ABridgeInvocation(ctx context.Context, agentID, proto, reqBody, respBody string, statusCode int, durationMs int64, invokeErr, ipAddress string) {
-	if s.invocation == nil {
-		return
-	}
-	_ = s.invocation.Record(ctx, &invocation.InvocationRecord{
-		ID:           uuid.New().String(),
-		AgentID:      agentID,
-		UserID:       "a2a-bridge",
-		Protocol:     proto,
-		RequestBody:  reqBody,
-		ResponseBody: respBody,
-		StatusCode:   statusCode,
-		DurationMs:   durationMs,
-		Error:        invokeErr,
-		IPAddress:    ipAddress,
-		CreatedAt:    time.Now().UTC(),
-	})
+	s.recordBridgeInvocation(ctx, "a2a-bridge", agentID, proto, reqBody, respBody, statusCode, durationMs, invokeErr, ipAddress)
 }
 
 // sendA2ASSEEvent sends a JSON-RPC response wrapped in an SSE event.
@@ -626,24 +625,29 @@ func writeA2ABridgeError(w http.ResponseWriter, id any, code int, message string
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// a2aBridgeCleanup periodically removes expired tasks.
-func (s *HTTPServer) a2aBridgeCleanup(maxAge time.Duration) {
+// a2aBridgeCleanup periodically removes expired tasks. Stops when ctx is cancelled.
+func (s *HTTPServer) a2aBridgeCleanup(ctx context.Context, maxAge time.Duration) {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		now := time.Now().UTC()
-		s.a2aTasks.tasks.Range(func(key, value any) bool {
-			task := value.(*a2a.Task)
-			created, err := time.Parse(time.RFC3339, task.CreatedAt)
-			if err != nil {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now().UTC()
+			s.a2aTasks.tasks.Range(func(key, value any) bool {
+				task := value.(*a2a.Task)
+				created, err := time.Parse(time.RFC3339, task.CreatedAt)
+				if err != nil {
+					return true
+				}
+				if now.Sub(created) > maxAge {
+					s.a2aTasks.tasks.Delete(key)
+					s.a2aTasks.pushConfigs.Delete(key)
+					s.a2aTasks.taskCount.Add(-1)
+				}
 				return true
-			}
-			if now.Sub(created) > maxAge {
-				s.a2aTasks.tasks.Delete(key)
-				s.a2aTasks.pushConfigs.Delete(key)
-				s.a2aTasks.taskCount.Add(-1)
-			}
-			return true
-		})
+			})
+		}
 	}
 }

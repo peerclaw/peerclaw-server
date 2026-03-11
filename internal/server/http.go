@@ -69,6 +69,7 @@ type HTTPServer struct {
 	a2aTasks               *a2aBridgeTasks
 	acpRuns                *acpBridgeRuns
 	mcpSessions            *mcpBridgeSessions
+	cleanupCancel          context.CancelFunc // cancels bridge cleanup goroutines
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -277,14 +278,12 @@ func (s *HTTPServer) routes() {
 	// Blob routes.
 	s.registerBlobRoutes()
 
-	// A2A Bridge routes (per-agent A2A endpoints).
-	s.registerA2ABridgeRoutes()
-
-	// ACP Bridge routes (per-agent ACP endpoints).
-	s.registerACPBridgeRoutes()
-
-	// MCP Bridge routes (per-agent MCP endpoints).
-	s.registerMCPBridgeRoutes()
+	// A2A/ACP/MCP Bridge routes (per-agent endpoints) with shared cleanup context.
+	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
+	s.cleanupCancel = cleanupCancel
+	s.registerA2ABridgeRoutes(cleanupCtx)
+	s.registerACPBridgeRoutes(cleanupCtx)
+	s.registerMCPBridgeRoutes(cleanupCtx)
 
 	// Universal Protocol Gateway routes.
 	s.registerGatewayRoutes()
@@ -366,6 +365,9 @@ func (s *HTTPServer) Start() error {
 
 // Stop gracefully shuts down the HTTP server.
 func (s *HTTPServer) Stop() error {
+	if s.cleanupCancel != nil {
+		s.cleanupCancel()
+	}
 	return s.server.Close()
 }
 
@@ -602,13 +604,15 @@ func (s *HTTPServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	components := map[string]string{}
 
-	// Database health.
+	// Database health + agent count (single query).
 	if s.store != nil {
-		if _, err := s.store.List(r.Context(), registry.ListFilter{PageSize: 1}); err != nil {
+		result, err := s.store.List(r.Context(), registry.ListFilter{PageSize: 1})
+		if err != nil {
 			components["database"] = "error"
 			resp["status"] = "degraded"
 		} else {
 			components["database"] = "ok"
+			resp["registered_agents"] = result.TotalCount
 		}
 	}
 
@@ -616,13 +620,6 @@ func (s *HTTPServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	if s.sigHub != nil {
 		components["signaling"] = "ok"
 		resp["connected_agents"] = s.sigHub.ConnectedAgents()
-	}
-
-	// Registered agents count.
-	if s.store != nil {
-		if result, err := s.store.List(r.Context(), registry.ListFilter{PageSize: 1}); err == nil {
-			resp["registered_agents"] = result.TotalCount
-		}
 	}
 
 	resp["components"] = components

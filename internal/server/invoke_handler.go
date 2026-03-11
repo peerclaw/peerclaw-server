@@ -327,6 +327,11 @@ func escapeSSEData(s string) string {
 
 // handleListInvocations handles GET /api/v1/invocations.
 func (s *HTTPServer) handleListInvocations(w http.ResponseWriter, r *http.Request) {
+	if s.invocation == nil {
+		s.jsonError(w, "invocation service not available", http.StatusServiceUnavailable)
+		return
+	}
+
 	userID, ok := identity.UserIDFromContext(r.Context())
 	if !ok {
 		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
@@ -363,6 +368,11 @@ func (s *HTTPServer) handleListInvocations(w http.ResponseWriter, r *http.Reques
 
 // handleGetInvocation handles GET /api/v1/invocations/{id}.
 func (s *HTTPServer) handleGetInvocation(w http.ResponseWriter, r *http.Request) {
+	if s.invocation == nil {
+		s.jsonError(w, "invocation service not available", http.StatusServiceUnavailable)
+		return
+	}
+
 	userID, ok := identity.UserIDFromContext(r.Context())
 	if !ok {
 		s.jsonError(w, "unauthorized", http.StatusUnauthorized)

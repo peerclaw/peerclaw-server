@@ -10,12 +10,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	coreprotocol "github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/acp"
-	"github.com/peerclaw/peerclaw-server/internal/invocation"
 )
 
 // acpBridgeRuns holds in-memory ACP run state for the bridge.
@@ -24,7 +22,7 @@ type acpBridgeRuns struct {
 	runCount atomic.Int64
 }
 
-func (s *HTTPServer) registerACPBridgeRoutes() {
+func (s *HTTPServer) registerACPBridgeRoutes(ctx context.Context) {
 	s.acpRuns = &acpBridgeRuns{}
 	s.mux.HandleFunc("POST /acp/{agent_id}/runs", s.handleACPBridgeCreateRun)
 	s.mux.HandleFunc("GET /acp/{agent_id}/runs/{run_id}", s.handleACPBridgeGetRun)
@@ -32,8 +30,8 @@ func (s *HTTPServer) registerACPBridgeRoutes() {
 	s.mux.HandleFunc("GET /acp/{agent_id}/agents", s.handleACPBridgeAgentManifest)
 	s.mux.HandleFunc("GET /acp/{agent_id}/ping", s.handleACPBridgePing)
 
-	// Start background cleanup.
-	go s.acpBridgeCleanup(time.Hour)
+	// Start background cleanup (stops when ctx is cancelled).
+	go s.acpBridgeCleanup(ctx, time.Hour)
 }
 
 // handleACPBridgeCreateRun handles POST /acp/{agent_id}/runs.
@@ -80,6 +78,13 @@ func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Req
 			writeACPBridgeError(w, http.StatusTooManyRequests, "rate limit exceeded")
 			return
 		}
+	}
+
+	// Reject if too many in-flight runs.
+	const maxACPRuns = 10000
+	if s.acpRuns.runCount.Load() >= maxACPRuns {
+		writeACPBridgeError(w, http.StatusServiceUnavailable, "too many in-flight runs")
+		return
 	}
 
 	// Force agent name from card.
@@ -492,24 +497,9 @@ func updateACPRunState(run *acp.Run, status acp.RunStatus, errMsg string) *acp.R
 	return cp
 }
 
-// recordACPBridgeInvocation records an invocation to the invocation service.
+// recordACPBridgeInvocation records an ACP bridge invocation.
 func (s *HTTPServer) recordACPBridgeInvocation(ctx context.Context, agentID, proto, reqBody, respBody string, statusCode int, durationMs int64, invokeErr, ipAddress string) {
-	if s.invocation == nil {
-		return
-	}
-	_ = s.invocation.Record(ctx, &invocation.InvocationRecord{
-		ID:           uuid.New().String(),
-		AgentID:      agentID,
-		UserID:       "acp-bridge",
-		Protocol:     proto,
-		RequestBody:  reqBody,
-		ResponseBody: respBody,
-		StatusCode:   statusCode,
-		DurationMs:   durationMs,
-		Error:        invokeErr,
-		IPAddress:    ipAddress,
-		CreatedAt:    time.Now().UTC(),
-	})
+	s.recordBridgeInvocation(ctx, "acp-bridge", agentID, proto, reqBody, respBody, statusCode, durationMs, invokeErr, ipAddress)
 }
 
 // sendACPSSEEvent sends a run update as an SSE event.
@@ -533,23 +523,28 @@ func writeACPBridgeError(w http.ResponseWriter, status int, message string) {
 	writeACPBridgeJSON(w, status, map[string]string{"error": message})
 }
 
-// acpBridgeCleanup periodically removes expired runs.
-func (s *HTTPServer) acpBridgeCleanup(maxAge time.Duration) {
+// acpBridgeCleanup periodically removes expired runs. Stops when ctx is cancelled.
+func (s *HTTPServer) acpBridgeCleanup(ctx context.Context, maxAge time.Duration) {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		now := time.Now().UTC()
-		s.acpRuns.runs.Range(func(key, value any) bool {
-			run := value.(*acp.Run)
-			created, err := time.Parse(time.RFC3339, run.CreatedAt)
-			if err != nil {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now().UTC()
+			s.acpRuns.runs.Range(func(key, value any) bool {
+				run := value.(*acp.Run)
+				created, err := time.Parse(time.RFC3339, run.CreatedAt)
+				if err != nil {
+					return true
+				}
+				if now.Sub(created) > maxAge {
+					s.acpRuns.runs.Delete(key)
+					s.acpRuns.runCount.Add(-1)
+				}
 				return true
-			}
-			if now.Sub(created) > maxAge {
-				s.acpRuns.runs.Delete(key)
-				s.acpRuns.runCount.Add(-1)
-			}
-			return true
-		})
+			})
+		}
 	}
 }

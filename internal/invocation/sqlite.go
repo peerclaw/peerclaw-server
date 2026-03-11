@@ -156,6 +156,8 @@ func (s *SQLiteStore) AgentStats(ctx context.Context, agentID string, since time
 func (s *SQLiteStore) AgentTimeSeries(ctx context.Context, agentID string, since time.Time, bucketMinutes int) ([]TimeSeriesPoint, error) {
 	if bucketMinutes <= 0 {
 		bucketMinutes = 60
+	} else if bucketMinutes > 1440 {
+		bucketMinutes = 1440
 	}
 	rows, err := s.db.QueryContext(ctx,
 		fmt.Sprintf(`SELECT
@@ -269,6 +271,8 @@ func (s *SQLiteStore) GlobalStats(ctx context.Context, since time.Time) (*AgentI
 func (s *SQLiteStore) GlobalTimeSeries(ctx context.Context, since time.Time, bucketMinutes int) ([]TimeSeriesPoint, error) {
 	if bucketMinutes <= 0 {
 		bucketMinutes = 60
+	} else if bucketMinutes > 1440 {
+		bucketMinutes = 1440
 	}
 	rows, err := s.db.QueryContext(ctx,
 		fmt.Sprintf(`SELECT

@@ -26,9 +26,9 @@ type ListFilter struct {
 
 // ListResult holds a page of agents and pagination info.
 type ListResult struct {
-	Agents        []*agentcard.Card
-	NextPageToken string
-	TotalCount    int
+	Agents        []*agentcard.Card `json:"agents"`
+	NextPageToken string            `json:"next_page_token,omitempty"`
+	TotalCount    int               `json:"total_count"`
 }
 
 // AccessFlags holds security-critical flags for agent access control.

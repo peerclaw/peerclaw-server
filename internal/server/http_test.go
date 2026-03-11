@@ -94,7 +94,7 @@ func TestHTTP_ListAgents(t *testing.T) {
 
 	var result map[string]any
 	json.NewDecoder(w.Body).Decode(&result)
-	count := int(result["TotalCount"].(float64))
+	count := int(result["total_count"].(float64))
 	if count != 1 {
 		t.Errorf("TotalCount = %d, want 1", count)
 	}

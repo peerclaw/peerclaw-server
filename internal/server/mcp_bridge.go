@@ -15,7 +15,6 @@ import (
 	coreprotocol "github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/mcp"
-	"github.com/peerclaw/peerclaw-server/internal/invocation"
 )
 
 // mcpBridgeSessions holds in-memory MCP session state for the bridge.
@@ -30,13 +29,13 @@ type mcpBridgeSession struct {
 	CreatedAt string
 }
 
-func (s *HTTPServer) registerMCPBridgeRoutes() {
+func (s *HTTPServer) registerMCPBridgeRoutes(ctx context.Context) {
 	s.mcpSessions = &mcpBridgeSessions{}
 	s.mux.HandleFunc("POST /mcp/{agent_id}", s.handleMCPBridgeMessages)
 	s.mux.HandleFunc("GET /mcp/{agent_id}", s.handleMCPBridgeStream)
 
-	// Start background cleanup.
-	go s.mcpBridgeCleanup(time.Hour)
+	// Start background cleanup (stops when ctx is cancelled).
+	go s.mcpBridgeCleanup(ctx, time.Hour)
 }
 
 // handleMCPBridgeMessages handles POST /mcp/{agent_id} — JSON-RPC dispatch.
@@ -92,6 +91,13 @@ func (s *HTTPServer) handleMCPBridgeInitialize(w http.ResponseWriter, r *http.Re
 	card, err := s.registry.GetAgent(r.Context(), agentID)
 	if err != nil {
 		writeMCPBridgeError(w, req.ID, jsonrpc.CodeInvalidParams, "agent not found: "+agentID)
+		return
+	}
+
+	// Reject if too many sessions.
+	const maxMCPSessions = 10000
+	if s.mcpSessions.sessionCount.Load() >= maxMCPSessions {
+		writeMCPBridgeError(w, req.ID, jsonrpc.CodeInternalError, "too many active sessions")
 		return
 	}
 
@@ -285,24 +291,9 @@ func (s *HTTPServer) handleMCPBridgeStream(w http.ResponseWriter, r *http.Reques
 // --- Helpers ---
 
 
-// recordMCPBridgeInvocation records an invocation to the invocation service.
+// recordMCPBridgeInvocation records an MCP bridge invocation.
 func (s *HTTPServer) recordMCPBridgeInvocation(ctx context.Context, agentID, proto, reqBody, respBody string, statusCode int, durationMs int64, invokeErr, ipAddress string) {
-	if s.invocation == nil {
-		return
-	}
-	_ = s.invocation.Record(ctx, &invocation.InvocationRecord{
-		ID:           uuid.New().String(),
-		AgentID:      agentID,
-		UserID:       "mcp-bridge",
-		Protocol:     proto,
-		RequestBody:  reqBody,
-		ResponseBody: respBody,
-		StatusCode:   statusCode,
-		DurationMs:   durationMs,
-		Error:        invokeErr,
-		IPAddress:    ipAddress,
-		CreatedAt:    time.Now().UTC(),
-	})
+	s.recordBridgeInvocation(ctx, "mcp-bridge", agentID, proto, reqBody, respBody, statusCode, durationMs, invokeErr, ipAddress)
 }
 
 func writeMCPBridgeResult(w http.ResponseWriter, id any, result any) {
@@ -322,24 +313,29 @@ func writeMCPBridgeError(w http.ResponseWriter, id any, code int, message string
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// mcpBridgeCleanup periodically removes expired sessions.
-func (s *HTTPServer) mcpBridgeCleanup(maxAge time.Duration) {
+// mcpBridgeCleanup periodically removes expired sessions. Stops when ctx is cancelled.
+func (s *HTTPServer) mcpBridgeCleanup(ctx context.Context, maxAge time.Duration) {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		now := time.Now().UTC()
-		s.mcpSessions.sessions.Range(func(key, value any) bool {
-			session := value.(*mcpBridgeSession)
-			created, err := time.Parse(time.RFC3339, session.CreatedAt)
-			if err != nil {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now().UTC()
+			s.mcpSessions.sessions.Range(func(key, value any) bool {
+				session := value.(*mcpBridgeSession)
+				created, err := time.Parse(time.RFC3339, session.CreatedAt)
+				if err != nil {
+					return true
+				}
+				if now.Sub(created) > maxAge {
+					s.mcpSessions.sessions.Delete(key)
+					s.mcpSessions.sessionCount.Add(-1)
+				}
 				return true
-			}
-			if now.Sub(created) > maxAge {
-				s.mcpSessions.sessions.Delete(key)
-				s.mcpSessions.sessionCount.Add(-1)
-			}
-			return true
-		})
+			})
+		}
 	}
 }
 

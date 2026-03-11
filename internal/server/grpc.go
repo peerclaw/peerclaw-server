@@ -16,12 +16,15 @@ type GRPCServer struct {
 }
 
 // NewGRPCServer creates a new gRPC server.
-func NewGRPCServer(addr string, logger *slog.Logger) *GRPCServer {
+// Set enableReflection to true only for debugging/development; disable in production.
+func NewGRPCServer(addr string, logger *slog.Logger, enableReflection bool) *GRPCServer {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	s := grpc.NewServer()
-	reflection.Register(s)
+	if enableReflection {
+		reflection.Register(s)
+	}
 	return &GRPCServer{
 		server: s,
 		logger: logger,
