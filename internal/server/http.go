@@ -99,6 +99,7 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 	middlewares := []Middleware{
 		RecoveryMiddleware(logger),
 		RequestIDMiddleware(),
+		SecurityHeadersMiddleware(),
 		LoggingMiddleware(logger),
 		GzipMiddleware(),
 	}

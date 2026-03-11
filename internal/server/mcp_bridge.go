@@ -47,7 +47,7 @@ func (s *HTTPServer) handleMCPBridgeMessages(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)) // 1 MB limit
 	if err != nil {
 		writeMCPBridgeError(w, nil, jsonrpc.CodeParseError, "failed to read body")
 		return
@@ -173,7 +173,7 @@ func (s *HTTPServer) handleMCPBridgeToolsCall(w http.ResponseWriter, r *http.Req
 
 	// Rate limiting by IP.
 	if s.invokeRateLimiter != nil {
-		ipAddress := mcpBridgeClientIP(r)
+		ipAddress := BridgeClientIP(r)
 		if !s.invokeRateLimiter.GetLimiter("mcp:"+ipAddress).Allow() {
 			writeMCPBridgeError(w, req.ID, -32002, "rate limit exceeded")
 			return
@@ -196,7 +196,7 @@ func (s *HTTPServer) handleMCPBridgeToolsCall(w http.ResponseWriter, r *http.Req
 	env.WithMetadata("mcp.tool_name", params.Name)
 
 	start := time.Now()
-	ipAddress := mcpBridgeClientIP(r)
+	ipAddress := BridgeClientIP(r)
 
 	if s.bridges == nil {
 		writeMCPBridgeError(w, req.ID, jsonrpc.CodeInternalError, "bridge not available")
@@ -268,7 +268,7 @@ func (s *HTTPServer) handleMCPBridgePromptsList(w http.ResponseWriter, req *json
 func (s *HTTPServer) handleMCPBridgeStream(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		writeJSONError(w, "streaming not supported", http.StatusInternalServerError)
 		return
 	}
 
@@ -284,13 +284,6 @@ func (s *HTTPServer) handleMCPBridgeStream(w http.ResponseWriter, r *http.Reques
 
 // --- Helpers ---
 
-// mcpBridgeClientIP extracts the client IP address from the request.
-func mcpBridgeClientIP(r *http.Request) string {
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		return strings.Split(fwd, ",")[0]
-	}
-	return r.RemoteAddr
-}
 
 // recordMCPBridgeInvocation records an invocation to the invocation service.
 func (s *HTTPServer) recordMCPBridgeInvocation(ctx context.Context, agentID, proto, reqBody, respBody string, statusCode int, durationMs int64, invokeErr, ipAddress string) {

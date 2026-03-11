@@ -115,10 +115,7 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get IP.
-	ipAddress := r.RemoteAddr
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		ipAddress = fwd
-	}
+	ipAddress := BridgeClientIP(r)
 
 	// Rate limiting: skip for agent-to-agent (controlled by whitelist).
 	// For user invocations: keyed by user ID.

@@ -130,7 +130,7 @@ func RateLimitMiddleware(limiter *IPRateLimiter, logger *slog.Logger) Middleware
 					"ip", ip,
 					"request_id", RequestIDFromContext(r.Context()),
 				)
-				http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+				writeJSONError(w, "rate limit exceeded", http.StatusTooManyRequests)
 				return
 			}
 			next.ServeHTTP(w, r)

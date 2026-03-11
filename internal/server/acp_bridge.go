@@ -75,7 +75,7 @@ func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Req
 
 	// Rate limiting by IP.
 	if s.invokeRateLimiter != nil {
-		ipAddress := acpBridgeClientIP(r)
+		ipAddress := BridgeClientIP(r)
 		if !s.invokeRateLimiter.GetLimiter("acp:"+ipAddress).Allow() {
 			writeACPBridgeError(w, http.StatusTooManyRequests, "rate limit exceeded")
 			return
@@ -104,7 +104,7 @@ func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Req
 	env.WithMetadata("acp.session_id", run.SessionID)
 
 	start := time.Now()
-	ipAddress := acpBridgeClientIP(r)
+	ipAddress := BridgeClientIP(r)
 
 	mode := req.Mode
 	if mode == "" {
@@ -124,19 +124,19 @@ func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Req
 // handleACPBridgeSync handles synchronous run execution.
 func (s *HTTPServer) handleACPBridgeSync(w http.ResponseWriter, r *http.Request, run *acp.Run, env *envelope.Envelope, card *agentcard.Card, proto, payload string, start time.Time, ipAddress string) {
 	if s.bridges == nil {
-		updateACPRunState(run, acp.RunStatusFailed, "bridge not available")
+		run = updateACPRunState(run, acp.RunStatusFailed, "bridge not available")
 		s.acpRuns.runs.Store(run.RunID, run)
 		writeACPBridgeError(w, http.StatusBadGateway, "bridge not available")
 		return
 	}
 
 	// Update run to in-progress.
-	updateACPRunState(run, acp.RunStatusInProgress, "")
+	run = updateACPRunState(run, acp.RunStatusInProgress, "")
 	s.acpRuns.runs.Store(run.RunID, run)
 
 	chunks, err := s.bridges.SendStream(r.Context(), env)
 	if err != nil {
-		updateACPRunState(run, acp.RunStatusFailed, err.Error())
+		run = updateACPRunState(run, acp.RunStatusFailed, err.Error())
 		s.acpRuns.runs.Store(run.RunID, run)
 		s.recordACPBridgeInvocation(r.Context(), card.ID, proto, payload, "", 502, time.Since(start).Milliseconds(), err.Error(), ipAddress)
 		writeACPBridgeJSON(w, http.StatusOK, run)
@@ -162,10 +162,11 @@ func (s *HTTPServer) handleACPBridgeSync(w http.ResponseWriter, r *http.Request,
 	respBody := sb.String()
 
 	if invokeErr != "" {
-		updateACPRunState(run, acp.RunStatusFailed, invokeErr)
+		run = updateACPRunState(run, acp.RunStatusFailed, invokeErr)
 		s.recordACPBridgeInvocation(r.Context(), card.ID, proto, payload, respBody, 502, duration, invokeErr, ipAddress)
 	} else {
-		run.Output = []acp.Message{
+		cp := cloneACPRun(run)
+		cp.Output = []acp.Message{
 			{
 				Role: "agent",
 				Parts: []acp.MessagePart{
@@ -174,7 +175,7 @@ func (s *HTTPServer) handleACPBridgeSync(w http.ResponseWriter, r *http.Request,
 				CreatedAt: time.Now().UTC().Format(time.RFC3339),
 			},
 		}
-		updateACPRunState(run, acp.RunStatusCompleted, "")
+		run = updateACPRunState(cp, acp.RunStatusCompleted, "")
 		s.recordACPBridgeInvocation(r.Context(), card.ID, proto, payload, respBody, 200, duration, "", ipAddress)
 	}
 	s.acpRuns.runs.Store(run.RunID, run)
@@ -206,12 +207,12 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 
 	// Send initial in-progress state.
-	updateACPRunState(run, acp.RunStatusInProgress, "")
+	run = updateACPRunState(run, acp.RunStatusInProgress, "")
 	s.acpRuns.runs.Store(run.RunID, run)
 	sendACPSSEEvent(w, flusher, run)
 
 	if s.bridges == nil {
-		updateACPRunState(run, acp.RunStatusFailed, "bridge not available")
+		run = updateACPRunState(run, acp.RunStatusFailed, "bridge not available")
 		s.acpRuns.runs.Store(run.RunID, run)
 		sendACPSSEEvent(w, flusher, run)
 		return
@@ -219,7 +220,7 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 
 	chunks, err := s.bridges.SendStream(r.Context(), env)
 	if err != nil {
-		updateACPRunState(run, acp.RunStatusFailed, err.Error())
+		run = updateACPRunState(run, acp.RunStatusFailed, err.Error())
 		s.acpRuns.runs.Store(run.RunID, run)
 		sendACPSSEEvent(w, flusher, run)
 		s.recordACPBridgeInvocation(r.Context(), card.ID, proto, payload, "", 502, time.Since(start).Milliseconds(), err.Error(), ipAddress)
@@ -235,8 +236,9 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 		}
 		if chunk.Data != "" {
 			sb.WriteString(chunk.Data)
-			// Send partial output update.
-			run.Output = []acp.Message{
+			// Send partial output update (clone before mutation).
+			cp := cloneACPRun(run)
+			cp.Output = []acp.Message{
 				{
 					Role: "agent",
 					Parts: []acp.MessagePart{
@@ -244,7 +246,9 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 					},
 				},
 			}
-			run.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			cp.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			s.acpRuns.runs.Store(cp.RunID, cp)
+			run = cp
 			sendACPSSEEvent(w, flusher, run)
 		}
 		if chunk.Done {
@@ -256,10 +260,11 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 	respBody := sb.String()
 
 	if invokeErr != "" {
-		updateACPRunState(run, acp.RunStatusFailed, invokeErr)
+		run = updateACPRunState(run, acp.RunStatusFailed, invokeErr)
 		s.recordACPBridgeInvocation(r.Context(), card.ID, proto, payload, respBody, 502, duration, invokeErr, ipAddress)
 	} else {
-		run.Output = []acp.Message{
+		cp := cloneACPRun(run)
+		cp.Output = []acp.Message{
 			{
 				Role: "agent",
 				Parts: []acp.MessagePart{
@@ -268,7 +273,7 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 				CreatedAt: time.Now().UTC().Format(time.RFC3339),
 			},
 		}
-		updateACPRunState(run, acp.RunStatusCompleted, "")
+		run = updateACPRunState(cp, acp.RunStatusCompleted, "")
 		s.recordACPBridgeInvocation(r.Context(), card.ID, proto, payload, respBody, 200, duration, "", ipAddress)
 	}
 	s.acpRuns.runs.Store(run.RunID, run)
@@ -289,7 +294,7 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 // handleACPBridgeAsync handles async run execution.
 func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request, run *acp.Run, env *envelope.Envelope, card *agentcard.Card, proto, payload string, start time.Time, ipAddress string) {
 	// Update run to in-progress.
-	updateACPRunState(run, acp.RunStatusInProgress, "")
+	run = updateACPRunState(run, acp.RunStatusInProgress, "")
 	s.acpRuns.runs.Store(run.RunID, run)
 
 	// Return 202 immediately.
@@ -301,14 +306,14 @@ func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request
 		defer cancel()
 
 		if s.bridges == nil {
-			updateACPRunState(run, acp.RunStatusFailed, "bridge not available")
+			run = updateACPRunState(run, acp.RunStatusFailed, "bridge not available")
 			s.acpRuns.runs.Store(run.RunID, run)
 			return
 		}
 
 		chunks, err := s.bridges.SendStream(ctx, env)
 		if err != nil {
-			updateACPRunState(run, acp.RunStatusFailed, err.Error())
+			run = updateACPRunState(run, acp.RunStatusFailed, err.Error())
 			s.acpRuns.runs.Store(run.RunID, run)
 			s.recordACPBridgeInvocation(ctx, card.ID, proto, payload, "", 502, time.Since(start).Milliseconds(), err.Error(), ipAddress)
 			return
@@ -333,10 +338,11 @@ func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request
 		respBody := sb.String()
 
 		if invokeErr != "" {
-			updateACPRunState(run, acp.RunStatusFailed, invokeErr)
+			run = updateACPRunState(run, acp.RunStatusFailed, invokeErr)
 			s.recordACPBridgeInvocation(ctx, card.ID, proto, payload, respBody, 502, duration, invokeErr, ipAddress)
 		} else {
-			run.Output = []acp.Message{
+			cp := cloneACPRun(run)
+			cp.Output = []acp.Message{
 				{
 					Role: "agent",
 					Parts: []acp.MessagePart{
@@ -345,7 +351,7 @@ func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request
 					CreatedAt: time.Now().UTC().Format(time.RFC3339),
 				},
 			}
-			updateACPRunState(run, acp.RunStatusCompleted, "")
+			run = updateACPRunState(cp, acp.RunStatusCompleted, "")
 			s.recordACPBridgeInvocation(ctx, card.ID, proto, payload, respBody, 200, duration, "", ipAddress)
 		}
 		s.acpRuns.runs.Store(run.RunID, run)
@@ -393,7 +399,7 @@ func (s *HTTPServer) handleACPBridgeCancelRun(w http.ResponseWriter, r *http.Req
 	}
 
 	run := v.(*acp.Run)
-	updateACPRunState(run, acp.RunStatusCancelled, "")
+	run = updateACPRunState(run, acp.RunStatusCancelled, "")
 	s.acpRuns.runs.Store(run.RunID, run)
 
 	writeACPBridgeJSON(w, http.StatusOK, run)
@@ -461,17 +467,29 @@ func acpInputToPayload(input []acp.Message) string {
 	return strings.Join(parts, "\n")
 }
 
-// updateACPRunState updates a run's status and timestamp.
-func updateACPRunState(run *acp.Run, status acp.RunStatus, errMsg string) {
+// cloneACPRun returns a shallow copy of the run with fresh Output slice.
+func cloneACPRun(run *acp.Run) *acp.Run {
+	cp := *run
+	if run.Output != nil {
+		cp.Output = make([]acp.Message, len(run.Output))
+		copy(cp.Output, run.Output)
+	}
+	return &cp
+}
+
+// updateACPRunState creates a copy with updated status and returns it.
+func updateACPRunState(run *acp.Run, status acp.RunStatus, errMsg string) *acp.Run {
+	cp := cloneACPRun(run)
 	now := time.Now().UTC().Format(time.RFC3339)
-	run.Status = status
-	run.UpdatedAt = now
+	cp.Status = status
+	cp.UpdatedAt = now
 	if errMsg != "" {
-		run.Error = &acp.RunError{
+		cp.Error = &acp.RunError{
 			Code:    string(status),
 			Message: errMsg,
 		}
 	}
+	return cp
 }
 
 // recordACPBridgeInvocation records an invocation to the invocation service.
@@ -504,13 +522,6 @@ func sendACPSSEEvent(w http.ResponseWriter, flusher http.Flusher, run *acp.Run) 
 	flusher.Flush()
 }
 
-// acpBridgeClientIP extracts the client IP address from the request.
-func acpBridgeClientIP(r *http.Request) string {
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		return strings.Split(fwd, ",")[0]
-	}
-	return r.RemoteAddr
-}
 
 func writeACPBridgeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")

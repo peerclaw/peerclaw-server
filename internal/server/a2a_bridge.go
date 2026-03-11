@@ -47,7 +47,7 @@ func (s *HTTPServer) handleA2ABridgeMessages(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)) // 1 MB limit
 	if err != nil {
 		writeA2ABridgeError(w, nil, jsonrpc.CodeParseError, "failed to read body")
 		return
@@ -122,7 +122,7 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 
 	// Rate limiting by IP.
 	if s.invokeRateLimiter != nil {
-		ipAddress := a2aBridgeClientIP(r)
+		ipAddress := BridgeClientIP(r)
 		if !s.invokeRateLimiter.GetLimiter("a2a:"+ipAddress).Allow() {
 			writeA2ABridgeError(w, req.ID, -32002, "rate limit exceeded")
 			return
@@ -159,21 +159,21 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 	env.WithMetadata("a2a.context_id", contextID)
 
 	start := time.Now()
-	ipAddress := a2aBridgeClientIP(r)
+	ipAddress := BridgeClientIP(r)
 
 	// Synchronous: collect all chunks from stream.
 	if s.bridges == nil {
-		s.updateTaskState(task, a2a.TaskStateFailed, "bridge not available")
+		task = s.updateTaskState(task, a2a.TaskStateFailed, "bridge not available")
 		writeA2ABridgeError(w, req.ID, jsonrpc.CodeInternalError, "bridge not available")
 		return
 	}
 
 	// Update task to working.
-	s.updateTaskState(task, a2a.TaskStateWorking, "")
+	task = s.updateTaskState(task, a2a.TaskStateWorking, "")
 
 	chunks, err := s.bridges.SendStream(r.Context(), env)
 	if err != nil {
-		s.updateTaskState(task, a2a.TaskStateFailed, err.Error())
+		task = s.updateTaskState(task, a2a.TaskStateFailed, err.Error())
 		writeA2ABridgeResult(w, req.ID, task)
 		s.recordA2ABridgeInvocation(r.Context(), agentID, proto, payload, "", 502, time.Since(start).Milliseconds(), err.Error(), ipAddress)
 		return
@@ -198,17 +198,18 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 	respBody := sb.String()
 
 	if invokeErr != "" {
-		s.updateTaskState(task, a2a.TaskStateFailed, invokeErr)
+		task = s.updateTaskState(task, a2a.TaskStateFailed, invokeErr)
 		s.recordA2ABridgeInvocation(r.Context(), agentID, proto, payload, respBody, 502, duration, invokeErr, ipAddress)
 	} else {
-		// Add response as artifact.
-		task.Artifacts = append(task.Artifacts, a2a.Artifact{
+		// Add response as artifact (clone before mutation).
+		cp := cloneA2ATask(task)
+		cp.Artifacts = append(cp.Artifacts, a2a.Artifact{
 			ID: uuid.New().String(),
 			Parts: []a2a.Part{
 				{Text: respBody},
 			},
 		})
-		s.updateTaskState(task, a2a.TaskStateCompleted, "")
+		task = s.updateTaskState(cp, a2a.TaskStateCompleted, "")
 		s.recordA2ABridgeInvocation(r.Context(), agentID, proto, payload, respBody, 200, duration, "", ipAddress)
 	}
 
@@ -252,7 +253,7 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 
 	// Rate limiting.
 	if s.invokeRateLimiter != nil {
-		ipAddress := a2aBridgeClientIP(r)
+		ipAddress := BridgeClientIP(r)
 		if !s.invokeRateLimiter.GetLimiter("a2a:"+ipAddress).Allow() {
 			writeA2ABridgeError(w, req.ID, -32002, "rate limit exceeded")
 			return
@@ -295,7 +296,7 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 	env.WithMetadata("a2a.context_id", contextID)
 
 	start := time.Now()
-	ipAddress := a2aBridgeClientIP(r)
+	ipAddress := BridgeClientIP(r)
 
 	// Set SSE headers.
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -304,18 +305,18 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusOK)
 
 	// Send initial working state.
-	s.updateTaskState(task, a2a.TaskStateWorking, "")
+	task = s.updateTaskState(task, a2a.TaskStateWorking, "")
 	sendA2ASSEEvent(w, flusher, req.ID, task)
 
 	if s.bridges == nil {
-		s.updateTaskState(task, a2a.TaskStateFailed, "bridge not available")
+		task = s.updateTaskState(task, a2a.TaskStateFailed, "bridge not available")
 		sendA2ASSEEvent(w, flusher, req.ID, task)
 		return
 	}
 
 	chunks, err := s.bridges.SendStream(r.Context(), env)
 	if err != nil {
-		s.updateTaskState(task, a2a.TaskStateFailed, err.Error())
+		task = s.updateTaskState(task, a2a.TaskStateFailed, err.Error())
 		sendA2ASSEEvent(w, flusher, req.ID, task)
 		s.recordA2ABridgeInvocation(r.Context(), agentID, proto, payload, "", 502, time.Since(start).Milliseconds(), err.Error(), ipAddress)
 		return
@@ -331,8 +332,9 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 		}
 		if chunk.Data != "" {
 			sb.WriteString(chunk.Data)
-			// Send artifact update event.
-			task.Artifacts = []a2a.Artifact{
+			// Send artifact update event (clone before mutation).
+			cp := cloneA2ATask(task)
+			cp.Artifacts = []a2a.Artifact{
 				{
 					ID: fmt.Sprintf("artifact-%d", artifactIndex),
 					Parts: []a2a.Part{
@@ -340,7 +342,9 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 					},
 				},
 			}
-			task.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			cp.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			s.a2aTasks.tasks.Store(cp.ID, cp)
+			task = cp
 			sendA2ASSEEvent(w, flusher, req.ID, task)
 		}
 		if chunk.Done {
@@ -352,10 +356,11 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 	respBody := sb.String()
 
 	if invokeErr != "" {
-		s.updateTaskState(task, a2a.TaskStateFailed, invokeErr)
+		task = s.updateTaskState(task, a2a.TaskStateFailed, invokeErr)
 		s.recordA2ABridgeInvocation(r.Context(), agentID, proto, payload, respBody, 502, duration, invokeErr, ipAddress)
 	} else {
-		task.Artifacts = []a2a.Artifact{
+		cp := cloneA2ATask(task)
+		cp.Artifacts = []a2a.Artifact{
 			{
 				ID: "artifact-final",
 				Parts: []a2a.Part{
@@ -363,7 +368,7 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 				},
 			},
 		}
-		s.updateTaskState(task, a2a.TaskStateCompleted, "")
+		task = s.updateTaskState(cp, a2a.TaskStateCompleted, "")
 		s.recordA2ABridgeInvocation(r.Context(), agentID, proto, payload, respBody, 200, duration, "", ipAddress)
 	}
 
@@ -412,7 +417,7 @@ func (s *HTTPServer) handleA2ABridgeCancelTask(w http.ResponseWriter, req *jsonr
 	}
 
 	task := v.(*a2a.Task)
-	s.updateTaskState(task, a2a.TaskStateCanceled, "")
+	task = s.updateTaskState(task, a2a.TaskStateCanceled, "")
 
 	writeA2ABridgeResult(w, req.ID, task)
 }
@@ -465,13 +470,13 @@ func (s *HTTPServer) handleA2ABridgePushNotification(w http.ResponseWriter, req 
 func (s *HTTPServer) handleA2ABridgeAgentCard(w http.ResponseWriter, r *http.Request) {
 	agentID := r.PathValue("agent_id")
 	if agentID == "" {
-		http.Error(w, `{"error":"missing agent_id"}`, http.StatusBadRequest)
+		s.jsonError(w, "missing agent_id", http.StatusBadRequest)
 		return
 	}
 
 	card, err := s.registry.GetAgent(r.Context(), agentID)
 	if err != nil {
-		http.Error(w, `{"error":"agent not found"}`, http.StatusNotFound)
+		s.jsonError(w, "agent not found", http.StatusNotFound)
 		return
 	}
 
@@ -486,13 +491,13 @@ func (s *HTTPServer) handleA2ABridgeAgentCard(w http.ResponseWriter, r *http.Req
 func (s *HTTPServer) handleA2ABridgeGetTaskREST(w http.ResponseWriter, r *http.Request) {
 	taskID := r.PathValue("task_id")
 	if taskID == "" {
-		http.Error(w, `{"error":"missing task_id"}`, http.StatusBadRequest)
+		s.jsonError(w, "missing task_id", http.StatusBadRequest)
 		return
 	}
 
 	v, ok := s.a2aTasks.tasks.Load(taskID)
 	if !ok {
-		http.Error(w, `{"error":"task not found"}`, http.StatusNotFound)
+		s.jsonError(w, "task not found", http.StatusNotFound)
 		return
 	}
 
@@ -544,24 +549,30 @@ func requestBaseURL(r *http.Request) string {
 	return scheme + "://" + host
 }
 
-// a2aBridgeClientIP extracts the client IP address from the request.
-func a2aBridgeClientIP(r *http.Request) string {
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		return strings.Split(fwd, ",")[0]
+
+// cloneA2ATask returns a shallow copy of the task with a fresh Artifacts slice.
+func cloneA2ATask(task *a2a.Task) *a2a.Task {
+	cp := *task
+	if task.Artifacts != nil {
+		cp.Artifacts = make([]a2a.Artifact, len(task.Artifacts))
+		copy(cp.Artifacts, task.Artifacts)
 	}
-	return r.RemoteAddr
+	return &cp
 }
 
-// updateTaskState updates a task's status and timestamp.
-func (s *HTTPServer) updateTaskState(task *a2a.Task, state a2a.TaskState, message string) {
+// updateTaskState creates a copy of the task with updated status and stores it.
+// Returns the new copy so callers can continue working with it.
+func (s *HTTPServer) updateTaskState(task *a2a.Task, state a2a.TaskState, message string) *a2a.Task {
+	cp := cloneA2ATask(task)
 	now := time.Now().UTC().Format(time.RFC3339)
-	task.Status = a2a.TaskStatus{
+	cp.Status = a2a.TaskStatus{
 		State:     state,
 		Message:   message,
 		Timestamp: now,
 	}
-	task.UpdatedAt = now
-	s.a2aTasks.tasks.Store(task.ID, task)
+	cp.UpdatedAt = now
+	s.a2aTasks.tasks.Store(cp.ID, cp)
+	return cp
 }
 
 // recordA2ABridgeInvocation records an invocation to the invocation service.

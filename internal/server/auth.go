@@ -29,7 +29,7 @@ func AuthMiddleware(cfg AuthConfig, logger *slog.Logger) Middleware {
 			agentID, ok := authenticate(r, cfg, logger)
 			if !ok {
 				if cfg.Required {
-					http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+					writeJSONError(w, "unauthorized", http.StatusUnauthorized)
 					return
 				}
 				// Transition mode: log warning but allow through.
@@ -132,7 +132,7 @@ func OwnerOnlyMiddleware(logger *slog.Logger) Middleware {
 					"authenticated_agent", ctxAgentID,
 					"target_agent", pathID,
 				)
-				http.Error(w, `{"error":"forbidden: not the owner"}`, http.StatusForbidden)
+				writeJSONError(w, "forbidden: not the owner", http.StatusForbidden)
 				return
 			}
 
@@ -170,20 +170,20 @@ func UserAuthMiddleware(jwtMgr *userauth.JWTManager, logger *slog.Logger) Middle
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				http.Error(w, `{"error":"authorization header required"}`, http.StatusUnauthorized)
+				writeJSONError(w, "authorization header required", http.StatusUnauthorized)
 				return
 			}
 
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-				http.Error(w, `{"error":"invalid authorization header"}`, http.StatusUnauthorized)
+				writeJSONError(w, "invalid authorization header", http.StatusUnauthorized)
 				return
 			}
 
 			claims, err := jwtMgr.ValidateAccessToken(parts[1])
 			if err != nil {
 				logger.Debug("JWT validation failed", "error", err)
-				http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
+				writeJSONError(w, "invalid or expired token", http.StatusUnauthorized)
 				return
 			}
 
@@ -208,7 +208,7 @@ func AdminOnlyMiddleware(logger *slog.Logger) Middleware {
 					"role", role,
 					"path", r.URL.Path,
 				)
-				http.Error(w, `{"error":"forbidden: admin access required"}`, http.StatusForbidden)
+				writeJSONError(w, "forbidden: admin access required", http.StatusForbidden)
 				return
 			}
 			next.ServeHTTP(w, r)

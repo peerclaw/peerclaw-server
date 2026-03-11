@@ -3,9 +3,11 @@ package server
 import (
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -194,7 +196,7 @@ func CORSMiddleware(allowedOrigins []string) Middleware {
 			// Set the allowed origin (mirror the exact origin rather than "*"
 			// so credentials can work).
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-PeerClaw-Signature, X-PeerClaw-PublicKey, X-PeerClaw-Agent-ID")
 
 			// Handle preflight.
@@ -206,6 +208,56 @@ func CORSMiddleware(allowedOrigins []string) Middleware {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// SecurityHeadersMiddleware sets common security headers on every response.
+func SecurityHeadersMiddleware() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'")
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// writeJSONError writes a JSON error response without requiring an HTTPServer receiver.
+// Use this in middleware and standalone handlers where s.jsonError() is not available.
+func writeJSONError(w http.ResponseWriter, message string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+// BridgeClientIP extracts the real client IP from a request.
+// It trusts X-Forwarded-For only when the immediate peer (RemoteAddr) is a
+// loopback or private address, which is the case behind Caddy / nginx.
+func BridgeClientIP(r *http.Request) string {
+	remoteHost, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		remoteHost = r.RemoteAddr
+	}
+
+	// Only trust proxy headers when RemoteAddr is a loopback or private address.
+	if ip := net.ParseIP(remoteHost); ip != nil && (ip.IsLoopback() || ip.IsPrivate()) {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.SplitN(xff, ",", 2)
+			trimmed := strings.TrimSpace(parts[0])
+			if net.ParseIP(trimmed) != nil {
+				return trimmed
+			}
+		}
+		if xri := r.Header.Get("X-Real-IP"); xri != "" {
+			trimmed := strings.TrimSpace(xri)
+			if net.ParseIP(trimmed) != nil {
+				return trimmed
+			}
+		}
+	}
+
+	return remoteHost
 }
 
 // statusWriter wraps http.ResponseWriter to capture the status code.

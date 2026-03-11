@@ -17,9 +17,9 @@ func (s *HTTPServer) registerGatewayRoutes() {
 
 // handleGatewayInvoke handles POST /agent/{agent_id} — protocol auto-detection + dispatch.
 func (s *HTTPServer) handleGatewayInvoke(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)) // 1 MB limit
 	if err != nil {
-		http.Error(w, `{"error":"failed to read body"}`, http.StatusBadRequest)
+		s.jsonError(w, "failed to read body", http.StatusBadRequest)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (s *HTTPServer) handleGatewayInvoke(w http.ResponseWriter, r *http.Request)
 	case "acp":
 		s.handleACPBridgeCreateRun(w, r)
 	default:
-		http.Error(w, `{"error":"unable to detect protocol from request body"}`, http.StatusBadRequest)
+		s.jsonError(w, "unable to detect protocol from request body", http.StatusBadRequest)
 	}
 }
 
@@ -51,13 +51,13 @@ func (s *HTTPServer) handleGatewayInvoke(w http.ResponseWriter, r *http.Request)
 func (s *HTTPServer) handleGatewayDiscover(w http.ResponseWriter, r *http.Request) {
 	agentID := r.PathValue("agent_id")
 	if agentID == "" {
-		http.Error(w, `{"error":"missing agent_id"}`, http.StatusBadRequest)
+		s.jsonError(w, "missing agent_id", http.StatusBadRequest)
 		return
 	}
 
 	card, err := s.registry.GetAgent(r.Context(), agentID)
 	if err != nil {
-		http.Error(w, `{"error":"agent not found"}`, http.StatusNotFound)
+		s.jsonError(w, "agent not found", http.StatusNotFound)
 		return
 	}
 

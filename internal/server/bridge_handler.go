@@ -31,7 +31,7 @@ type bridgeSendRequest struct {
 // handleBridgeSend handles POST /api/v1/bridge/send.
 // This allows PeerClaw agents to send messages to external agents via the bridge.
 func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)) // 1 MB limit
 	if err != nil {
 		s.jsonError(w, "failed to read body", http.StatusBadRequest)
 		return

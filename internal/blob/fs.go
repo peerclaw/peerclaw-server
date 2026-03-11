@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // DiskFileStore implements FileStore using the local filesystem.
@@ -60,5 +61,13 @@ func (fs *DiskFileStore) Remove(id string) error {
 }
 
 func (fs *DiskFileStore) path(id string) string {
-	return filepath.Join(fs.basePath, id)
+	// Clean the path and verify it stays within basePath to prevent traversal.
+	joined := filepath.Join(fs.basePath, id)
+	cleaned := filepath.Clean(joined)
+	// Ensure the resolved path is a direct child of basePath.
+	if !strings.HasPrefix(cleaned, filepath.Clean(fs.basePath)+string(filepath.Separator)) {
+		// Return a safe path that will simply not exist.
+		return filepath.Join(fs.basePath, "invalid-blob-id")
+	}
+	return cleaned
 }
