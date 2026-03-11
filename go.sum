@@ -37,6 +37,8 @@ github.com/mattn/go-sqlite3 v1.14.34 h1:3NtcvcUnFBPsuRcno8pUtupspG/GM+9nZ88zgJcp
 github.com/mattn/go-sqlite3 v1.14.34/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/peerclaw/peerclaw-core v0.2.0 h1:TVrNAyEK6BtpI00E/ZLgTDqKeW65agiYlvqb5HO83o4=
 github.com/peerclaw/peerclaw-core v0.2.0/go.mod h1:nlxhZV5ClCDDAh11ubrTLFluae1fK7bLj3uyUk/Gc4A=
+github.com/peerclaw/peerclaw-core v0.3.0 h1:zthry7+TcUFpNw1BSYlRzhLpuq/3vxssEEtGzGh/pDU=
+github.com/peerclaw/peerclaw-core v0.3.0/go.mod h1:nlxhZV5ClCDDAh11ubrTLFluae1fK7bLj3uyUk/Gc4A=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/redis/go-redis/v9 v9.18.0 h1:pMkxYPkEbMPwRdenAzUNyFNrDgHx9U+DrBabWNfSRQs=
