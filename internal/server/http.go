@@ -674,6 +674,22 @@ func (s *HTTPServer) handleFederationDiscover(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Authenticate federation discover requests using bearer token.
+	expectedToken := s.federation.AuthToken()
+	if expectedToken == "" {
+		s.jsonError(w, "federation auth token not configured", http.StatusForbidden)
+		return
+	}
+	providedToken, err := identity.ExtractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if subtle.ConstantTimeCompare([]byte(providedToken), []byte(expectedToken)) != 1 {
+		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req discoverRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)

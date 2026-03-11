@@ -280,6 +280,9 @@ func main() {
 			logger.Info("TURN servers configured", "urls", cfg.Signaling.TURN.URLs)
 		}
 		sigHub = signaling.NewHub(logger, turnCfg, cfg.RateLimit.MaxConnections)
+		if len(cfg.Signaling.AllowedOrigins) > 0 {
+			sigHub.SetAllowedOrigins(cfg.Signaling.AllowedOrigins)
+		}
 		logger.Info("WebSocket signaling enabled",
 			"max_connections", cfg.RateLimit.MaxConnections,
 		)

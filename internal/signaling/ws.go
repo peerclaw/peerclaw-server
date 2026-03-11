@@ -38,18 +38,19 @@ type ContactsChecker interface {
 
 // Hub manages WebSocket connections for signaling between agents.
 type Hub struct {
-	mu           sync.RWMutex
-	conns        map[string]*websocket.Conn // agentID -> connection
-	logger       *slog.Logger
-	turnConfig   *TURNConfig
-	maxConns     int // 0 means unlimited
-	audit        *audit.Logger
-	metrics      *observability.Metrics
-	broker       Broker
-	verifier     *identity.Verifier
-	contacts     ContactsChecker
-	authRequired bool
-	authTimeout  time.Duration // default 5s
+	mu             sync.RWMutex
+	conns          map[string]*websocket.Conn // agentID -> connection
+	logger         *slog.Logger
+	turnConfig     *TURNConfig
+	maxConns       int // 0 means unlimited
+	audit          *audit.Logger
+	metrics        *observability.Metrics
+	broker         Broker
+	verifier       *identity.Verifier
+	contacts       ContactsChecker
+	authRequired   bool
+	authTimeout    time.Duration // default 5s
+	allowedOrigins []string      // origin patterns for websocket.Accept; empty = same-origin only
 }
 
 // NewHub creates a new signaling hub.
@@ -93,6 +94,13 @@ func (h *Hub) SetMetrics(m *observability.Metrics) {
 // When set, Forward() delegates to the broker instead of delivering directly.
 func (h *Hub) SetBroker(b Broker) {
 	h.broker = b
+}
+
+// SetAllowedOrigins sets the allowed origin patterns for WebSocket connections.
+// Patterns follow nhooyr.io/websocket OriginPatterns format (e.g., "*.example.com").
+// If empty, only same-origin requests are accepted.
+func (h *Hub) SetAllowedOrigins(origins []string) {
+	h.allowedOrigins = origins
 }
 
 // SetContacts sets the contacts checker for signaling whitelist enforcement.
@@ -152,9 +160,11 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		InsecureSkipVerify: true,
-	})
+	acceptOpts := &websocket.AcceptOptions{}
+	if len(h.allowedOrigins) > 0 {
+		acceptOpts.OriginPatterns = h.allowedOrigins
+	}
+	conn, err := websocket.Accept(w, r, acceptOpts)
 	if err == nil {
 		// Limit individual message size to 64KB.
 		conn.SetReadLimit(64 * 1024)

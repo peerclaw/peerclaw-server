@@ -80,8 +80,9 @@ type BridgeEndpoint struct {
 
 // SignalingConfig holds WebSocket signaling and TURN server settings.
 type SignalingConfig struct {
-	Enabled  bool       `yaml:"enabled"`
-	TURN     TURNConfig `yaml:"turn"`
+	Enabled        bool       `yaml:"enabled"`
+	AllowedOrigins []string   `yaml:"allowed_origins"` // origin patterns for WebSocket Accept; empty = same-origin only
+	TURN           TURNConfig `yaml:"turn"`
 }
 
 // TURNConfig holds TURN server settings for WebRTC NAT traversal.
