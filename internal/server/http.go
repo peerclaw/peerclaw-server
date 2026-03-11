@@ -68,6 +68,7 @@ type HTTPServer struct {
 	useracl                interface{ IsAllowed(ctx context.Context, agentID, userID string) (bool, error) }
 	a2aTasks               *a2aBridgeTasks
 	acpRuns                *acpBridgeRuns
+	mcpSessions            *mcpBridgeSessions
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -280,6 +281,12 @@ func (s *HTTPServer) routes() {
 
 	// ACP Bridge routes (per-agent ACP endpoints).
 	s.registerACPBridgeRoutes()
+
+	// MCP Bridge routes (per-agent MCP endpoints).
+	s.registerMCPBridgeRoutes()
+
+	// Universal Protocol Gateway routes.
+	s.registerGatewayRoutes()
 
 	// Admin routes.
 	s.registerAdminRoutes()

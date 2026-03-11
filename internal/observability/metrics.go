@@ -13,7 +13,8 @@ type Metrics struct {
 	SignalingMessagesTotal metric.Int64Counter
 	RegisteredAgents     metric.Int64UpDownCounter
 	BridgeMessagesTotal  metric.Int64Counter
-	BridgeMessageDuration metric.Float64Histogram
+	BridgeMessageDuration  metric.Float64Histogram
+	GatewayRequestsTotal   metric.Int64Counter
 }
 
 // NewMetrics creates all metric instruments from the given meter.
@@ -74,6 +75,13 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 	m.BridgeMessageDuration, err = meter.Float64Histogram("peerclaw.bridge.message.duration",
 		metric.WithDescription("Bridge message send duration in seconds"),
 		metric.WithUnit("s"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	m.GatewayRequestsTotal, err = meter.Int64Counter("peerclaw.gateway.requests.total",
+		metric.WithDescription("Total number of gateway requests by detected protocol"),
 	)
 	if err != nil {
 		return nil, err
