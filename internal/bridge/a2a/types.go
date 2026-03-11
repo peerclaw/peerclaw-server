@@ -96,6 +96,23 @@ type Skill struct {
 	OutputModes []string `json:"outputModes,omitempty"`
 }
 
+// PushNotificationConfig holds A2A push notification settings.
+type PushNotificationConfig struct {
+	URL   string `json:"url"`
+	Token string `json:"token,omitempty"`
+}
+
+// SetPushNotificationParams is the JSON-RPC params for tasks/pushNotification/set.
+type SetPushNotificationParams struct {
+	ID                     string                 `json:"id"`
+	PushNotificationConfig PushNotificationConfig `json:"pushNotificationConfig"`
+}
+
+// GetPushNotificationParams is the JSON-RPC params for tasks/pushNotification/get.
+type GetPushNotificationParams struct {
+	ID string `json:"id"`
+}
+
 // SendMessageParams is the JSON-RPC params for SendMessage.
 type SendMessageParams struct {
 	Message Message            `json:"message"`

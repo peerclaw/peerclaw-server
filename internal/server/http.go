@@ -66,6 +66,7 @@ type HTTPServer struct {
 	contacts               *contacts.Service
 	bridgeRateLimiter      *IPRateLimiter
 	useracl                interface{ IsAllowed(ctx context.Context, agentID, userID string) (bool, error) }
+	a2aTasks               *a2aBridgeTasks
 }
 
 // NewHTTPServer creates a new HTTP server with all routes registered.
@@ -272,6 +273,9 @@ func (s *HTTPServer) routes() {
 
 	// Blob routes.
 	s.registerBlobRoutes()
+
+	// A2A Bridge routes (per-agent A2A endpoints).
+	s.registerA2ABridgeRoutes()
 
 	// Admin routes.
 	s.registerAdminRoutes()
