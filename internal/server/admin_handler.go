@@ -86,8 +86,13 @@ func (s *HTTPServer) handleAdminListUsers(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	sanitized := make([]map[string]any, len(users))
+	for i := range users {
+		sanitized[i] = sanitizeUser(&users[i])
+	}
+
 	s.jsonResponse(w, http.StatusOK, map[string]any{
-		"users": users,
+		"users": sanitized,
 		"total": total,
 	})
 }
@@ -110,7 +115,7 @@ func (s *HTTPServer) handleAdminGetUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	s.jsonResponse(w, http.StatusOK, user)
+	s.jsonResponse(w, http.StatusOK, sanitizeUser(user))
 }
 
 // handleAdminUpdateUserRole handles PUT /api/v1/admin/users/{id}/role.
@@ -139,7 +144,7 @@ func (s *HTTPServer) handleAdminUpdateUserRole(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	s.jsonResponse(w, http.StatusOK, user)
+	s.jsonResponse(w, http.StatusOK, sanitizeUser(user))
 }
 
 // handleAdminDeleteUser handles DELETE /api/v1/admin/users/{id}.

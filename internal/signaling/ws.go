@@ -60,11 +60,12 @@ func NewHub(logger *slog.Logger, turnCfg *TURNConfig, maxConns int) *Hub {
 		logger = slog.Default()
 	}
 	return &Hub{
-		conns:       make(map[string]*websocket.Conn),
-		logger:      logger,
-		turnConfig:  turnCfg,
-		maxConns:    maxConns,
-		authTimeout: 5 * time.Second,
+		conns:        make(map[string]*websocket.Conn),
+		logger:       logger,
+		turnConfig:   turnCfg,
+		maxConns:     maxConns,
+		authRequired: true,
+		authTimeout:  5 * time.Second,
 	}
 }
 

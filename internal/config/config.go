@@ -27,7 +27,7 @@ type Config struct {
 
 // AuthConfig holds authentication settings.
 type AuthConfig struct {
-	Required bool `yaml:"required"` // When true, reject unauthenticated requests. Default false for transition.
+	Required bool `yaml:"required"` // When true, reject unauthenticated requests. Default true.
 }
 
 // UserAuthConfig holds user authentication settings.
@@ -143,6 +143,9 @@ type FederationPeer struct {
 // DefaultConfig returns a configuration with sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
+		Auth: AuthConfig{
+			Required: true,
+		},
 		Server: ServerConfig{
 			HTTPAddr: ":8080",
 			GRPCAddr: ":9090",
