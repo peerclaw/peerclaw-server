@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/security"
@@ -97,49 +96,6 @@ func TestAdapterSendMissingEndpoint(t *testing.T) {
 	err := adapter.Send(context.Background(), env)
 	if err == nil {
 		t.Error("expected error for missing endpoint")
-	}
-}
-
-func TestAdapterHandshake(t *testing.T) {
-	manifest := AgentManifest{
-		Name:        "echo",
-		Description: "Echo agent",
-		Metadata: ManifestMetadata{
-			Capabilities: []CapabilityDef{{Name: "echo"}},
-		},
-	}
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.URL.Path, "/agents/") {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		json.NewEncoder(w).Encode(manifest)
-	}))
-	defer server.Close()
-
-	adapter := New(nil, server.Client())
-	defer func() { _ = adapter.Close() }()
-
-	card := &agentcard.Card{
-		ID:       "echo-id",
-		Name:     "echo",
-		Endpoint: agentcard.Endpoint{URL: server.URL},
-	}
-
-	err := adapter.Handshake(context.Background(), card)
-	if err != nil {
-		t.Fatalf("Handshake: %v", err)
-	}
-}
-
-func TestAdapterHandshakeNoURL(t *testing.T) {
-	adapter := New(nil, nil)
-	defer func() { _ = adapter.Close() }()
-
-	card := &agentcard.Card{ID: "test"}
-	err := adapter.Handshake(context.Background(), card)
-	if err == nil {
-		t.Error("expected error for empty URL")
 	}
 }
 

@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
@@ -285,49 +284,6 @@ func (a *Adapter) readBufferedResponse(resp *http.Response, ch chan<- bridge.Str
 
 func (a *Adapter) Receive(ctx context.Context) (<-chan *envelope.Envelope, error) {
 	return a.inbox, nil
-}
-
-// Handshake fetches /.well-known/agent.json from the agent's endpoint.
-func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
-	if card.Endpoint.URL == "" {
-		return fmt.Errorf("a2a: agent has no endpoint URL")
-	}
-
-	url := strings.TrimRight(card.Endpoint.URL, "/") + "/.well-known/agent.json"
-	if err := security.ValidateURL(url); err != nil {
-		return fmt.Errorf("a2a: SSRF blocked: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("a2a: create request: %w", err)
-	}
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("a2a: fetch agent card: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("a2a: agent card status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
-	if err != nil {
-		return fmt.Errorf("a2a: read agent card: %w", err)
-	}
-
-	var agentCard AgentCard
-	if err := json.Unmarshal(body, &agentCard); err != nil {
-		return fmt.Errorf("a2a: unmarshal agent card: %w", err)
-	}
-
-	a.logger.Info("a2a handshake complete",
-		"agent", card.ID,
-		"remote_name", agentCard.Name,
-		"skills", len(agentCard.Skills),
-	)
-	return nil
 }
 
 // Translate converts an envelope from A2A format to another protocol.

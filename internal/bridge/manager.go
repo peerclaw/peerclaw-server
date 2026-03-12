@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 )
 
@@ -107,22 +106,6 @@ func (m *Manager) Translate(ctx context.Context, env *envelope.Envelope, targetP
 	return b.Translate(ctx, env, targetProtocol)
 }
 
-// Handshake initiates a connection with a remote agent using the appropriate bridge.
-func (m *Manager) Handshake(ctx context.Context, card *agentcard.Card) error {
-	if len(card.Protocols) == 0 {
-		return fmt.Errorf("agent has no protocols")
-	}
-	// Try the first supported protocol.
-	for _, p := range card.Protocols {
-		b, err := m.GetBridge(string(p))
-		if err != nil {
-			continue
-		}
-		return b.Handshake(ctx, card)
-	}
-	return fmt.Errorf("no compatible bridge found for agent %s", card.ID)
-}
-
 // ListBridges returns info about all registered bridges.
 func (m *Manager) ListBridges() []BridgeInfo {
 	m.mu.RLock()
@@ -140,9 +123,8 @@ func (m *Manager) ListBridges() []BridgeInfo {
 
 // BridgeInfo holds metadata about a registered bridge.
 type BridgeInfo struct {
-	Protocol        string `json:"protocol"`
-	Available       bool   `json:"available"`
-	ConnectedAgents int    `json:"connected_agents"`
+	Protocol  string `json:"protocol"`
+	Available bool   `json:"available"`
 }
 
 // Close shuts down all bridges.

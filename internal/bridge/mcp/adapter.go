@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
@@ -148,21 +147,6 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 
 func (a *Adapter) Receive(ctx context.Context) (<-chan *envelope.Envelope, error) {
 	return a.inbox, nil
-}
-
-// Handshake performs the MCP initialize handshake with a remote server.
-func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
-	if card.Endpoint.URL == "" {
-		return fmt.Errorf("mcp: agent has no endpoint URL")
-	}
-
-	_, err := a.getOrInitSession(ctx, card.Endpoint.URL)
-	if err != nil {
-		return fmt.Errorf("mcp: handshake: %w", err)
-	}
-
-	a.logger.Info("mcp handshake complete", "agent", card.ID, "url", card.Endpoint.URL)
-	return nil
 }
 
 // getOrInitSession ensures there's an initialized session for the endpoint.

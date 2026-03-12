@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
@@ -150,25 +149,6 @@ func TestIntegration_A2ASendAndReceive(t *testing.T) {
 		}
 	default:
 		t.Error("expected response in A2A inbox")
-	}
-}
-
-func TestIntegration_A2AHandshake(t *testing.T) {
-	server := mockA2AServer(t)
-	defer server.Close()
-
-	a2aAdapter := a2a.New(nil, server.Client())
-	defer a2aAdapter.Close()
-
-	card := &agentcard.Card{
-		ID:        "ext-agent",
-		Protocols: []protocol.Protocol{protocol.ProtocolA2A},
-		Endpoint:  agentcard.Endpoint{URL: server.URL},
-	}
-
-	err := a2aAdapter.Handshake(context.Background(), card)
-	if err != nil {
-		t.Fatalf("A2A Handshake: %v", err)
 	}
 }
 
@@ -383,57 +363,3 @@ func TestIntegration_CrossProtocolTranslation_MCPToA2A(t *testing.T) {
 	}
 }
 
-func TestIntegration_Negotiation(t *testing.T) {
-	a2aAdapter := a2a.New(nil, nil)
-	mcpAdapter := mcp.New(nil, nil)
-	acpAdapter := acp.New(nil, nil)
-	defer a2aAdapter.Close()
-	defer mcpAdapter.Close()
-	defer acpAdapter.Close()
-
-	mgr := bridge.NewManager(nil)
-	mgr.RegisterBridge(a2aAdapter)
-	mgr.RegisterBridge(mcpAdapter)
-	mgr.RegisterBridge(acpAdapter)
-
-	negotiator := bridge.NewNegotiator(mgr, nil)
-
-	// Same protocol agents.
-	source := &agentcard.Card{
-		ID:        "agent-1",
-		Protocols: []protocol.Protocol{protocol.ProtocolA2A},
-	}
-	target := &agentcard.Card{
-		ID:        "agent-2",
-		Protocols: []protocol.Protocol{protocol.ProtocolA2A},
-	}
-
-	result, err := negotiator.Negotiate(source, target)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Protocol != "a2a" {
-		t.Errorf("Protocol = %q", result.Protocol)
-	}
-	if result.NeedsTranslation {
-		t.Error("should not need translation")
-	}
-
-	// Cross-protocol agents.
-	source2 := &agentcard.Card{
-		ID:        "agent-3",
-		Protocols: []protocol.Protocol{protocol.ProtocolA2A},
-	}
-	target2 := &agentcard.Card{
-		ID:        "agent-4",
-		Protocols: []protocol.Protocol{protocol.ProtocolMCP},
-	}
-
-	result2, err := negotiator.Negotiate(source2, target2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !result2.NeedsTranslation {
-		t.Error("should need translation")
-	}
-}

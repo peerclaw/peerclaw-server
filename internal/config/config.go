@@ -40,12 +40,10 @@ type UserAuthConfig struct {
 	AdminEmails []string `yaml:"admin_emails"` // emails auto-promoted to admin on login/register
 }
 
-// ServerConfig holds HTTP and gRPC server settings.
+// ServerConfig holds HTTP server settings.
 type ServerConfig struct {
 	HTTPAddr    string   `yaml:"http_addr"`
-	GRPCAddr    string   `yaml:"grpc_addr"`
 	CORSOrigins []string `yaml:"cors_origins"`
-	Debug       bool     `yaml:"debug"` // Enable debug features (e.g., gRPC reflection)
 }
 
 // DatabaseConfig holds database settings.
@@ -150,7 +148,6 @@ func DefaultConfig() *Config {
 		},
 		Server: ServerConfig{
 			HTTPAddr: ":8080",
-			GRPCAddr: ":9090",
 		},
 		Database: DatabaseConfig{
 			Driver: "sqlite",

@@ -467,10 +467,8 @@ func main() {
 		logger.Info("blob cleanup goroutine started", "interval", "15m")
 	}
 
-	grpcServer := server.NewGRPCServer(cfg.Server.GRPCAddr, logger, cfg.Server.Debug)
-
 	var wg sync.WaitGroup
-	errCh := make(chan error, 2)
+	errCh := make(chan error, 1)
 
 	wg.Add(1)
 	go func() {
@@ -478,15 +476,8 @@ func main() {
 		errCh <- httpServer.Start()
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		errCh <- grpcServer.Start()
-	}()
-
 	logger.Info("PeerClaw gateway started",
 		"http", cfg.Server.HTTPAddr,
-		"grpc", cfg.Server.GRPCAddr,
 	)
 
 	// Wait for shutdown signal.
@@ -504,7 +495,6 @@ func main() {
 	// Graceful shutdown: cancel context to signal all goroutines, then
 	// stop the servers and wait for goroutines to finish.
 	cancel()
-	grpcServer.Stop()
 	_ = httpServer.Stop()
 
 	// Wait for server goroutines to complete before tearing down

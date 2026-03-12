@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/security"
@@ -131,50 +130,6 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 
 func (a *Adapter) Receive(ctx context.Context) (<-chan *envelope.Envelope, error) {
 	return a.inbox, nil
-}
-
-// Handshake fetches the agent manifest from the ACP endpoint.
-func (a *Adapter) Handshake(ctx context.Context, card *agentcard.Card) error {
-	if card.Endpoint.URL == "" {
-		return fmt.Errorf("acp: agent has no endpoint URL")
-	}
-
-	agentName := card.Name
-	url := strings.TrimRight(card.Endpoint.URL, "/") + "/agents/" + agentName
-	if err := security.ValidateURL(url); err != nil {
-		return fmt.Errorf("acp: SSRF blocked: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("acp: create request: %w", err)
-	}
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("acp: fetch manifest: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("acp: manifest status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
-	if err != nil {
-		return fmt.Errorf("acp: read manifest: %w", err)
-	}
-
-	var manifest AgentManifest
-	if err := json.Unmarshal(body, &manifest); err != nil {
-		return fmt.Errorf("acp: unmarshal manifest: %w", err)
-	}
-
-	a.logger.Info("acp handshake complete",
-		"agent", card.ID,
-		"remote_name", manifest.Name,
-		"capabilities", len(manifest.Metadata.Capabilities),
-	)
-	return nil
 }
 
 // Translate converts an envelope from ACP format to another protocol.

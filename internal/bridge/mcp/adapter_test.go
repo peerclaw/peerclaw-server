@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
@@ -159,44 +158,6 @@ func TestAdapterSendMissingEndpoint(t *testing.T) {
 	err := adapter.Send(context.Background(), env)
 	if err == nil {
 		t.Error("expected error for missing endpoint")
-	}
-}
-
-func TestAdapterHandshake(t *testing.T) {
-	server := mockMCPServer(t)
-	defer server.Close()
-
-	adapter := New(nil, server.Client())
-	defer adapter.Close()
-
-	card := &agentcard.Card{
-		ID:       "test-agent",
-		Endpoint: agentcard.Endpoint{URL: server.URL},
-	}
-
-	err := adapter.Handshake(context.Background(), card)
-	if err != nil {
-		t.Fatalf("Handshake: %v", err)
-	}
-
-	// Verify session was stored.
-	session, ok := adapter.GetSession(server.URL)
-	if !ok {
-		t.Fatal("session not stored")
-	}
-	if !session.Initialized {
-		t.Error("session should be initialized")
-	}
-}
-
-func TestAdapterHandshakeNoURL(t *testing.T) {
-	adapter := New(nil, nil)
-	defer adapter.Close()
-
-	card := &agentcard.Card{ID: "test"}
-	err := adapter.Handshake(context.Background(), card)
-	if err == nil {
-		t.Error("expected error for empty URL")
 	}
 }
 

@@ -16,10 +16,6 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.Server.HTTPAddr != ":8080" {
 		t.Errorf("HTTPAddr = %q, want %q", cfg.Server.HTTPAddr, ":8080")
 	}
-	if cfg.Server.GRPCAddr != ":9090" {
-		t.Errorf("GRPCAddr = %q, want %q", cfg.Server.GRPCAddr, ":9090")
-	}
-
 	// Database defaults
 	if cfg.Database.Driver != "sqlite" {
 		t.Errorf("Driver = %q, want %q", cfg.Database.Driver, "sqlite")
@@ -125,7 +121,6 @@ func TestLoad_YAML(t *testing.T) {
 	yamlContent := `
 server:
   http_addr: ":3000"
-  grpc_addr: ":3001"
 database:
   driver: postgres
   dsn: "postgres://user:pass@localhost/peerclaw"
@@ -190,10 +185,6 @@ federation:
 	if cfg.Server.HTTPAddr != ":3000" {
 		t.Errorf("HTTPAddr = %q, want %q", cfg.Server.HTTPAddr, ":3000")
 	}
-	if cfg.Server.GRPCAddr != ":3001" {
-		t.Errorf("GRPCAddr = %q, want %q", cfg.Server.GRPCAddr, ":3001")
-	}
-
 	// Database
 	if cfg.Database.Driver != "postgres" {
 		t.Errorf("Driver = %q, want %q", cfg.Database.Driver, "postgres")

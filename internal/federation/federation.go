@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/signaling"
 )
 
@@ -58,18 +57,6 @@ func New(nodeName, authToken string, logger *slog.Logger) *FederationService {
 	}
 }
 
-// NodeName returns the name of this federation node.
-func (fs *FederationService) NodeName() string {
-	return fs.nodeName
-}
-
-// OnSignal registers a callback for incoming federated signal messages.
-func (fs *FederationService) OnSignal(fn func(ctx context.Context, msg signaling.SignalMessage)) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-	fs.onSignal = fn
-}
-
 // AddPeer adds a federated peer server.
 func (fs *FederationService) AddPeer(name, address, token string) {
 	fs.mu.Lock()
@@ -80,17 +67,6 @@ func (fs *FederationService) AddPeer(name, address, token string) {
 		Token:   token,
 	}
 	fs.logger.Info("federation peer added", "name", name, "address", address)
-}
-
-// ListPeers returns all configured federation peers.
-func (fs *FederationService) ListPeers() []*FederationPeer {
-	fs.mu.RLock()
-	defer fs.mu.RUnlock()
-	result := make([]*FederationPeer, 0, len(fs.peers))
-	for _, p := range fs.peers {
-		result = append(result, p)
-	}
-	return result
 }
 
 // ForwardSignal forwards a signaling message to all federated peers.
@@ -133,50 +109,6 @@ func (fs *FederationService) ForwardSignal(ctx context.Context, msg signaling.Si
 		}
 	}
 	return lastErr
-}
-
-// QueryAgents queries all federated peers for agents with the given capabilities.
-func (fs *FederationService) QueryAgents(ctx context.Context, capabilities []string) ([]*agentcard.Card, error) {
-	fs.mu.RLock()
-	peers := make([]*FederationPeer, 0, len(fs.peers))
-	for _, p := range fs.peers {
-		peers = append(peers, p)
-	}
-	fs.mu.RUnlock()
-
-	var allCards []*agentcard.Card
-	for _, p := range peers {
-		body, _ := json.Marshal(map[string]any{
-			"capabilities": capabilities,
-		})
-		req, err := http.NewRequestWithContext(ctx, "POST",
-			p.Address+"/api/v1/discover",
-			bytes.NewReader(body))
-		if err != nil {
-			continue
-		}
-		req.Header.Set("Content-Type", "application/json")
-		if p.Token != "" {
-			req.Header.Set("Authorization", "Bearer "+p.Token)
-		}
-
-		resp, err := fs.client.Do(req)
-		if err != nil {
-			fs.logger.Warn("federation query failed", "peer", p.Name, "error", err)
-			continue
-		}
-
-		var result struct {
-			Agents []*agentcard.Card `json:"agents"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			_ = resp.Body.Close()
-			continue
-		}
-		_ = resp.Body.Close()
-		allCards = append(allCards, result.Agents...)
-	}
-	return allCards, nil
 }
 
 // HandleIncomingSignal processes a signal message received from a federated peer.

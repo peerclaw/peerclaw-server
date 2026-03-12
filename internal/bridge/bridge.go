@@ -3,7 +3,6 @@ package bridge
 import (
 	"context"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 )
 
@@ -15,12 +14,6 @@ type ProtocolBridge interface {
 
 	// Send delivers an envelope through this protocol.
 	Send(ctx context.Context, env *envelope.Envelope) error
-
-	// Receive returns a channel of incoming envelopes.
-	Receive(ctx context.Context) (<-chan *envelope.Envelope, error)
-
-	// Handshake initiates a connection handshake with a remote agent.
-	Handshake(ctx context.Context, card *agentcard.Card) error
 
 	// Translate converts an envelope from this protocol to the target protocol format.
 	Translate(ctx context.Context, env *envelope.Envelope, targetProtocol string) (*envelope.Envelope, error)

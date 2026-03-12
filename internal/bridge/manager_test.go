@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
 )
@@ -21,10 +20,6 @@ func (m *mockBridge) Send(_ context.Context, env *envelope.Envelope) error {
 	m.sent = append(m.sent, env)
 	return nil
 }
-func (m *mockBridge) Receive(_ context.Context) (<-chan *envelope.Envelope, error) {
-	return make(chan *envelope.Envelope), nil
-}
-func (m *mockBridge) Handshake(_ context.Context, _ *agentcard.Card) error { return nil }
 func (m *mockBridge) Translate(_ context.Context, env *envelope.Envelope, target string) (*envelope.Envelope, error) {
 	out := *env
 	out.Protocol = protocol.Protocol(target)
@@ -92,28 +87,6 @@ func TestManager_Translate(t *testing.T) {
 	}
 	if translated.Protocol != protocol.ProtocolMCP {
 		t.Errorf("Protocol = %q, want %q", translated.Protocol, protocol.ProtocolMCP)
-	}
-}
-
-func TestManager_Handshake(t *testing.T) {
-	mgr := NewManager(nil)
-	mgr.RegisterBridge(&mockBridge{proto: "a2a"})
-
-	card := &agentcard.Card{
-		ID:        "agent-1",
-		Protocols: []protocol.Protocol{protocol.ProtocolA2A},
-	}
-	if err := mgr.Handshake(context.Background(), card); err != nil {
-		t.Fatalf("Handshake: %v", err)
-	}
-}
-
-func TestManager_Handshake_NoProtocol(t *testing.T) {
-	mgr := NewManager(nil)
-	card := &agentcard.Card{ID: "agent-1"}
-	err := mgr.Handshake(context.Background(), card)
-	if err == nil {
-		t.Error("expected error for agent with no protocols")
 	}
 }
 
