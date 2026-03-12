@@ -12,13 +12,15 @@ export interface AuthUser {
   display_name: string
   description: string
   role: string
+  email_verified: boolean
   created_at: string
   updated_at: string
 }
 
 export interface AuthResponse {
   user: AuthUser
-  tokens: AuthTokens
+  tokens?: AuthTokens
+  requires_verification?: boolean
 }
 
 export interface APIKeyResponse {
@@ -153,5 +155,40 @@ export function revokeAPIKey(
   return authFetch<void>(`/auth/api-keys/${keyId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export function verifyEmail(
+  email: string,
+  code: string
+): Promise<AuthResponse> {
+  return authFetch<AuthResponse>("/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ email, code }),
+  })
+}
+
+export function resendVerification(email: string): Promise<void> {
+  return authFetch<void>("/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  })
+}
+
+export function forgotPassword(email: string): Promise<void> {
+  return authFetch<void>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  })
+}
+
+export function resetPassword(
+  email: string,
+  code: string,
+  newPassword: string
+): Promise<void> {
+  return authFetch<void>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ email, code, new_password: newPassword }),
   })
 }

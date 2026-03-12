@@ -7,14 +7,26 @@ import (
 
 // User represents a registered user.
 type User struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	DisplayName  string    `json:"display_name"`
-	Description  string    `json:"description"`
-	Role         string    `json:"role"` // "user", "provider", "admin"
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID            string    `json:"id"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"-"`
+	DisplayName   string    `json:"display_name"`
+	Description   string    `json:"description"`
+	Role          string    `json:"role"` // "user", "provider", "admin"
+	EmailVerified bool      `json:"email_verified"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// EmailVerification represents a pending email verification (OTP).
+type EmailVerification struct {
+	ID        string
+	Email     string
+	CodeHash  string // SHA-256 of 6-digit OTP
+	Purpose   string // "register" or "password_reset"
+	ExpiresAt time.Time
+	Used      bool
+	CreatedAt time.Time
 }
 
 // Session represents an active refresh token session.
@@ -90,6 +102,24 @@ type Store interface {
 
 	// CountUsers returns the total number of users.
 	CountUsers(ctx context.Context) (int, error)
+
+	// CreateEmailVerification inserts a new email verification record.
+	CreateEmailVerification(ctx context.Context, ev *EmailVerification) error
+
+	// GetEmailVerification retrieves a verification by email, code hash, and purpose.
+	GetEmailVerification(ctx context.Context, email, codeHash, purpose string) (*EmailVerification, error)
+
+	// MarkEmailVerificationUsed marks a verification record as used.
+	MarkEmailVerificationUsed(ctx context.Context, id string) error
+
+	// CountRecentVerifications counts verifications for an email since a given time.
+	CountRecentVerifications(ctx context.Context, email string, since time.Time) (int, error)
+
+	// DeleteExpiredVerifications removes all expired verification records.
+	DeleteExpiredVerifications(ctx context.Context) error
+
+	// SetEmailVerified sets a user's email_verified flag to true.
+	SetEmailVerified(ctx context.Context, userID string) error
 
 	// Migrate creates the required tables.
 	Migrate(ctx context.Context) error

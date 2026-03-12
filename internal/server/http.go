@@ -856,6 +856,10 @@ func (s *HTTPServer) registerUserAuthRoutes() {
 	s.mux.HandleFunc("POST /api/v1/auth/login", guardUserAuth(s.handleAuthLogin))
 	s.mux.HandleFunc("POST /api/v1/auth/refresh", guardUserAuth(s.handleAuthRefresh))
 	s.mux.HandleFunc("POST /api/v1/auth/logout", guardUserAuth(s.handleAuthLogout))
+	s.mux.HandleFunc("POST /api/v1/auth/verify-email", guardUserAuth(s.handleAuthVerifyEmail))
+	s.mux.HandleFunc("POST /api/v1/auth/resend-verification", guardUserAuth(s.handleAuthResendVerification))
+	s.mux.HandleFunc("POST /api/v1/auth/forgot-password", guardUserAuth(s.handleAuthRequestPasswordReset))
+	s.mux.HandleFunc("POST /api/v1/auth/reset-password", guardUserAuth(s.handleAuthResetPassword))
 
 	// JWT-protected auth routes.
 	s.mux.Handle("GET /api/v1/auth/me", s.wrapUserAuth(s.handleAuthMe))

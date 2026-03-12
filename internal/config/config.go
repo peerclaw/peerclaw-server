@@ -22,7 +22,18 @@ type Config struct {
 	Federation    FederationConfig    `yaml:"federation"`
 	Auth          AuthConfig          `yaml:"auth"`
 	UserAuth      UserAuthConfig      `yaml:"user_auth"`
+	SMTP          SMTPConfig          `yaml:"smtp"`
 	Blob          BlobConfig          `yaml:"blob"`
+}
+
+// SMTPConfig holds SMTP email settings.
+type SMTPConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`      // default 587
+	Username string `yaml:"username"`  // supports ${ENV_VAR}
+	Password string `yaml:"password"`  // supports ${ENV_VAR}
+	From     string `yaml:"from"`
+	TLS      bool   `yaml:"tls"`       // default true
 }
 
 // AuthConfig holds authentication settings.
@@ -237,6 +248,8 @@ func (c *Config) resolveSecrets() {
 	c.Signaling.TURN.Credential = resolveEnv(c.Signaling.TURN.Credential)
 	c.Federation.AuthToken = resolveEnv(c.Federation.AuthToken)
 	c.UserAuth.JWTSecret = resolveEnv(c.UserAuth.JWTSecret)
+	c.SMTP.Username = resolveEnv(c.SMTP.Username)
+	c.SMTP.Password = resolveEnv(c.SMTP.Password)
 	for i := range c.Federation.Peers {
 		c.Federation.Peers[i].Token = resolveEnv(c.Federation.Peers[i].Token)
 	}

@@ -13,6 +13,8 @@ import { DirectoryPage } from "@/pages/DirectoryPage"
 import { PublicProfilePage } from "@/pages/PublicProfilePage"
 import { LoginPage } from "@/pages/LoginPage"
 import { RegisterPage } from "@/pages/RegisterPage"
+import { VerifyEmailPage } from "@/pages/VerifyEmailPage"
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage"
 import { PlaygroundPage } from "@/pages/PlaygroundPage"
 import { AboutPage } from "@/pages/AboutPage"
 import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage"
@@ -42,6 +44,8 @@ export function App() {
             <Route path="agents/:id" element={<PublicProfilePage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
+            <Route path="verify-email" element={<VerifyEmailPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
             <Route path="playground" element={<PlaygroundPage />} />
             <Route path="playground/:agentId" element={<PlaygroundPage />} />
             <Route path="about" element={<AboutPage />} />

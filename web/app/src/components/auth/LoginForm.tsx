@@ -83,6 +83,12 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
         {loading ? t('auth.signingIn') : t('nav.signIn')}
       </button>
 
+      <div className="flex items-center justify-between text-sm">
+        <Link to="/forgot-password" className="text-primary hover:underline">
+          {t('auth.forgotPassword')}
+        </Link>
+      </div>
+
       <p className="text-center text-sm text-muted-foreground">
         {t('auth.dontHaveAccount')}{" "}
         <Link to="/register" className="text-primary hover:underline">

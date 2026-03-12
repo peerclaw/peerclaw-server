@@ -15,6 +15,7 @@ interface AuthContextValue {
   user: AuthUser | null
   accessToken: string | null
   loading: boolean
+  pendingVerificationEmail: string | null
   login: (email: string, password: string) => Promise<void>
   register: (
     email: string,
@@ -25,6 +26,9 @@ interface AuthContextValue {
   refreshAccessToken: () => Promise<string | null>
   updateProfile: (data: { display_name?: string; email?: string; description?: string }) => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+  verifyEmail: (email: string, code: string) => Promise<void>
+  resendVerification: (email: string) => Promise<void>
+  clearPendingVerification: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -53,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null)
 
   // Try to restore session on mount.
   useEffect(() => {
@@ -120,18 +125,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [accessToken])
 
   const loginFn = useCallback(async (email: string, password: string) => {
-    const res = await authAPI.login(email, password)
-    saveTokens(res.tokens)
-    setAccessToken(res.tokens.access_token)
-    setUser(res.user)
+    try {
+      const res = await authAPI.login(email, password)
+      if (res.tokens) {
+        saveTokens(res.tokens)
+        setAccessToken(res.tokens.access_token)
+        setUser(res.user)
+      }
+    } catch (err: any) {
+      // Check if the error response indicates email not verified.
+      // The server returns 403 with requires_verification.
+      if (err.message === "email not verified") {
+        setPendingVerificationEmail(email)
+      }
+      throw err
+    }
   }, [])
 
   const registerFn = useCallback(
     async (email: string, password: string, displayName?: string) => {
       const res = await authAPI.register(email, password, displayName)
-      saveTokens(res.tokens)
-      setAccessToken(res.tokens.access_token)
-      setUser(res.user)
+      if (res.requires_verification) {
+        setPendingVerificationEmail(email)
+        return
+      }
+      if (res.tokens) {
+        saveTokens(res.tokens)
+        setAccessToken(res.tokens.access_token)
+        setUser(res.user)
+      }
     },
     []
   )
@@ -157,6 +179,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authAPI.changePassword(accessToken, currentPassword, newPassword)
   }, [accessToken])
 
+  const verifyEmailFn = useCallback(async (email: string, code: string) => {
+    const res = await authAPI.verifyEmail(email, code)
+    if (res.tokens) {
+      saveTokens(res.tokens)
+      setAccessToken(res.tokens.access_token)
+      setUser(res.user)
+      setPendingVerificationEmail(null)
+    }
+  }, [])
+
+  const resendVerificationFn = useCallback(async (email: string) => {
+    await authAPI.resendVerification(email)
+  }, [])
+
+  const clearPendingVerification = useCallback(() => {
+    setPendingVerificationEmail(null)
+  }, [])
+
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     const tokens = loadTokens()
     if (!tokens) return null
@@ -181,14 +221,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       accessToken,
       loading,
+      pendingVerificationEmail,
       login: loginFn,
       register: registerFn,
       logout: logoutFn,
       refreshAccessToken,
       updateProfile: updateProfileFn,
       changePassword: changePasswordFn,
+      verifyEmail: verifyEmailFn,
+      resendVerification: resendVerificationFn,
+      clearPendingVerification,
     }),
-    [user, accessToken, loading, loginFn, registerFn, logoutFn, refreshAccessToken, updateProfileFn, changePasswordFn]
+    [user, accessToken, loading, pendingVerificationEmail, loginFn, registerFn, logoutFn, refreshAccessToken, updateProfileFn, changePasswordFn, verifyEmailFn, resendVerificationFn, clearPendingVerification]
   )
 
   return createElement(AuthContext.Provider, { value }, children)

@@ -1,10 +1,11 @@
+import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
 import { RegisterForm } from "@/components/auth/RegisterForm"
 import { useTranslation } from "react-i18next"
 
 export function RegisterPage() {
-  const { register } = useAuth()
+  const { register, pendingVerificationEmail } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
 
@@ -14,8 +15,14 @@ export function RegisterPage() {
     displayName?: string
   ) => {
     await register(email, password, displayName)
-    navigate("/", { replace: true })
   }
+
+  // Navigate to verify-email when pending verification is set.
+  useEffect(() => {
+    if (pendingVerificationEmail) {
+      navigate("/verify-email", { replace: true })
+    }
+  }, [pendingVerificationEmail, navigate])
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">

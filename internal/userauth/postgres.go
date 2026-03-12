@@ -62,14 +62,34 @@ func (s *PostgresStore) Migrate(ctx context.Context) error {
 	}
 	// Add description column if it doesn't exist.
 	_, _ = s.db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''")
+	// Add email_verified column if it doesn't exist.
+	_, _ = s.db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE")
+	// Create email_verifications table.
+	evStmts := []string{
+		`CREATE TABLE IF NOT EXISTS email_verifications (
+			id         TEXT PRIMARY KEY,
+			email      TEXT NOT NULL,
+			code_hash  TEXT NOT NULL,
+			purpose    TEXT NOT NULL,
+			expires_at TIMESTAMPTZ NOT NULL,
+			used       BOOLEAN NOT NULL DEFAULT FALSE,
+			created_at TIMESTAMPTZ NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_ev_email ON email_verifications(email)`,
+	}
+	for _, stmt := range evStmts {
+		if _, err := s.db.ExecContext(ctx, stmt); err != nil {
+			return fmt.Errorf("userauth migrate email_verifications: %w", err)
+		}
+	}
 	return nil
 }
 
 func (s *PostgresStore) CreateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (id, email, password_hash, display_name, description, role, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role,
+		`INSERT INTO users (id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.EmailVerified,
 		user.CreatedAt.UTC(), user.UpdatedAt.UTC(),
 	)
 	return err
@@ -78,9 +98,9 @@ func (s *PostgresStore) CreateUser(ctx context.Context, user *User) error {
 func (s *PostgresStore) GetUserByID(ctx context.Context, id string) (*User, error) {
 	var u User
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at
 		 FROM users WHERE id = $1`, id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.EmailVerified, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -93,9 +113,9 @@ func (s *PostgresStore) GetUserByID(ctx context.Context, id string) (*User, erro
 func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at
 		 FROM users WHERE email = $1`, email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.EmailVerified, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -107,8 +127,8 @@ func (s *PostgresStore) GetUserByEmail(ctx context.Context, email string) (*User
 
 func (s *PostgresStore) UpdateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET email = $1, password_hash = $2, display_name = $3, description = $4, role = $5, updated_at = $6 WHERE id = $7`,
-		user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.UpdatedAt.UTC(), user.ID,
+		`UPDATE users SET email = $1, password_hash = $2, display_name = $3, description = $4, role = $5, email_verified = $6, updated_at = $7 WHERE id = $8`,
+		user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.EmailVerified, user.UpdatedAt.UTC(), user.ID,
 	)
 	return err
 }
@@ -259,7 +279,7 @@ func (s *PostgresStore) ListUsers(ctx context.Context, search, role string, limi
 
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		fmt.Sprintf("SELECT id, email, password_hash, display_name, description, role, created_at, updated_at FROM users WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
+		fmt.Sprintf("SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at FROM users WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
 		args...,
 	)
 	if err != nil {
@@ -270,7 +290,7 @@ func (s *PostgresStore) ListUsers(ctx context.Context, search, role string, limi
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.EmailVerified, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		users = append(users, u)
@@ -294,6 +314,58 @@ func (s *PostgresStore) CountUsers(ctx context.Context) (int, error) {
 	var count int
 	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
 	return count, err
+}
+
+func (s *PostgresStore) CreateEmailVerification(ctx context.Context, ev *EmailVerification) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO email_verifications (id, email, code_hash, purpose, expires_at, used, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		ev.ID, ev.Email, ev.CodeHash, ev.Purpose, ev.ExpiresAt.UTC(), ev.Used, ev.CreatedAt.UTC(),
+	)
+	return err
+}
+
+func (s *PostgresStore) GetEmailVerification(ctx context.Context, email, codeHash, purpose string) (*EmailVerification, error) {
+	var ev EmailVerification
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, email, code_hash, purpose, expires_at, used, created_at
+		 FROM email_verifications WHERE email = $1 AND code_hash = $2 AND purpose = $3 AND used = FALSE
+		 ORDER BY created_at DESC LIMIT 1`, email, codeHash, purpose,
+	).Scan(&ev.ID, &ev.Email, &ev.CodeHash, &ev.Purpose, &ev.ExpiresAt, &ev.Used, &ev.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("verification not found")
+		}
+		return nil, err
+	}
+	return &ev, nil
+}
+
+func (s *PostgresStore) MarkEmailVerificationUsed(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE email_verifications SET used = TRUE WHERE id = $1", id)
+	return err
+}
+
+func (s *PostgresStore) CountRecentVerifications(ctx context.Context, email string, since time.Time) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM email_verifications WHERE email = $1 AND created_at >= $2",
+		email, since.UTC(),
+	).Scan(&count)
+	return count, err
+}
+
+func (s *PostgresStore) DeleteExpiredVerifications(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM email_verifications WHERE expires_at < $1", time.Now().UTC())
+	return err
+}
+
+func (s *PostgresStore) SetEmailVerified(ctx context.Context, userID string) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE users SET email_verified = TRUE, updated_at = $1 WHERE id = $2",
+		time.Now().UTC(), userID,
+	)
+	return err
 }
 
 // Close is a no-op since the db is shared.

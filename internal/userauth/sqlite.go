@@ -70,14 +70,38 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 			return fmt.Errorf("userauth migrate description: %w", err)
 		}
 	}
+	// Add email_verified column if it doesn't exist.
+	var evColCount int
+	_ = s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pragma_table_info('users') WHERE name='email_verified'").Scan(&evColCount)
+	if evColCount == 0 {
+		if _, err := s.db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 0"); err != nil {
+			return fmt.Errorf("userauth migrate email_verified: %w", err)
+		}
+	}
+	// Create email_verifications table.
+	evStmt := `CREATE TABLE IF NOT EXISTS email_verifications (
+		id         TEXT PRIMARY KEY,
+		email      TEXT NOT NULL,
+		code_hash  TEXT NOT NULL,
+		purpose    TEXT NOT NULL,
+		expires_at DATETIME NOT NULL,
+		used       BOOLEAN NOT NULL DEFAULT 0,
+		created_at DATETIME NOT NULL
+	)`
+	if _, err := s.db.ExecContext(ctx, evStmt); err != nil {
+		return fmt.Errorf("userauth migrate email_verifications: %w", err)
+	}
+	if _, err := s.db.ExecContext(ctx, "CREATE INDEX IF NOT EXISTS idx_ev_email ON email_verifications(email)"); err != nil {
+		return fmt.Errorf("userauth migrate idx_ev_email: %w", err)
+	}
 	return nil
 }
 
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (id, email, password_hash, display_name, description, role, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role,
+		`INSERT INTO users (id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		user.ID, user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.EmailVerified,
 		user.CreatedAt.UTC().Format(time.RFC3339),
 		user.UpdatedAt.UTC().Format(time.RFC3339),
 	)
@@ -88,9 +112,9 @@ func (s *SQLiteStore) GetUserByID(ctx context.Context, id string) (*User, error)
 	var u User
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &createdAt, &updatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.EmailVerified, &createdAt, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -106,9 +130,9 @@ func (s *SQLiteStore) GetUserByEmail(ctx context.Context, email string) (*User, 
 	var u User
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, password_hash, display_name, description, role, created_at, updated_at
+		`SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at
 		 FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &createdAt, &updatedAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.EmailVerified, &createdAt, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
@@ -122,8 +146,8 @@ func (s *SQLiteStore) GetUserByEmail(ctx context.Context, email string) (*User, 
 
 func (s *SQLiteStore) UpdateUser(ctx context.Context, user *User) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET email = ?, password_hash = ?, display_name = ?, description = ?, role = ?, updated_at = ? WHERE id = ?`,
-		user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.UpdatedAt.UTC().Format(time.RFC3339), user.ID,
+		`UPDATE users SET email = ?, password_hash = ?, display_name = ?, description = ?, role = ?, email_verified = ?, updated_at = ? WHERE id = ?`,
+		user.Email, user.PasswordHash, user.DisplayName, user.Description, user.Role, user.EmailVerified, user.UpdatedAt.UTC().Format(time.RFC3339), user.ID,
 	)
 	return err
 }
@@ -287,7 +311,7 @@ func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit,
 
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, email, password_hash, display_name, description, role, created_at, updated_at FROM users WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		"SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at FROM users WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
 		args...,
 	)
 	if err != nil {
@@ -299,7 +323,7 @@ func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit,
 	for rows.Next() {
 		var u User
 		var createdAt, updatedAt string
-		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.DisplayName, &u.Description, &u.Role, &u.EmailVerified, &createdAt, &updatedAt); err != nil {
 			return nil, 0, err
 		}
 		u.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
@@ -325,6 +349,65 @@ func (s *SQLiteStore) CountUsers(ctx context.Context) (int, error) {
 	var count int
 	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
 	return count, err
+}
+
+func (s *SQLiteStore) CreateEmailVerification(ctx context.Context, ev *EmailVerification) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO email_verifications (id, email, code_hash, purpose, expires_at, used, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		ev.ID, ev.Email, ev.CodeHash, ev.Purpose, ev.ExpiresAt.UTC().Format(time.RFC3339), ev.Used,
+		ev.CreatedAt.UTC().Format(time.RFC3339),
+	)
+	return err
+}
+
+func (s *SQLiteStore) GetEmailVerification(ctx context.Context, email, codeHash, purpose string) (*EmailVerification, error) {
+	var ev EmailVerification
+	var expiresAt, createdAt string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, email, code_hash, purpose, expires_at, used, created_at
+		 FROM email_verifications WHERE email = ? AND code_hash = ? AND purpose = ? AND used = 0
+		 ORDER BY created_at DESC LIMIT 1`, email, codeHash, purpose,
+	).Scan(&ev.ID, &ev.Email, &ev.CodeHash, &ev.Purpose, &expiresAt, &ev.Used, &createdAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("verification not found")
+		}
+		return nil, err
+	}
+	ev.ExpiresAt, _ = time.Parse(time.RFC3339, expiresAt)
+	ev.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+	return &ev, nil
+}
+
+func (s *SQLiteStore) MarkEmailVerificationUsed(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE email_verifications SET used = 1 WHERE id = ?", id)
+	return err
+}
+
+func (s *SQLiteStore) CountRecentVerifications(ctx context.Context, email string, since time.Time) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM email_verifications WHERE email = ? AND created_at >= ?",
+		email, since.UTC().Format(time.RFC3339),
+	).Scan(&count)
+	return count, err
+}
+
+func (s *SQLiteStore) DeleteExpiredVerifications(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx,
+		"DELETE FROM email_verifications WHERE expires_at < ?",
+		time.Now().UTC().Format(time.RFC3339),
+	)
+	return err
+}
+
+func (s *SQLiteStore) SetEmailVerified(ctx context.Context, userID string) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?",
+		time.Now().UTC().Format(time.RFC3339), userID,
+	)
+	return err
 }
 
 // Close is a no-op since the db is shared.

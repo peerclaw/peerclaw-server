@@ -20,11 +20,12 @@ type Service struct {
 	jwt         *JWTManager
 	bcryptCost  int
 	adminEmails map[string]bool
+	emailSender EmailSender
 	logger      *slog.Logger
 }
 
 // NewService creates a new auth service.
-func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []string, logger *slog.Logger) *Service {
+func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []string, emailSender EmailSender, logger *slog.Logger) *Service {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -40,6 +41,7 @@ func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []stri
 		jwt:         jwt,
 		bcryptCost:  bcryptCost,
 		adminEmails: ae,
+		emailSender: emailSender,
 		logger:      logger,
 	}
 }
@@ -57,7 +59,12 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+// ErrEmailNotVerified is returned when a user attempts to log in without verifying their email.
+var ErrEmailNotVerified = fmt.Errorf("email not verified")
+
 // Register creates a new user account.
+// When emailSender is configured, returns (user, nil, nil) — the caller must verify email first.
+// When emailSender is nil (dev mode), returns (user, tokens, nil) immediately.
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, *TokenPair, error) {
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	if email == "" || !strings.Contains(email, "@") {
@@ -89,17 +96,28 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, *To
 
 	now := time.Now().UTC()
 	user := &User{
-		ID:           uuid.New().String(),
-		Email:        email,
-		PasswordHash: string(hash),
-		DisplayName:  displayName,
-		Role:         role,
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:            uuid.New().String(),
+		Email:         email,
+		PasswordHash:  string(hash),
+		DisplayName:   displayName,
+		Role:          role,
+		EmailVerified: s.emailSender == nil, // verified immediately when no email sender
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
 	if err := s.store.CreateUser(ctx, user); err != nil {
 		return nil, nil, fmt.Errorf("create user: %w", err)
+	}
+
+	// If email sender is configured, send verification OTP instead of returning tokens.
+	if s.emailSender != nil {
+		if err := s.sendOTP(ctx, email, "register"); err != nil {
+			s.logger.Error("failed to send verification email", "email", email, "error", err)
+			// Still return the user — they can resend later.
+		}
+		s.logger.Info("user registered (pending verification)", "user_id", user.ID, "email", user.Email)
+		return user, nil, nil
 	}
 
 	tokens, err := s.generateTokenPair(ctx, user, "", "")
@@ -121,6 +139,10 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, ipAddress, userAg
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return nil, nil, fmt.Errorf("invalid email or password")
+	}
+
+	if !user.EmailVerified {
+		return user, nil, ErrEmailNotVerified
 	}
 
 	if s.adminEmails[user.Email] && user.Role != "admin" {
@@ -351,6 +373,176 @@ func (s *Service) DeleteUser(ctx context.Context, userID string) error {
 // CountUsers returns the total number of users.
 func (s *Service) CountUsers(ctx context.Context) (int, error) {
 	return s.store.CountUsers(ctx)
+}
+
+// VerifyEmailRequest holds email verification parameters.
+type VerifyEmailRequest struct {
+	Email string `json:"email"`
+	Code  string `json:"code"`
+}
+
+// VerifyEmail verifies the OTP and activates the user account.
+func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest, ipAddress, userAgent string) (*User, *TokenPair, error) {
+	email := strings.TrimSpace(strings.ToLower(req.Email))
+	code := strings.TrimSpace(req.Code)
+	if email == "" || code == "" {
+		return nil, nil, fmt.Errorf("email and code are required")
+	}
+
+	codeHash := hashToken(code)
+	ev, err := s.store.GetEmailVerification(ctx, email, codeHash, "register")
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid or expired verification code")
+	}
+	if time.Now().After(ev.ExpiresAt) {
+		return nil, nil, fmt.Errorf("verification code expired")
+	}
+
+	_ = s.store.MarkEmailVerificationUsed(ctx, ev.ID)
+
+	user, err := s.store.GetUserByEmail(ctx, email)
+	if err != nil || user == nil {
+		return nil, nil, fmt.Errorf("user not found")
+	}
+
+	if err := s.store.SetEmailVerified(ctx, user.ID); err != nil {
+		return nil, nil, fmt.Errorf("set email verified: %w", err)
+	}
+	user.EmailVerified = true
+
+	tokens, err := s.generateTokenPair(ctx, user, ipAddress, userAgent)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	s.logger.Info("email verified", "user_id", user.ID, "email", email)
+	return user, tokens, nil
+}
+
+// ResendVerification sends a new verification OTP for a pending user.
+func (s *Service) ResendVerification(ctx context.Context, email string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
+	user, err := s.store.GetUserByEmail(ctx, email)
+	if err != nil || user == nil {
+		return nil // anti-enumeration
+	}
+	if user.EmailVerified {
+		return nil // already verified, nothing to do
+	}
+	return s.sendOTP(ctx, email, "register")
+}
+
+// RequestPasswordReset sends a password reset OTP. Always returns nil (anti-enumeration).
+func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
+	user, _ := s.store.GetUserByEmail(ctx, email)
+	if user == nil {
+		return nil // anti-enumeration: don't reveal if email exists
+	}
+	_ = s.sendOTP(ctx, email, "password_reset")
+	return nil
+}
+
+// ResetPasswordRequest holds password reset parameters.
+type ResetPasswordRequest struct {
+	Email       string `json:"email"`
+	Code        string `json:"code"`
+	NewPassword string `json:"new_password"`
+}
+
+// ResetPassword verifies the OTP and sets a new password.
+func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordRequest) error {
+	email := strings.TrimSpace(strings.ToLower(req.Email))
+	code := strings.TrimSpace(req.Code)
+	if email == "" || code == "" || req.NewPassword == "" {
+		return fmt.Errorf("email, code, and new password are required")
+	}
+	if len(req.NewPassword) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
+	}
+
+	codeHash := hashToken(code)
+	ev, err := s.store.GetEmailVerification(ctx, email, codeHash, "password_reset")
+	if err != nil {
+		return fmt.Errorf("invalid or expired reset code")
+	}
+	if time.Now().After(ev.ExpiresAt) {
+		return fmt.Errorf("reset code expired")
+	}
+
+	_ = s.store.MarkEmailVerificationUsed(ctx, ev.ID)
+
+	user, err := s.store.GetUserByEmail(ctx, email)
+	if err != nil || user == nil {
+		return fmt.Errorf("user not found")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), s.bcryptCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	user.PasswordHash = string(hash)
+	user.UpdatedAt = time.Now().UTC()
+	if err := s.store.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+
+	s.logger.Info("password reset", "user_id", user.ID, "email", email)
+	return nil
+}
+
+// sendOTP generates a 6-digit OTP, checks rate limits, stores the hash, and sends the email.
+func (s *Service) sendOTP(ctx context.Context, email, purpose string) error {
+	// Rate limit: 5 per hour.
+	count, err := s.store.CountRecentVerifications(ctx, email, time.Now().Add(-1*time.Hour))
+	if err != nil {
+		return fmt.Errorf("count verifications: %w", err)
+	}
+	if count >= 5 {
+		return fmt.Errorf("too many verification requests, please try again later")
+	}
+
+	// Generate 6-digit code.
+	code, err := generateOTP()
+	if err != nil {
+		return fmt.Errorf("generate OTP: %w", err)
+	}
+
+	codeHash := hashToken(code)
+	now := time.Now().UTC()
+	ev := &EmailVerification{
+		ID:        uuid.New().String(),
+		Email:     email,
+		CodeHash:  codeHash,
+		Purpose:   purpose,
+		ExpiresAt: now.Add(10 * time.Minute),
+		CreatedAt: now,
+	}
+	if err := s.store.CreateEmailVerification(ctx, ev); err != nil {
+		return fmt.Errorf("store verification: %w", err)
+	}
+
+	if s.emailSender != nil {
+		if err := s.emailSender.SendVerificationCode(email, code, purpose); err != nil {
+			return fmt.Errorf("send email: %w", err)
+		}
+	}
+	return nil
+}
+
+// generateOTP returns a cryptographically random 6-digit numeric string.
+func generateOTP() (string, error) {
+	b := make([]byte, 3)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	n := (int(b[0])<<16 | int(b[1])<<8 | int(b[2])) % 1000000
+	return fmt.Sprintf("%06d", n), nil
+}
+
+// DeleteExpiredVerifications removes expired verification records.
+func (s *Service) DeleteExpiredVerifications(ctx context.Context) error {
+	return s.store.DeleteExpiredVerifications(ctx)
 }
 
 // JWTManager returns the JWT manager.

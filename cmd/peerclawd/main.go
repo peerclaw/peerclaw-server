@@ -144,10 +144,12 @@ func main() {
 		}
 
 		jwtMgr := userauth.NewJWTManager(jwtSecret, accessTTL, refreshTTL)
-		userAuthService = userauth.NewService(uaStore, jwtMgr, cfg.UserAuth.BcryptCost, cfg.UserAuth.AdminEmails, logger)
+		emailSender := userauth.NewEmailSender(cfg.SMTP, logger)
+		userAuthService = userauth.NewService(uaStore, jwtMgr, cfg.UserAuth.BcryptCost, cfg.UserAuth.AdminEmails, emailSender, logger)
 		logger.Info("user authentication initialized",
 			"access_ttl", accessTTL,
 			"refresh_ttl", refreshTTL,
+			"smtp_configured", cfg.SMTP.Host != "",
 		)
 	}
 
@@ -447,6 +449,25 @@ func main() {
 			}
 		}()
 		logger.Info("heartbeat timeout checker started", "interval", "60s", "timeout", "5m")
+	}
+
+	// Start expired email verification cleanup goroutine.
+	if userAuthService != nil {
+		go func() {
+			ticker := time.NewTicker(1 * time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if err := userAuthService.DeleteExpiredVerifications(ctx); err != nil {
+						logger.Warn("email verification cleanup failed", "error", err)
+					}
+				}
+			}
+		}()
+		logger.Info("email verification cleanup goroutine started", "interval", "1h")
 	}
 
 	// Start blob cleanup goroutine.

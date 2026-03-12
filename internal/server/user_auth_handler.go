@@ -22,6 +22,15 @@ func (s *HTTPServer) handleAuthRegister(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if tokens == nil {
+		// Email verification required.
+		s.jsonResponse(w, http.StatusCreated, map[string]any{
+			"user":                   sanitizeUser(user),
+			"requires_verification":  true,
+		})
+		return
+	}
+
 	s.jsonResponse(w, http.StatusCreated, map[string]any{
 		"user":   sanitizeUser(user),
 		"tokens": tokens,
@@ -44,6 +53,13 @@ func (s *HTTPServer) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 	user, tokens, err := s.userAuth.Login(r.Context(), req, ipAddress, userAgent)
 	if err != nil {
+		if err == userauth.ErrEmailNotVerified {
+			s.jsonResponse(w, http.StatusForbidden, map[string]any{
+				"error":                 "email not verified",
+				"requires_verification": true,
+			})
+			return
+		}
 		s.jsonError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
@@ -224,15 +240,91 @@ func (s *HTTPServer) handleAuthRevokeAPIKey(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// handleAuthVerifyEmail handles POST /api/v1/auth/verify-email.
+func (s *HTTPServer) handleAuthVerifyEmail(w http.ResponseWriter, r *http.Request) {
+	var req userauth.VerifyEmailRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	ipAddress := r.RemoteAddr
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		ipAddress = fwd
+	}
+	userAgent := r.Header.Get("User-Agent")
+
+	user, tokens, err := s.userAuth.VerifyEmail(r.Context(), req, ipAddress, userAgent)
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"user":   sanitizeUser(user),
+		"tokens": tokens,
+	})
+}
+
+// handleAuthResendVerification handles POST /api/v1/auth/resend-verification.
+func (s *HTTPServer) handleAuthResendVerification(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.userAuth.ResendVerification(r.Context(), req.Email); err != nil {
+		s.jsonError(w, err.Error(), http.StatusTooManyRequests)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleAuthRequestPasswordReset handles POST /api/v1/auth/forgot-password.
+func (s *HTTPServer) handleAuthRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Always return 204 regardless of whether email exists (anti-enumeration).
+	_ = s.userAuth.RequestPasswordReset(r.Context(), req.Email)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleAuthResetPassword handles POST /api/v1/auth/reset-password.
+func (s *HTTPServer) handleAuthResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req userauth.ResetPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.userAuth.ResetPassword(r.Context(), req); err != nil {
+		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // sanitizeUser returns a user without sensitive fields.
 func sanitizeUser(u *userauth.User) map[string]any {
 	return map[string]any{
-		"id":           u.ID,
-		"email":        u.Email,
-		"display_name": u.DisplayName,
-		"description":  u.Description,
-		"role":         u.Role,
-		"created_at":   u.CreatedAt,
-		"updated_at":   u.UpdatedAt,
+		"id":             u.ID,
+		"email":          u.Email,
+		"display_name":   u.DisplayName,
+		"description":    u.Description,
+		"role":           u.Role,
+		"email_verified": u.EmailVerified,
+		"created_at":     u.CreatedAt,
+		"updated_at":     u.UpdatedAt,
 	}
 }

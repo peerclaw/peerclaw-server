@@ -1,14 +1,21 @@
+import { useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
 import { LoginForm } from "@/components/auth/LoginForm"
 import { useTranslation } from "react-i18next"
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, pendingVerificationEmail } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as any)?.from?.pathname || "/"
   const { t } = useTranslation()
+
+  useEffect(() => {
+    if (pendingVerificationEmail) {
+      navigate("/verify-email", { replace: true })
+    }
+  }, [pendingVerificationEmail, navigate])
 
   const handleLogin = async (email: string, password: string) => {
     await login(email, password)
