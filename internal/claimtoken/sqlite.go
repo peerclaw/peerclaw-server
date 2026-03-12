@@ -85,7 +85,7 @@ func (s *SQLiteStore) ListByUser(ctx context.Context, userID string) ([]ClaimTok
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var tokens []ClaimToken
 	for rows.Next() {

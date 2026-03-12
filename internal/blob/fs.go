@@ -29,7 +29,7 @@ func (fs *DiskFileStore) Write(id string, r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("create blob file: %w", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 
 	n, err := io.Copy(f, r)
 	if err != nil {

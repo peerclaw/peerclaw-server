@@ -72,7 +72,7 @@ func (s *PostgresMetaStore) ListExpired(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var ids []string
 	for rows.Next() {

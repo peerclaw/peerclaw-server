@@ -149,7 +149,7 @@ func (s *PostgresStore) queryRows(ctx context.Context, query string, args ...any
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var results []AccessRequest
 	for rows.Next() {

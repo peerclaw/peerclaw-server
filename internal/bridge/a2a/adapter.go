@@ -109,7 +109,7 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	if err != nil {
 		return fmt.Errorf("a2a: http post: %w", err)
 	}
-	defer func() { _ = httpResp.Body.Close() }()
+	defer httpResp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {
@@ -223,7 +223,7 @@ func (a *Adapter) SendStream(ctx context.Context, env *envelope.Envelope) (<-cha
 
 func (a *Adapter) readSSEStream(resp *http.Response, ch chan<- bridge.StreamChunk) {
 	defer close(ch)
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 64*1024), 64*1024)
@@ -266,7 +266,7 @@ func (a *Adapter) readSSEStream(resp *http.Response, ch chan<- bridge.StreamChun
 
 func (a *Adapter) readBufferedResponse(resp *http.Response, ch chan<- bridge.StreamChunk) {
 	defer close(ch)
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
 	if err != nil {

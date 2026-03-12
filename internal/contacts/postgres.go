@@ -84,7 +84,7 @@ func (s *PostgresStore) ListByOwner(ctx context.Context, ownerAgentID string) ([
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var contacts []Contact
 	for rows.Next() {

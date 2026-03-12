@@ -83,7 +83,7 @@ func (s *PostgresStore) ListByUser(ctx context.Context, userID string) ([]ClaimT
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var tokens []ClaimToken
 	for rows.Next() {

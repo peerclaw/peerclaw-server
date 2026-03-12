@@ -127,7 +127,7 @@ func (s *PostgresStore) ListReviews(ctx context.Context, agentID string, limit, 
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var reviews []Review
 	for rows.Next() {
@@ -157,7 +157,7 @@ func (s *PostgresStore) GetReviewSummary(ctx context.Context, agentID string) (*
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	for rows.Next() {
 		var rating, count int
@@ -190,7 +190,7 @@ func (s *PostgresStore) ListCategories(ctx context.Context) ([]Category, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var categories []Category
 	for rows.Next() {
@@ -214,7 +214,7 @@ func (s *PostgresStore) GetCategoriesByAgent(ctx context.Context, agentID string
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var categories []Category
 	for rows.Next() {
@@ -279,7 +279,7 @@ func (s *PostgresStore) ListReports(ctx context.Context, status string, limit, o
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var reports []AbuseReport
 	for rows.Next() {

@@ -81,7 +81,7 @@ func (a *Adapter) Send(ctx context.Context, env *envelope.Envelope) error {
 	if err != nil {
 		return fmt.Errorf("acp: http post: %w", err)
 	}
-	defer func() { _ = httpResp.Body.Close() }()
+	defer httpResp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxResponseBodySize))
 	if err != nil {

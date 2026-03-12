@@ -88,7 +88,7 @@ func (s *PostgresStore) ListByUser(ctx context.Context, userID string, limit, of
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var records []InvocationRecord
 	for rows.Next() {
@@ -118,7 +118,7 @@ func (s *PostgresStore) ListByAgent(ctx context.Context, agentID string, limit, 
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var records []InvocationRecord
 	for rows.Next() {
@@ -165,7 +165,7 @@ func (s *PostgresStore) AgentTimeSeries(ctx context.Context, agentID string, sin
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var points []TimeSeriesPoint
 	for rows.Next() {
@@ -230,7 +230,7 @@ func (s *PostgresStore) ListAll(ctx context.Context, agentID, userID string, lim
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var records []InvocationRecord
 	for rows.Next() {
@@ -277,7 +277,7 @@ func (s *PostgresStore) GlobalTimeSeries(ctx context.Context, since time.Time, b
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var points []TimeSeriesPoint
 	for rows.Next() {
@@ -310,7 +310,7 @@ func (s *PostgresStore) TopAgents(ctx context.Context, since time.Time, limit in
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var stats []AgentCallStats
 	for rows.Next() {

@@ -132,7 +132,7 @@ func (s *SQLiteStore) ListReviews(ctx context.Context, agentID string, limit, of
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var reviews []Review
 	for rows.Next() {
@@ -165,7 +165,7 @@ func (s *SQLiteStore) GetReviewSummary(ctx context.Context, agentID string) (*Re
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	for rows.Next() {
 		var rating, count int
@@ -198,7 +198,7 @@ func (s *SQLiteStore) ListCategories(ctx context.Context) ([]Category, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var categories []Category
 	for rows.Next() {
@@ -222,7 +222,7 @@ func (s *SQLiteStore) GetCategoriesByAgent(ctx context.Context, agentID string) 
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var categories []Category
 	for rows.Next() {
@@ -285,7 +285,7 @@ func (s *SQLiteStore) ListReports(ctx context.Context, status string, limit, off
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var reports []AbuseReport
 	for rows.Next() {

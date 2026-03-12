@@ -240,7 +240,7 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var agents []*agentcard.Card
 	for rows.Next() {
@@ -311,7 +311,7 @@ func (s *SQLiteStore) FindByCapabilities(ctx context.Context, capabilities []str
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var agents []*agentcard.Card
 	for rows.Next() {
@@ -368,7 +368,7 @@ func (s *SQLiteStore) GetAccessFlagsBatch(ctx context.Context, ids []string) (ma
 	if err != nil {
 		return nil, fmt.Errorf("get access flags batch: %w", err)
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	result := make(map[string]*AccessFlags, len(ids))
 	for rows.Next() {

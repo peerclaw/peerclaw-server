@@ -89,7 +89,7 @@ func (s *SQLiteStore) ListByOwner(ctx context.Context, ownerAgentID string) ([]C
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var contacts []Contact
 	for rows.Next() {

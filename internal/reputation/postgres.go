@@ -120,7 +120,7 @@ func (s *PostgresStore) ListEvents(ctx context.Context, agentID string, limit in
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var events []Event
 	for rows.Next() {
@@ -170,7 +170,7 @@ func (s *PostgresStore) ListStaleOnlineAgents(ctx context.Context, timeout time.
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var ids []string
 	for rows.Next() {

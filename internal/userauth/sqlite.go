@@ -214,7 +214,7 @@ func (s *SQLiteStore) ListAPIKeys(ctx context.Context, userID string) ([]UserAPI
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var keys []UserAPIKey
 	for rows.Next() {
@@ -317,7 +317,7 @@ func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit,
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var users []User
 	for rows.Next() {

@@ -21,7 +21,7 @@ func init() {
 
 func TestAdapterProtocol(t *testing.T) {
 	a := New(nil, nil)
-	defer func() { _ = a.Close() }()
+	defer a.Close()
 	if a.Protocol() != "a2a" {
 		t.Errorf("Protocol() = %q", a.Protocol())
 	}

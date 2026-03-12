@@ -187,7 +187,7 @@ func (s *PostgresStore) ListAPIKeys(ctx context.Context, userID string) ([]UserA
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var keys []UserAPIKey
 	for rows.Next() {
@@ -285,7 +285,7 @@ func (s *PostgresStore) ListUsers(ctx context.Context, search, role string, limi
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var users []User
 	for rows.Next() {

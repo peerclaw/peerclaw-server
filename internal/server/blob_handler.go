@@ -36,7 +36,7 @@ func (s *HTTPServer) handleBlobUpload(w http.ResponseWriter, r *http.Request) {
 		s.jsonError(w, "missing 'file' field in multipart form", http.StatusBadRequest)
 		return
 	}
-	defer func() { _ = file.Close() }()
+	defer file.Close()
 
 	filename := header.Filename
 	contentType := header.Header.Get("Content-Type")
@@ -92,7 +92,7 @@ func (s *HTTPServer) handleBlobDownload(w http.ResponseWriter, r *http.Request) 
 		s.jsonError(w, msg, http.StatusInternalServerError)
 		return
 	}
-	defer func() { _ = rc.Close() }()
+	defer rc.Close()
 
 	w.Header().Set("Content-Type", meta.ContentType)
 	w.Header().Set("Content-Length", strconv.FormatInt(meta.Size, 10))

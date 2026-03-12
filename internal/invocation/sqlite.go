@@ -90,7 +90,7 @@ func (s *SQLiteStore) ListByUser(ctx context.Context, userID string, limit, offs
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var records []InvocationRecord
 	for rows.Next() {
@@ -122,7 +122,7 @@ func (s *SQLiteStore) ListByAgent(ctx context.Context, agentID string, limit, of
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var records []InvocationRecord
 	for rows.Next() {
@@ -173,7 +173,7 @@ func (s *SQLiteStore) AgentTimeSeries(ctx context.Context, agentID string, since
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var points []TimeSeriesPoint
 	for rows.Next() {
@@ -237,7 +237,7 @@ func (s *SQLiteStore) ListAll(ctx context.Context, agentID, userID string, limit
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var records []InvocationRecord
 	for rows.Next() {
@@ -288,7 +288,7 @@ func (s *SQLiteStore) GlobalTimeSeries(ctx context.Context, since time.Time, buc
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var points []TimeSeriesPoint
 	for rows.Next() {
@@ -323,7 +323,7 @@ func (s *SQLiteStore) TopAgents(ctx context.Context, since time.Time, limit int)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer rows.Close()
 
 	var stats []AgentCallStats
 	for rows.Next() {

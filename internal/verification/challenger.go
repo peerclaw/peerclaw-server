@@ -93,7 +93,7 @@ func (c *Challenger) InitiateChallenge(ctx context.Context, agentID, endpointURL
 		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)
 		return nil, fmt.Errorf("request to endpoint failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		_ = c.store.UpdateChallengeStatus(ctx, agentID, nonce, StatusFailed)

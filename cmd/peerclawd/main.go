@@ -89,7 +89,7 @@ func main() {
 		logger.Error("failed to open database", "error", err, "driver", cfg.Database.Driver)
 		os.Exit(1)
 	}
-	defer func() { _ = store.Close() }()
+	defer store.Close()
 
 	// Extract the underlying *sql.DB for shared use by reputation and verification modules.
 	sqlDB, _ := store.GetDB().(*sql.DB)
