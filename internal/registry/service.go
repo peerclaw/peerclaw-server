@@ -11,10 +11,14 @@ import (
 	"github.com/peerclaw/peerclaw-core/protocol"
 )
 
+// DefaultHeartbeatInterval is the default expected heartbeat interval.
+const DefaultHeartbeatInterval = 30 * time.Second
+
 // Service implements agent registration, discovery, and lifecycle management.
 type Service struct {
-	store  Store
-	logger *slog.Logger
+	store             Store
+	logger            *slog.Logger
+	HeartbeatInterval time.Duration
 }
 
 // NewService creates a new registry service.
@@ -22,7 +26,7 @@ func NewService(store Store, logger *slog.Logger) *Service {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Service{store: store, logger: logger}
+	return &Service{store: store, logger: logger, HeartbeatInterval: DefaultHeartbeatInterval}
 }
 
 // RegisterRequest holds the parameters for registering an agent.
@@ -112,8 +116,12 @@ func (s *Service) Heartbeat(ctx context.Context, agentID string, status agentcar
 	if err := s.store.UpdateHeartbeat(ctx, agentID, status); err != nil {
 		return time.Time{}, fmt.Errorf("heartbeat: %w", err)
 	}
-	// Next heartbeat expected within 30 seconds.
-	deadline := time.Now().Add(30 * time.Second)
+	// Next heartbeat expected within the configured interval.
+	interval := s.HeartbeatInterval
+	if interval <= 0 {
+		interval = DefaultHeartbeatInterval
+	}
+	deadline := time.Now().Add(interval)
 	return deadline, nil
 }
 

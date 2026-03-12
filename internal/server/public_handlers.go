@@ -294,7 +294,9 @@ func (s *HTTPServer) handleVerifyEndpoint(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		// Record verification failure.
 		if s.reputation != nil {
-			_ = s.reputation.RecordEvent(r.Context(), id, "verification_fail", err.Error())
+			if recErr := s.reputation.RecordEvent(r.Context(), id, "verification_fail", err.Error()); recErr != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", id, "error", recErr)
+			}
 		}
 		s.jsonError(w, "verification failed: "+err.Error(), http.StatusBadRequest)
 		return
@@ -302,7 +304,9 @@ func (s *HTTPServer) handleVerifyEndpoint(w http.ResponseWriter, r *http.Request
 
 	// Mark agent as verified and record success event.
 	if s.reputation != nil {
-		_ = s.reputation.SetVerified(r.Context(), id)
+		if err := s.reputation.SetVerified(r.Context(), id); err != nil {
+			s.logger.Debug("failed to set agent verified", "agent_id", id, "error", err)
+		}
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]any{

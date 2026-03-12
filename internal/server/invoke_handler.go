@@ -170,7 +170,7 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	// Record invocation.
 	invID := uuid.New().String()
 	if s.invocation != nil {
-		_ = s.invocation.Record(r.Context(), &invocation.InvocationRecord{
+		if err := s.invocation.Record(r.Context(), &invocation.InvocationRecord{
 			ID:           invID,
 			AgentID:      agentID,
 			UserID:       userID,
@@ -182,15 +182,21 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 			Error:        invokeErr,
 			IPAddress:    ipAddress,
 			CreatedAt:    time.Now().UTC(),
-		})
+		}); err != nil {
+			s.logger.Debug("failed to record invocation", "agent_id", agentID, "error", err)
+		}
 	}
 
 	// Record reputation event.
 	if s.reputation != nil {
 		if invokeErr == "" {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", "")
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", ""); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		} else {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr)
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		}
 	}
 
@@ -295,7 +301,7 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 
 	// Record invocation.
 	if s.invocation != nil {
-		_ = s.invocation.Record(r.Context(), &invocation.InvocationRecord{
+		if err := s.invocation.Record(r.Context(), &invocation.InvocationRecord{
 			ID:           invID,
 			AgentID:      agentID,
 			UserID:       userID,
@@ -307,14 +313,20 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 			Error:        invokeErr,
 			IPAddress:    ipAddress,
 			CreatedAt:    time.Now().UTC(),
-		})
+		}); err != nil {
+			s.logger.Debug("failed to record invocation", "agent_id", agentID, "error", err)
+		}
 	}
 
 	if s.reputation != nil {
 		if invokeErr == "" {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", "")
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", ""); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		} else {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr)
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		}
 	}
 }

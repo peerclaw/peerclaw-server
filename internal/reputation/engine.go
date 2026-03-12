@@ -7,52 +7,84 @@ import (
 	"time"
 )
 
-// Alpha is the EWMA decay factor. Higher values make the score more responsive
-// to recent events.
-const Alpha = 0.1
+// DefaultAlpha is the default EWMA decay factor. Higher values make the score
+// more responsive to recent events.
+const DefaultAlpha = 0.1
+
+// Alpha is kept for backward compatibility with tests.
+const Alpha = DefaultAlpha
 
 // DefaultScore is the initial reputation score for new agents.
 const DefaultScore = 0.5
 
-// eventConfig defines the weight and normalized value for each event type.
-type eventConfig struct {
+// EventConfig defines the weight and normalized value for each event type.
+type EventConfig struct {
 	Weight          float64
 	NormalizedValue float64
 }
 
-var eventConfigs = map[EventType]eventConfig{
-	EventRegistration:     {Weight: 0.2, NormalizedValue: 0.6},
-	EventHeartbeatSuccess: {Weight: 0.1, NormalizedValue: 0.55},
-	EventHeartbeatMiss:    {Weight: -0.3, NormalizedValue: 0.35},
-	EventVerificationPass: {Weight: 1.0, NormalizedValue: 1.0},
-	EventVerificationFail: {Weight: -0.5, NormalizedValue: 0.25},
-	EventBridgeSuccess:    {Weight: 0.3, NormalizedValue: 0.65},
-	EventBridgeError:      {Weight: -0.2, NormalizedValue: 0.4},
-	EventBridgeTimeout:    {Weight: -0.3, NormalizedValue: 0.35},
-	EventReviewPositive:   {Weight: 0.4, NormalizedValue: 0.7},
-	EventReviewNegative:   {Weight: -0.4, NormalizedValue: 0.3},
+// DefaultEventConfigs returns the default event weight/value configuration.
+func DefaultEventConfigs() map[EventType]EventConfig {
+	return map[EventType]EventConfig{
+		EventRegistration:     {Weight: 0.2, NormalizedValue: 0.6},
+		EventHeartbeatSuccess: {Weight: 0.1, NormalizedValue: 0.55},
+		EventHeartbeatMiss:    {Weight: -0.3, NormalizedValue: 0.35},
+		EventVerificationPass: {Weight: 1.0, NormalizedValue: 1.0},
+		EventVerificationFail: {Weight: -0.5, NormalizedValue: 0.25},
+		EventBridgeSuccess:    {Weight: 0.3, NormalizedValue: 0.65},
+		EventBridgeError:      {Weight: -0.2, NormalizedValue: 0.4},
+		EventBridgeTimeout:    {Weight: -0.3, NormalizedValue: 0.35},
+		EventReviewPositive:   {Weight: 0.4, NormalizedValue: 0.7},
+		EventReviewNegative:   {Weight: -0.4, NormalizedValue: 0.3},
+	}
+}
+
+// EngineConfig holds tunable parameters for the reputation engine.
+type EngineConfig struct {
+	// Alpha is the EWMA decay factor (0..1). Default: 0.1.
+	Alpha float64
+	// EventWeights overrides the default event configurations.
+	// If nil, DefaultEventConfigs() is used.
+	EventWeights map[EventType]EventConfig
 }
 
 // Engine computes and manages agent reputation scores using EWMA.
 type Engine struct {
-	store  Store
-	logger *slog.Logger
+	store        Store
+	logger       *slog.Logger
+	alpha        float64
+	eventConfigs map[EventType]EventConfig
 }
 
-// NewEngine creates a new reputation engine.
+// NewEngine creates a new reputation engine with default configuration.
 func NewEngine(store Store, logger *slog.Logger) *Engine {
+	return NewEngineWithConfig(store, logger, EngineConfig{})
+}
+
+// NewEngineWithConfig creates a new reputation engine with the given configuration.
+func NewEngineWithConfig(store Store, logger *slog.Logger, cfg EngineConfig) *Engine {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	alpha := cfg.Alpha
+	if alpha <= 0 || alpha > 1 {
+		alpha = DefaultAlpha
+	}
+	ec := cfg.EventWeights
+	if ec == nil {
+		ec = DefaultEventConfigs()
+	}
 	return &Engine{
-		store:  store,
-		logger: logger,
+		store:        store,
+		logger:       logger,
+		alpha:        alpha,
+		eventConfigs: ec,
 	}
 }
 
 // RecordEvent records a reputation event and updates the agent's score.
 func (e *Engine) RecordEvent(ctx context.Context, agentID string, eventType EventType, metadata string) error {
-	cfg, ok := eventConfigs[eventType]
+	cfg, ok := e.eventConfigs[eventType]
 	if !ok {
 		e.logger.Warn("unknown reputation event type", "event_type", eventType)
 		return nil
@@ -67,7 +99,7 @@ func (e *Engine) RecordEvent(ctx context.Context, agentID string, eventType Even
 	}
 
 	// EWMA update: score = alpha * normalizedValue + (1 - alpha) * oldScore
-	newScore := Alpha*cfg.NormalizedValue + (1-Alpha)*currentScore
+	newScore := e.alpha*cfg.NormalizedValue + (1-e.alpha)*currentScore
 	newScore = math.Max(0, math.Min(1, newScore)) // clamp to [0, 1]
 	eventCount++
 

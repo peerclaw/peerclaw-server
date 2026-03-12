@@ -35,7 +35,7 @@ func (s *HTTPServer) registerMCPBridgeRoutes(ctx context.Context) {
 	s.mux.HandleFunc("GET /mcp/{agent_id}", s.handleMCPBridgeStream)
 
 	// Start background cleanup (stops when ctx is cancelled).
-	go s.mcpBridgeCleanup(ctx, time.Hour)
+	go s.mcpBridgeCleanup(ctx, defaultBridgeCleanupInterval, defaultBridgeMaxAge)
 }
 
 // handleMCPBridgeMessages handles POST /mcp/{agent_id} — JSON-RPC dispatch.
@@ -253,9 +253,13 @@ func (s *HTTPServer) handleMCPBridgeToolsCall(w http.ResponseWriter, r *http.Req
 	// Record reputation.
 	if s.reputation != nil {
 		if invokeErr == "" {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", "")
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", ""); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		} else {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr)
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		}
 	}
 }
@@ -314,8 +318,8 @@ func writeMCPBridgeError(w http.ResponseWriter, id any, code int, message string
 }
 
 // mcpBridgeCleanup periodically removes expired sessions. Stops when ctx is cancelled.
-func (s *HTTPServer) mcpBridgeCleanup(ctx context.Context, maxAge time.Duration) {
-	ticker := time.NewTicker(10 * time.Minute)
+func (s *HTTPServer) mcpBridgeCleanup(ctx context.Context, cleanupInterval, maxAge time.Duration) {
+	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
 	for {
 		select {

@@ -20,6 +20,12 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/bridge/jsonrpc"
 )
 
+// Default bridge cleanup configuration.
+const (
+	defaultBridgeCleanupInterval = 10 * time.Minute
+	defaultBridgeMaxAge          = time.Hour
+)
+
 // a2aBridgeTasks holds in-memory A2A task state for the bridge.
 type a2aBridgeTasks struct {
 	tasks     sync.Map
@@ -27,6 +33,9 @@ type a2aBridgeTasks struct {
 
 	// pushConfigs stores push notification configs keyed by task ID.
 	pushConfigs sync.Map // taskID → *a2a.PushNotificationConfig
+
+	// creatorIPs tracks the IP address that created each task for authorization.
+	creatorIPs sync.Map // taskID → string (IP address)
 }
 
 func (s *HTTPServer) registerA2ABridgeRoutes(ctx context.Context) {
@@ -36,7 +45,7 @@ func (s *HTTPServer) registerA2ABridgeRoutes(ctx context.Context) {
 	s.mux.HandleFunc("GET /a2a/{agent_id}/tasks/{task_id}", s.handleA2ABridgeGetTaskREST)
 
 	// Start background cleanup (stops when ctx is cancelled).
-	go s.a2aBridgeCleanup(ctx, time.Hour)
+	go s.a2aBridgeCleanup(ctx, defaultBridgeCleanupInterval, defaultBridgeMaxAge)
 }
 
 // handleA2ABridgeMessages handles POST /a2a/{agent_id} — JSON-RPC dispatch.
@@ -82,9 +91,9 @@ func (s *HTTPServer) handleA2ABridgeMessages(w http.ResponseWriter, r *http.Requ
 	case "message/send/subscribe":
 		s.handleA2ABridgeSendSubscribe(w, r, req, agentID)
 	case "tasks/get":
-		s.handleA2ABridgeGetTask(w, req)
+		s.handleA2ABridgeGetTask(w, r, req)
 	case "tasks/cancel":
-		s.handleA2ABridgeCancelTask(w, req)
+		s.handleA2ABridgeCancelTask(w, r, req)
 	case "tasks/pushNotification/set":
 		s.handleA2ABridgePushNotification(w, req, "set")
 	case "tasks/pushNotification/get":
@@ -145,6 +154,9 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 	s.a2aTasks.tasks.Store(task.ID, task)
 	s.a2aTasks.taskCount.Add(1)
 
+	ipAddress := BridgeClientIP(r)
+	s.a2aTasks.creatorIPs.Store(task.ID, ipAddress)
+
 	// Determine protocol.
 	proto := "a2a"
 	if len(card.Protocols) > 0 {
@@ -166,7 +178,6 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 	env.WithMetadata("a2a.context_id", contextID)
 
 	start := time.Now()
-	ipAddress := BridgeClientIP(r)
 
 	// Synchronous: collect all chunks from stream.
 	if s.bridges == nil {
@@ -223,9 +234,13 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 	// Record reputation.
 	if s.reputation != nil {
 		if invokeErr == "" {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", "")
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", ""); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		} else {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr)
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		}
 	}
 
@@ -282,6 +297,9 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 	s.a2aTasks.tasks.Store(task.ID, task)
 	s.a2aTasks.taskCount.Add(1)
 
+	ipAddress := BridgeClientIP(r)
+	s.a2aTasks.creatorIPs.Store(task.ID, ipAddress)
+
 	// Determine protocol.
 	proto := "a2a"
 	if len(card.Protocols) > 0 {
@@ -303,7 +321,6 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 	env.WithMetadata("a2a.context_id", contextID)
 
 	start := time.Now()
-	ipAddress := BridgeClientIP(r)
 
 	// Set SSE headers.
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -385,15 +402,19 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 	// Record reputation.
 	if s.reputation != nil {
 		if invokeErr == "" {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", "")
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_success", ""); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		} else {
-			_ = s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr)
+			if err := s.reputation.RecordEvent(r.Context(), agentID, "bridge_error", invokeErr); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", agentID, "error", err)
+			}
 		}
 	}
 }
 
 // handleA2ABridgeGetTask handles tasks/get.
-func (s *HTTPServer) handleA2ABridgeGetTask(w http.ResponseWriter, req *jsonrpc.Request) {
+func (s *HTTPServer) handleA2ABridgeGetTask(w http.ResponseWriter, r *http.Request, req *jsonrpc.Request) {
 	var params a2a.GetTaskParams
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		writeA2ABridgeError(w, req.ID, jsonrpc.CodeInvalidParams, "invalid params: "+err.Error())
@@ -406,11 +427,19 @@ func (s *HTTPServer) handleA2ABridgeGetTask(w http.ResponseWriter, req *jsonrpc.
 		return
 	}
 
+	// Verify requester is the task creator.
+	if creatorIP, ok := s.a2aTasks.creatorIPs.Load(params.ID); ok {
+		if BridgeClientIP(r) != creatorIP.(string) {
+			writeA2ABridgeError(w, req.ID, jsonrpc.CodeInvalidParams, "task not found: "+params.ID)
+			return
+		}
+	}
+
 	writeA2ABridgeResult(w, req.ID, v.(*a2a.Task))
 }
 
 // handleA2ABridgeCancelTask handles tasks/cancel.
-func (s *HTTPServer) handleA2ABridgeCancelTask(w http.ResponseWriter, req *jsonrpc.Request) {
+func (s *HTTPServer) handleA2ABridgeCancelTask(w http.ResponseWriter, r *http.Request, req *jsonrpc.Request) {
 	var params a2a.CancelTaskParams
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		writeA2ABridgeError(w, req.ID, jsonrpc.CodeInvalidParams, "invalid params: "+err.Error())
@@ -421,6 +450,14 @@ func (s *HTTPServer) handleA2ABridgeCancelTask(w http.ResponseWriter, req *jsonr
 	if !ok {
 		writeA2ABridgeError(w, req.ID, jsonrpc.CodeInvalidParams, "task not found: "+params.ID)
 		return
+	}
+
+	// Verify requester is the task creator.
+	if creatorIP, ok := s.a2aTasks.creatorIPs.Load(params.ID); ok {
+		if BridgeClientIP(r) != creatorIP.(string) {
+			writeA2ABridgeError(w, req.ID, jsonrpc.CodeInvalidParams, "task not found: "+params.ID)
+			return
+		}
 	}
 
 	task := v.(*a2a.Task)
@@ -508,6 +545,14 @@ func (s *HTTPServer) handleA2ABridgeGetTaskREST(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// Verify requester is the task creator.
+	if creatorIP, ok := s.a2aTasks.creatorIPs.Load(taskID); ok {
+		if BridgeClientIP(r) != creatorIP.(string) {
+			s.jsonError(w, "task not found", http.StatusNotFound)
+			return
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v.(*a2a.Task))
 }
@@ -541,6 +586,7 @@ func cardToA2AAgentCard(card *agentcard.Card, baseURL string) a2a.AgentCard {
 
 // requestBaseURL derives the base URL from the request.
 // Only trusts X-Forwarded-Proto/Host from loopback/private IPs.
+// Validates forwarded values to prevent host header injection.
 func requestBaseURL(r *http.Request) string {
 	scheme := "http"
 	if r.TLS != nil {
@@ -556,7 +602,22 @@ func requestBaseURL(r *http.Request) string {
 			scheme = proto
 		}
 		if fwd := r.Header.Get("X-Forwarded-Host"); fwd != "" {
-			host = fwd
+			fwd = strings.TrimSpace(fwd)
+			// Reject values containing path separators or whitespace to prevent injection.
+			if !strings.ContainsAny(fwd, "/\\? \t\n\r") {
+				// Validate host:port format if port is present.
+				if h, p, err := net.SplitHostPort(fwd); err == nil {
+					// Has port — validate hostname and port are reasonable.
+					if h != "" && p != "" && (net.ParseIP(h) != nil || !strings.ContainsAny(h, "/:")) {
+						host = fwd
+					}
+				} else {
+					// No port — just a hostname; validate no colons (except IPv6 which would have port).
+					if !strings.Contains(fwd, ":") || net.ParseIP(fwd) != nil {
+						host = fwd
+					}
+				}
+			}
 		}
 	}
 
@@ -626,8 +687,8 @@ func writeA2ABridgeError(w http.ResponseWriter, id any, code int, message string
 }
 
 // a2aBridgeCleanup periodically removes expired tasks. Stops when ctx is cancelled.
-func (s *HTTPServer) a2aBridgeCleanup(ctx context.Context, maxAge time.Duration) {
-	ticker := time.NewTicker(10 * time.Minute)
+func (s *HTTPServer) a2aBridgeCleanup(ctx context.Context, cleanupInterval, maxAge time.Duration) {
+	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -644,6 +705,7 @@ func (s *HTTPServer) a2aBridgeCleanup(ctx context.Context, maxAge time.Duration)
 				if now.Sub(created) > maxAge {
 					s.a2aTasks.tasks.Delete(key)
 					s.a2aTasks.pushConfigs.Delete(key)
+					s.a2aTasks.creatorIPs.Delete(key)
 					s.a2aTasks.taskCount.Add(-1)
 				}
 				return true

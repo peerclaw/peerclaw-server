@@ -20,10 +20,23 @@ import (
 type acpBridgeRuns struct {
 	runs     sync.Map
 	runCount atomic.Int64
+
+	// creatorIPs tracks the IP address that created each run for authorization.
+	creatorIPs sync.Map // runID → string (IP address)
+
+	// serverCtx is the server-level context for async goroutines to observe shutdown.
+	serverCtx context.Context
+
+	// asyncTimeout is the maximum duration for async run execution.
+	asyncTimeout time.Duration
 }
 
 func (s *HTTPServer) registerACPBridgeRoutes(ctx context.Context) {
-	s.acpRuns = &acpBridgeRuns{}
+	asyncTimeout := 5 * time.Minute
+	s.acpRuns = &acpBridgeRuns{
+		serverCtx:    ctx,
+		asyncTimeout: asyncTimeout,
+	}
 	s.mux.HandleFunc("POST /acp/{agent_id}/runs", s.handleACPBridgeCreateRun)
 	s.mux.HandleFunc("GET /acp/{agent_id}/runs/{run_id}", s.handleACPBridgeGetRun)
 	s.mux.HandleFunc("POST /acp/{agent_id}/runs/{run_id}/cancel", s.handleACPBridgeCancelRun)
@@ -31,7 +44,7 @@ func (s *HTTPServer) registerACPBridgeRoutes(ctx context.Context) {
 	s.mux.HandleFunc("GET /acp/{agent_id}/ping", s.handleACPBridgePing)
 
 	// Start background cleanup (stops when ctx is cancelled).
-	go s.acpBridgeCleanup(ctx, time.Hour)
+	go s.acpBridgeCleanup(ctx, defaultBridgeCleanupInterval, defaultBridgeMaxAge)
 }
 
 // handleACPBridgeCreateRun handles POST /acp/{agent_id}/runs.
@@ -95,6 +108,9 @@ func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Req
 	s.acpRuns.runs.Store(run.RunID, run)
 	s.acpRuns.runCount.Add(1)
 
+	ipAddress := BridgeClientIP(r)
+	s.acpRuns.creatorIPs.Store(run.RunID, ipAddress)
+
 	// Determine protocol.
 	proto := "acp"
 	if len(card.Protocols) > 0 {
@@ -109,7 +125,6 @@ func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Req
 	env.WithMetadata("acp.session_id", run.SessionID)
 
 	start := time.Now()
-	ipAddress := BridgeClientIP(r)
 
 	mode := req.Mode
 	if mode == "" {
@@ -188,9 +203,13 @@ func (s *HTTPServer) handleACPBridgeSync(w http.ResponseWriter, r *http.Request,
 	// Record reputation.
 	if s.reputation != nil {
 		if invokeErr == "" {
-			_ = s.reputation.RecordEvent(r.Context(), card.ID, "bridge_success", "")
+			if err := s.reputation.RecordEvent(r.Context(), card.ID, "bridge_success", ""); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+			}
 		} else {
-			_ = s.reputation.RecordEvent(r.Context(), card.ID, "bridge_error", invokeErr)
+			if err := s.reputation.RecordEvent(r.Context(), card.ID, "bridge_error", invokeErr); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+			}
 		}
 	}
 
@@ -289,9 +308,13 @@ func (s *HTTPServer) handleACPBridgeStream(w http.ResponseWriter, r *http.Reques
 	// Record reputation.
 	if s.reputation != nil {
 		if invokeErr == "" {
-			_ = s.reputation.RecordEvent(r.Context(), card.ID, "bridge_success", "")
+			if err := s.reputation.RecordEvent(r.Context(), card.ID, "bridge_success", ""); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+			}
 		} else {
-			_ = s.reputation.RecordEvent(r.Context(), card.ID, "bridge_error", invokeErr)
+			if err := s.reputation.RecordEvent(r.Context(), card.ID, "bridge_error", invokeErr); err != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+			}
 		}
 	}
 }
@@ -305,10 +328,9 @@ func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request
 	// Return 202 immediately.
 	writeACPBridgeJSON(w, http.StatusAccepted, run)
 
-	// Execute in background using the server's cleanup context.
+	// Execute in background using the server's context for graceful shutdown.
 	go func() {
-		asyncTimeout := 5 * time.Minute
-		ctx, cancel := context.WithTimeout(context.Background(), asyncTimeout)
+		ctx, cancel := context.WithTimeout(s.acpRuns.serverCtx, s.acpRuns.asyncTimeout)
 		defer cancel()
 
 		if s.bridges == nil {
@@ -365,9 +387,13 @@ func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request
 		// Record reputation.
 		if s.reputation != nil {
 			if invokeErr == "" {
-				_ = s.reputation.RecordEvent(ctx, card.ID, "bridge_success", "")
+				if err := s.reputation.RecordEvent(ctx, card.ID, "bridge_success", ""); err != nil {
+					s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+				}
 			} else {
-				_ = s.reputation.RecordEvent(ctx, card.ID, "bridge_error", invokeErr)
+				if err := s.reputation.RecordEvent(ctx, card.ID, "bridge_error", invokeErr); err != nil {
+					s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+				}
 			}
 		}
 	}()
@@ -387,6 +413,14 @@ func (s *HTTPServer) handleACPBridgeGetRun(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Verify requester is the run creator.
+	if creatorIP, ok := s.acpRuns.creatorIPs.Load(runID); ok {
+		if BridgeClientIP(r) != creatorIP.(string) {
+			writeACPBridgeError(w, http.StatusNotFound, "run not found: "+runID)
+			return
+		}
+	}
+
 	writeACPBridgeJSON(w, http.StatusOK, v.(*acp.Run))
 }
 
@@ -402,6 +436,14 @@ func (s *HTTPServer) handleACPBridgeCancelRun(w http.ResponseWriter, r *http.Req
 	if !ok {
 		writeACPBridgeError(w, http.StatusNotFound, "run not found: "+runID)
 		return
+	}
+
+	// Verify requester is the run creator.
+	if creatorIP, ok := s.acpRuns.creatorIPs.Load(runID); ok {
+		if BridgeClientIP(r) != creatorIP.(string) {
+			writeACPBridgeError(w, http.StatusNotFound, "run not found: "+runID)
+			return
+		}
 	}
 
 	run := v.(*acp.Run)
@@ -525,8 +567,8 @@ func writeACPBridgeError(w http.ResponseWriter, status int, message string) {
 }
 
 // acpBridgeCleanup periodically removes expired runs. Stops when ctx is cancelled.
-func (s *HTTPServer) acpBridgeCleanup(ctx context.Context, maxAge time.Duration) {
-	ticker := time.NewTicker(10 * time.Minute)
+func (s *HTTPServer) acpBridgeCleanup(ctx context.Context, cleanupInterval, maxAge time.Duration) {
+	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -542,6 +584,7 @@ func (s *HTTPServer) acpBridgeCleanup(ctx context.Context, maxAge time.Duration)
 				}
 				if now.Sub(created) > maxAge {
 					s.acpRuns.runs.Delete(key)
+					s.acpRuns.creatorIPs.Delete(key)
 					s.acpRuns.runCount.Add(-1)
 				}
 				return true

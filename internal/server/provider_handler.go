@@ -86,7 +86,9 @@ func (s *HTTPServer) handleProviderPublishAgent(w http.ResponseWriter, r *http.R
 	}
 
 	if s.reputation != nil {
-		_ = s.reputation.RecordEvent(r.Context(), card.ID, "registration", "")
+		if err := s.reputation.RecordEvent(r.Context(), card.ID, "registration", ""); err != nil {
+			s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+		}
 	}
 
 	s.jsonResponse(w, http.StatusCreated, card)

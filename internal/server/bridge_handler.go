@@ -120,7 +120,9 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 		s.logger.Error("bridge send failed", "error", err, "proto", proto, "dest", req.Destination)
 		// Record bridge error reputation event.
 		if s.reputation != nil {
-			_ = s.reputation.RecordEvent(r.Context(), req.Source, "bridge_error", err.Error())
+			if recErr := s.reputation.RecordEvent(r.Context(), req.Source, "bridge_error", err.Error()); recErr != nil {
+				s.logger.Debug("failed to record reputation event", "agent_id", req.Source, "error", recErr)
+			}
 		}
 		s.jsonError(w, "bridge send failed: "+err.Error(), http.StatusBadGateway)
 		return
@@ -128,7 +130,9 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 
 	// Record bridge success reputation event.
 	if s.reputation != nil {
-		_ = s.reputation.RecordEvent(r.Context(), req.Source, "bridge_success", "")
+		if err := s.reputation.RecordEvent(r.Context(), req.Source, "bridge_success", ""); err != nil {
+			s.logger.Debug("failed to record reputation event", "agent_id", req.Source, "error", err)
+		}
 	}
 
 	// Audit log and metrics.

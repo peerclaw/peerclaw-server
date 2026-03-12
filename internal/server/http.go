@@ -478,7 +478,9 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	// Record reputation event.
 	if s.reputation != nil {
-		_ = s.reputation.RecordEvent(r.Context(), card.ID, "registration", "")
+		if err := s.reputation.RecordEvent(r.Context(), card.ID, "registration", ""); err != nil {
+			s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+		}
 	}
 
 	// Audit log.
@@ -567,7 +569,9 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 
 	// Record reputation event.
 	if s.reputation != nil {
-		_ = s.reputation.RecordEvent(r.Context(), id, "heartbeat_success", "")
+		if err := s.reputation.RecordEvent(r.Context(), id, "heartbeat_success", ""); err != nil {
+			s.logger.Debug("failed to record reputation event", "agent_id", id, "error", err)
+		}
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]any{"next_deadline": deadline})

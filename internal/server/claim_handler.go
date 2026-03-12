@@ -190,7 +190,9 @@ func (s *HTTPServer) handleClaimAgent(w http.ResponseWriter, r *http.Request) {
 
 	// Record reputation event.
 	if s.reputation != nil {
-		_ = s.reputation.RecordEvent(r.Context(), card.ID, "registration", "claim_token")
+		if err := s.reputation.RecordEvent(r.Context(), card.ID, "registration", "claim_token"); err != nil {
+			s.logger.Debug("failed to record reputation event", "agent_id", card.ID, "error", err)
+		}
 	}
 
 	// Audit log.

@@ -7,88 +7,34 @@ import (
 	"github.com/google/uuid"
 	"github.com/peerclaw/peerclaw-core/envelope"
 	"github.com/peerclaw/peerclaw-core/protocol"
+	coreacp "github.com/peerclaw/peerclaw-core/protocol/acp"
 )
 
-// RunStatus represents the lifecycle status of an ACP run.
-type RunStatus string
+// Type aliases — re-export shared ACP types from core (H-15).
+type (
+	RunStatus       = coreacp.RunStatus
+	Run             = coreacp.Run
+	RunError        = coreacp.RunError
+	Message         = coreacp.Message
+	MessagePart     = coreacp.MessagePart
+	AgentManifest   = coreacp.AgentManifest
+	ManifestMetadata = coreacp.ManifestMetadata
+	CapabilityDef   = coreacp.CapabilityDef
+	CreateRunRequest = coreacp.CreateRunRequest
+)
 
+// Re-export status constants for backward compatibility.
 const (
-	RunStatusCreated    RunStatus = "created"
-	RunStatusInProgress RunStatus = "in-progress"
-	RunStatusAwaiting   RunStatus = "awaiting"
-	RunStatusCompleted  RunStatus = "completed"
-	RunStatusFailed     RunStatus = "failed"
-	RunStatusCancelling RunStatus = "cancelling"
-	RunStatusCancelled  RunStatus = "cancelled"
+	RunStatusCreated    = coreacp.RunStatusCreated
+	RunStatusInProgress = coreacp.RunStatusInProgress
+	RunStatusAwaiting   = coreacp.RunStatusAwaiting
+	RunStatusCompleted  = coreacp.RunStatusCompleted
+	RunStatusFailed     = coreacp.RunStatusFailed
+	RunStatusCancelling = coreacp.RunStatusCancelling
+	RunStatusCancelled  = coreacp.RunStatusCancelled
 )
 
-// Run represents an ACP run.
-type Run struct {
-	AgentName string    `json:"agent_name"`
-	RunID     string    `json:"run_id"`
-	SessionID string    `json:"session_id,omitempty"`
-	Status    RunStatus `json:"status"`
-	Input     []Message `json:"input,omitempty"`
-	Output    []Message `json:"output,omitempty"`
-	Error     *RunError `json:"error,omitempty"`
-	CreatedAt string    `json:"created_at"`
-	UpdatedAt string    `json:"updated_at"`
-}
-
-// RunError holds error details for a failed run.
-type RunError struct {
-	Code    string         `json:"code"`
-	Message string         `json:"message"`
-	Data    map[string]any `json:"data,omitempty"`
-}
-
-// Message represents an ACP message.
-type Message struct {
-	Role      string        `json:"role"` // user, agent, agent/{name}
-	Parts     []MessagePart `json:"parts"`
-	CreatedAt string        `json:"created_at,omitempty"`
-}
-
-// MessagePart represents a part of an ACP message.
-type MessagePart struct {
-	ContentType     string         `json:"content_type"`
-	Content         string         `json:"content,omitempty"`
-	ContentURL      string         `json:"content_url,omitempty"`
-	ContentEncoding string         `json:"content_encoding,omitempty"`
-	Metadata        map[string]any `json:"metadata,omitempty"`
-}
-
-// AgentManifest describes an ACP-compatible agent.
-type AgentManifest struct {
-	Name               string           `json:"name"`
-	Description        string           `json:"description,omitempty"`
-	InputContentTypes  []string         `json:"input_content_types,omitempty"`
-	OutputContentTypes []string         `json:"output_content_types,omitempty"`
-	Metadata           ManifestMetadata `json:"metadata,omitempty"`
-}
-
-// ManifestMetadata holds structured metadata for an agent manifest.
-type ManifestMetadata struct {
-	Capabilities []CapabilityDef `json:"capabilities,omitempty"`
-	Domains      []string        `json:"domains,omitempty"`
-	Tags         []string        `json:"tags,omitempty"`
-}
-
-// CapabilityDef describes a capability.
-type CapabilityDef struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-}
-
-// CreateRunRequest is the request body for POST /acp/runs.
-type CreateRunRequest struct {
-	AgentName string    `json:"agent_name"`
-	SessionID string    `json:"session_id,omitempty"`
-	Input     []Message `json:"input"`
-	Mode      string    `json:"mode"` // sync, async, stream
-}
-
-// Session tracks a group of runs.
+// Session tracks a group of runs (server-specific).
 type Session struct {
 	ID     string
 	RunIDs []string
