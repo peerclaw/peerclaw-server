@@ -6,19 +6,9 @@ linters:
     - staticcheck
     - unused
 
-  settings:
-    errcheck:
-      # Don't flag deferred Close / cleanup calls – the error is unactionable in
-      # a defer and wrapping them hurts readability.
-      exclude-functions:
-        - (io.Closer).Close
-        - (*database/sql.Rows).Close
-        - (*database/sql.DB).Close
-        - (*os.File).Close
-        - (net/http.ResponseWriter).Write
-        - (*github.com/redis/go-redis/v9.PubSub).Close
-
   exclusions:
+    presets:
+      - std-error-handling
     rules:
       # Exclude errcheck in test files – test helpers rarely need error checking.
       - path: _test\.go
