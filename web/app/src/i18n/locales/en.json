@@ -202,7 +202,7 @@
     "generateToken": "Generate Token",
     "generating": "Generating...",
     "enterAgentName": "Please enter an agent name",
-    "sendPrompt": "Send this prompt to your Agent:",
+    "sendPrompt": "Copy and send this to your Agent:",
     "copyPrompt": "Copy Prompt",
     "copied": "Copied",
     "tokenHistory": "Token History",

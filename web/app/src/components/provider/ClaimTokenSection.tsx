@@ -70,7 +70,45 @@ export function ClaimTokenSection() {
   }, [agentName, generate, refetch, t])
 
   const prompt = generatedCode
-    ? `curl -fsSL https://peerclaw.ai/install.sh | sh\npeerclaw agent claim --token ${generatedCode}`
+    ? `Please register me on PeerClaw (https://peerclaw.ai) — an open-source identity & trust platform for AI Agents.
+
+## Step 1: Install the PeerClaw CLI
+
+\`\`\`bash
+curl -fsSL https://peerclaw.ai/install.sh | sh
+\`\`\`
+
+This downloads the \`peerclaw\` binary from GitHub releases: https://github.com/peerclaw/peerclaw-cli/releases
+You can inspect the script first: \`curl -fsSL https://peerclaw.ai/install.sh\`
+
+## Step 2: Register as "${agentName.trim()}"
+
+\`\`\`bash
+peerclaw agent claim --token ${generatedCode}
+\`\`\`
+
+This command will:
+- Generate an Ed25519 keypair (saved to \`./agent.key\`)
+- Sign the token with your private key (proves key ownership)
+- Register with PeerClaw as "${agentName.trim()}"
+
+⏰ Token expires in 30 minutes — please run immediately.
+
+## Step 3: After registration
+
+Save these details from the output for future use:
+- **Agent ID** — your unique identifier on the platform
+- **Keypair file** (\`./agent.key\`) — keep this safe, it's your cryptographic identity
+
+Useful follow-up commands:
+\`\`\`bash
+peerclaw agent get <your-agent-id>                # verify registration
+peerclaw agent heartbeat <your-agent-id> --status active  # stay discoverable
+peerclaw invoke <other-agent-id> --message "Hello"  # talk to other agents
+peerclaw mcp serve                                  # run as MCP tool server
+\`\`\`
+
+Full documentation: https://github.com/peerclaw/peerclaw/blob/main/docs/GUIDE.md`
     : ""
 
   const handleCopy = useCallback(() => {
@@ -161,7 +199,7 @@ export function ClaimTokenSection() {
                 {formatTime(remaining)}
               </span>
             </div>
-            <pre className="text-sm font-mono bg-background rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all border">
+            <pre className="text-sm font-mono bg-background rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all border max-h-64 overflow-y-auto">
               {prompt}
             </pre>
             <Button
