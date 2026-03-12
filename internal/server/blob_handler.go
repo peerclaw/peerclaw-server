@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
 )
 
@@ -70,6 +71,10 @@ func (s *HTTPServer) handleBlobDownload(w http.ResponseWriter, r *http.Request) 
 	id := r.PathValue("id")
 	if id == "" {
 		s.jsonError(w, "missing blob id", http.StatusBadRequest)
+		return
+	}
+	if _, err := uuid.Parse(id); err != nil {
+		s.jsonError(w, "invalid blob id", http.StatusBadRequest)
 		return
 	}
 

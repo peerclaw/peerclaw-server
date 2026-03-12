@@ -37,9 +37,10 @@ func (s *HTTPServer) registerACPBridgeRoutes(ctx context.Context) {
 		serverCtx:    ctx,
 		asyncTimeout: asyncTimeout,
 	}
-	s.mux.HandleFunc("POST /acp/{agent_id}/runs", s.handleACPBridgeCreateRun)
+	bridgeAuth := s.bridgeAuthMiddleware()
+	s.mux.Handle("POST /acp/{agent_id}/runs", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCreateRun)))
 	s.mux.HandleFunc("GET /acp/{agent_id}/runs/{run_id}", s.handleACPBridgeGetRun)
-	s.mux.HandleFunc("POST /acp/{agent_id}/runs/{run_id}/cancel", s.handleACPBridgeCancelRun)
+	s.mux.Handle("POST /acp/{agent_id}/runs/{run_id}/cancel", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCancelRun)))
 	s.mux.HandleFunc("GET /acp/{agent_id}/agents", s.handleACPBridgeAgentManifest)
 	s.mux.HandleFunc("GET /acp/{agent_id}/ping", s.handleACPBridgePing)
 
@@ -79,8 +80,8 @@ func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Req
 		writeACPBridgeError(w, http.StatusInternalServerError, "failed to check access flags")
 		return
 	}
-	if !flags.PlaygroundEnabled {
-		writeACPBridgeError(w, http.StatusForbidden, "access denied: agent does not allow external ACP access")
+	if !bridgeAccessAllowed(r, flags.PlaygroundEnabled) {
+		writeACPBridgeError(w, http.StatusForbidden, "access denied: authentication required or enable playground access")
 		return
 	}
 

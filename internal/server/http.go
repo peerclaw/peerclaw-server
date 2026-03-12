@@ -213,6 +213,16 @@ func (s *HTTPServer) SetUserACL(ua UserACLChecker) {
 	s.useracl = ua
 }
 
+// wrapAuth applies agent authentication middleware to a handler.
+func (s *HTTPServer) wrapAuth(h http.HandlerFunc) http.Handler {
+	return AuthMiddleware(s.authCfg, s.logger)(h)
+}
+
+// wrapOwner applies agent authentication + owner-only middleware to a handler.
+func (s *HTTPServer) wrapOwner(h http.HandlerFunc) http.Handler {
+	return AuthMiddleware(s.authCfg, s.logger)(OwnerOnlyMiddleware(s.logger)(h))
+}
+
 // wrapUserAuth returns middleware that requires JWT authentication.
 // Returns 501 if userAuth is not configured.
 func (s *HTTPServer) wrapUserAuth(h http.HandlerFunc) http.Handler {
@@ -226,18 +236,6 @@ func (s *HTTPServer) wrapUserAuth(h http.HandlerFunc) http.Handler {
 }
 
 func (s *HTTPServer) routes() {
-	authMW := AuthMiddleware(s.authCfg, s.logger)
-	ownerMW := OwnerOnlyMiddleware(s.logger)
-
-	// wrapAuth applies authentication middleware to a handler.
-	wrapAuth := func(h http.HandlerFunc) http.Handler {
-		return authMW(h)
-	}
-	// wrapOwner applies authentication + owner-only middleware.
-	wrapOwner := func(h http.HandlerFunc) http.Handler {
-		return authMW(ownerMW(h))
-	}
-
 	// Public routes — no authentication required.
 	s.mux.HandleFunc("GET /api/v1/health", s.handleHealth)
 	s.mux.HandleFunc("GET /api/v1/directory", s.handleDirectory)
@@ -245,21 +243,21 @@ func (s *HTTPServer) routes() {
 	s.mux.HandleFunc("GET /api/v1/directory/{id}/reputation", s.handleReputationHistory)
 
 	// Authenticated routes.
-	s.mux.Handle("POST /api/v1/agents", wrapAuth(s.handleRegister))
-	s.mux.Handle("GET /api/v1/agents", wrapAuth(s.handleListAgents))
-	s.mux.Handle("GET /api/v1/agents/{id}", wrapAuth(s.handleGetAgent))
-	s.mux.Handle("POST /api/v1/discover", wrapAuth(s.handleDiscover))
-	s.mux.Handle("GET /api/v1/routes", wrapAuth(s.handleGetRoutes))
-	s.mux.Handle("GET /api/v1/routes/resolve", wrapAuth(s.handleResolveRoute))
-	s.mux.Handle("POST /api/v1/bridge/send", wrapAuth(s.handleBridgeSend))
+	s.mux.Handle("POST /api/v1/agents", s.wrapAuth(s.handleRegister))
+	s.mux.Handle("GET /api/v1/agents", s.wrapAuth(s.handleListAgents))
+	s.mux.Handle("GET /api/v1/agents/{id}", s.wrapAuth(s.handleGetAgent))
+	s.mux.Handle("POST /api/v1/discover", s.wrapAuth(s.handleDiscover))
+	s.mux.Handle("GET /api/v1/routes", s.wrapAuth(s.handleGetRoutes))
+	s.mux.Handle("GET /api/v1/routes/resolve", s.wrapAuth(s.handleResolveRoute))
+	s.mux.Handle("POST /api/v1/bridge/send", s.wrapAuth(s.handleBridgeSend))
 	if s.sigHub != nil {
-		s.mux.Handle("GET /api/v1/signaling", wrapAuth(s.sigHub.HandleConnect))
+		s.mux.Handle("GET /api/v1/signaling", s.wrapAuth(s.sigHub.HandleConnect))
 	}
 
 	// Owner-only routes — authenticated agent must match {id} in path.
-	s.mux.Handle("DELETE /api/v1/agents/{id}", wrapOwner(s.handleDeregister))
-	s.mux.Handle("POST /api/v1/agents/{id}/heartbeat", wrapOwner(s.handleHeartbeat))
-	s.mux.Handle("POST /api/v1/agents/{id}/verify", wrapOwner(s.handleVerifyEndpoint))
+	s.mux.Handle("DELETE /api/v1/agents/{id}", s.wrapOwner(s.handleDeregister))
+	s.mux.Handle("POST /api/v1/agents/{id}/heartbeat", s.wrapOwner(s.handleHeartbeat))
+	s.mux.Handle("POST /api/v1/agents/{id}/verify", s.wrapOwner(s.handleVerifyEndpoint))
 
 	// Federation endpoints (use their own token-based auth).
 	s.mux.HandleFunc("POST /api/v1/federation/signal", s.handleFederationSignal)
@@ -767,16 +765,10 @@ func (s *HTTPServer) registerContactRoutes() {
 		return
 	}
 
-	authMW := AuthMiddleware(s.authCfg, s.logger)
-	ownerMW := OwnerOnlyMiddleware(s.logger)
-
 	// Agent-side: authenticated agent must match {id}.
-	wrapOwner := func(h http.HandlerFunc) http.Handler {
-		return authMW(ownerMW(h))
-	}
-	s.mux.Handle("POST /api/v1/agents/{id}/contacts", wrapOwner(s.handleAgentAddContact))
-	s.mux.Handle("GET /api/v1/agents/{id}/contacts", wrapOwner(s.handleAgentListContacts))
-	s.mux.Handle("DELETE /api/v1/agents/{id}/contacts/{contact_id}", wrapOwner(s.handleAgentRemoveContact))
+	s.mux.Handle("POST /api/v1/agents/{id}/contacts", s.wrapOwner(s.handleAgentAddContact))
+	s.mux.Handle("GET /api/v1/agents/{id}/contacts", s.wrapOwner(s.handleAgentListContacts))
+	s.mux.Handle("DELETE /api/v1/agents/{id}/contacts/{contact_id}", s.wrapOwner(s.handleAgentRemoveContact))
 
 	// Provider-side: JWT-authenticated user who owns the agent.
 	s.mux.Handle("POST /api/v1/provider/agents/{id}/contacts", s.wrapUserAuth(s.handleProviderAddContact))

@@ -216,6 +216,59 @@ func AdminOnlyMiddleware(logger *slog.Logger) Middleware {
 	}
 }
 
+// bridgeAuthMiddleware performs optional dual authentication for bridge endpoints.
+// If agent auth headers or a JWT token are present and valid, the caller's identity
+// is stored in the request context. If no credentials are provided, the request
+// is passed through — the handler uses PlaygroundEnabled as the fallback gate.
+func (s *HTTPServer) bridgeAuthMiddleware() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Try agent auth (bearer token or Ed25519 signature).
+			agentID, ok := authenticate(r, s.authCfg, s.logger)
+			if ok {
+				ctx := identity.WithAgentID(r.Context(), agentID)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			// Try user auth (JWT) if available.
+			if s.userAuth != nil {
+				if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+					parts := strings.SplitN(authHeader, " ", 2)
+					if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") {
+						claims, err := s.userAuth.JWTManager().ValidateAccessToken(parts[1])
+						if err == nil {
+							ctx := identity.WithUserID(r.Context(), claims.UserID)
+							ctx = identity.WithUserRole(ctx, claims.Role)
+							next.ServeHTTP(w, r.WithContext(ctx))
+							return
+						}
+					}
+				}
+			}
+
+			// No valid auth — pass through for handler-level PlaygroundEnabled check.
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// bridgeAccessAllowed returns true if the caller is authenticated (agent or user)
+// or the target agent has PlaygroundEnabled. Use this in bridge handlers instead
+// of checking only PlaygroundEnabled.
+func bridgeAccessAllowed(r *http.Request, playgroundEnabled bool) bool {
+	if playgroundEnabled {
+		return true
+	}
+	if _, ok := identity.AgentIDFromContext(r.Context()); ok {
+		return true
+	}
+	if _, ok := identity.UserIDFromContext(r.Context()); ok {
+		return true
+	}
+	return false
+}
+
 // OptionalUserAuthMiddleware extracts JWT if present but does not require it.
 func OptionalUserAuthMiddleware(jwtMgr *userauth.JWTManager, logger *slog.Logger) Middleware {
 	if logger == nil {

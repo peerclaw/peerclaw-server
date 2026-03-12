@@ -2,11 +2,14 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
@@ -361,5 +364,86 @@ func TestA2ABridge_GetTaskREST_NotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+	}
+}
+
+func TestA2ABridgeTasks_ConcurrentAccess(t *testing.T) {
+	tasks := &a2aBridgeTasks{}
+	const goroutines = 10
+	const opsPerGoroutine = 100
+
+	// Run concurrent writes, reads, and deletes on the task store.
+	var wg sync.WaitGroup
+	wg.Add(goroutines * 3)
+
+	// Writers: store tasks.
+	for g := 0; g < goroutines; g++ {
+		go func(id int) {
+			defer wg.Done()
+			for i := 0; i < opsPerGoroutine; i++ {
+				task := a2a.NewTask("ctx", a2a.Message{
+					Role:  "user",
+					Parts: []a2a.Part{{Text: "concurrent test"}},
+				})
+				tasks.tasks.Store(task.ID, task)
+				tasks.taskCount.Add(1)
+				tasks.creatorIPs.Store(task.ID, "127.0.0.1")
+			}
+		}(g)
+	}
+
+	// Readers: iterate and load tasks.
+	for g := 0; g < goroutines; g++ {
+		go func() {
+			defer wg.Done()
+			for i := 0; i < opsPerGoroutine; i++ {
+				tasks.tasks.Range(func(key, value any) bool {
+					_ = value.(*a2a.Task).ID
+					return true
+				})
+				_ = tasks.taskCount.Load()
+			}
+		}()
+	}
+
+	// Deleters: try to delete tasks found during iteration.
+	for g := 0; g < goroutines; g++ {
+		go func() {
+			defer wg.Done()
+			for i := 0; i < opsPerGoroutine; i++ {
+				tasks.tasks.Range(func(key, value any) bool {
+					tasks.tasks.Delete(key)
+					tasks.creatorIPs.Delete(key)
+					tasks.taskCount.Add(-1)
+					return false // delete one per iteration
+				})
+			}
+		}()
+	}
+
+	wg.Wait()
+	// No panic or race = success.
+}
+
+func TestA2ABridgeCleanup_ExitsOnCancel(t *testing.T) {
+	s := newTestHTTPServerWithACL(t)
+	s.a2aTasks = &a2aBridgeTasks{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		s.a2aBridgeCleanup(ctx, 50*time.Millisecond, time.Hour)
+		close(done)
+	}()
+
+	// Let the cleanup goroutine start and tick at least once.
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+
+	select {
+	case <-done:
+		// Goroutine exited — success.
+	case <-time.After(2 * time.Second):
+		t.Fatal("cleanup goroutine did not exit after context cancellation")
 	}
 }

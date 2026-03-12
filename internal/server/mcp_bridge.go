@@ -31,7 +31,8 @@ type mcpBridgeSession struct {
 
 func (s *HTTPServer) registerMCPBridgeRoutes(ctx context.Context) {
 	s.mcpSessions = &mcpBridgeSessions{}
-	s.mux.HandleFunc("POST /mcp/{agent_id}", s.handleMCPBridgeMessages)
+	bridgeAuth := s.bridgeAuthMiddleware()
+	s.mux.Handle("POST /mcp/{agent_id}", bridgeAuth(http.HandlerFunc(s.handleMCPBridgeMessages)))
 	s.mux.HandleFunc("GET /mcp/{agent_id}", s.handleMCPBridgeStream)
 
 	// Start background cleanup (stops when ctx is cancelled).
@@ -172,8 +173,8 @@ func (s *HTTPServer) handleMCPBridgeToolsCall(w http.ResponseWriter, r *http.Req
 		writeMCPBridgeError(w, req.ID, jsonrpc.CodeInternalError, "failed to check access flags")
 		return
 	}
-	if !flags.PlaygroundEnabled {
-		writeMCPBridgeError(w, req.ID, -32001, "access denied: agent does not allow external MCP access")
+	if !bridgeAccessAllowed(r, flags.PlaygroundEnabled) {
+		writeMCPBridgeError(w, req.ID, -32001, "access denied: authentication required or enable playground access")
 		return
 	}
 

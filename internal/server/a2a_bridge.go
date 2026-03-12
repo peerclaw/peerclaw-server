@@ -40,7 +40,8 @@ type a2aBridgeTasks struct {
 
 func (s *HTTPServer) registerA2ABridgeRoutes(ctx context.Context) {
 	s.a2aTasks = &a2aBridgeTasks{}
-	s.mux.HandleFunc("POST /a2a/{agent_id}", s.handleA2ABridgeMessages)
+	bridgeAuth := s.bridgeAuthMiddleware()
+	s.mux.Handle("POST /a2a/{agent_id}", bridgeAuth(http.HandlerFunc(s.handleA2ABridgeMessages)))
 	s.mux.HandleFunc("GET /a2a/{agent_id}/.well-known/agent.json", s.handleA2ABridgeAgentCard)
 	s.mux.HandleFunc("GET /a2a/{agent_id}/tasks/{task_id}", s.handleA2ABridgeGetTaskREST)
 
@@ -124,8 +125,8 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 		writeA2ABridgeError(w, req.ID, jsonrpc.CodeInternalError, "failed to check access flags")
 		return
 	}
-	if !flags.PlaygroundEnabled {
-		writeA2ABridgeError(w, req.ID, -32001, "access denied: agent does not allow external A2A access")
+	if !bridgeAccessAllowed(r, flags.PlaygroundEnabled) {
+		writeA2ABridgeError(w, req.ID, -32001, "access denied: authentication required or enable playground access")
 		return
 	}
 
@@ -268,8 +269,8 @@ func (s *HTTPServer) handleA2ABridgeSendSubscribe(w http.ResponseWriter, r *http
 		writeA2ABridgeError(w, req.ID, jsonrpc.CodeInternalError, "failed to check access flags")
 		return
 	}
-	if !flags.PlaygroundEnabled {
-		writeA2ABridgeError(w, req.ID, -32001, "access denied: agent does not allow external A2A access")
+	if !bridgeAccessAllowed(r, flags.PlaygroundEnabled) {
+		writeA2ABridgeError(w, req.ID, -32001, "access denied: authentication required or enable playground access")
 		return
 	}
 
