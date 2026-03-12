@@ -38,17 +38,20 @@ func (s *HTTPServer) registerACPBridgeRoutes(ctx context.Context) {
 		asyncTimeout: asyncTimeout,
 	}
 	bridgeAuth := s.bridgeAuthMiddleware()
-	s.mux.Handle("POST /acp/{agent_id}/runs", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCreateRun)))
-	s.mux.HandleFunc("GET /acp/{agent_id}/runs/{run_id}", s.handleACPBridgeGetRun)
-	s.mux.Handle("POST /acp/{agent_id}/runs/{run_id}/cancel", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCancelRun)))
-	s.mux.HandleFunc("GET /acp/{agent_id}/manifest", s.handleACPBridgeAgentManifest)
-	s.mux.HandleFunc("GET /acp/{agent_id}/ping", s.handleACPBridgePing)
+	// Per-agent bridge routes use /acp/bridge/ prefix to avoid conflicts with
+	// global ACP adapter routes (/acp/agents/{name}, /acp/runs/{run_id}) which
+	// have wildcards at different positions in same-length patterns.
+	s.mux.Handle("POST /acp/bridge/{agent_id}/runs", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCreateRun)))
+	s.mux.HandleFunc("GET /acp/bridge/{agent_id}/runs/{run_id}", s.handleACPBridgeGetRun)
+	s.mux.Handle("POST /acp/bridge/{agent_id}/runs/{run_id}/cancel", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCancelRun)))
+	s.mux.HandleFunc("GET /acp/bridge/{agent_id}/manifest", s.handleACPBridgeAgentManifest)
+	s.mux.HandleFunc("GET /acp/bridge/{agent_id}/ping", s.handleACPBridgePing)
 
 	// Start background cleanup (stops when ctx is cancelled).
 	go s.acpBridgeCleanup(ctx, defaultBridgeCleanupInterval, defaultBridgeMaxAge)
 }
 
-// handleACPBridgeCreateRun handles POST /acp/{agent_id}/runs.
+// handleACPBridgeCreateRun handles POST /acp/bridge/{agent_id}/runs.
 func (s *HTTPServer) handleACPBridgeCreateRun(w http.ResponseWriter, r *http.Request) {
 	agentID := r.PathValue("agent_id")
 	if agentID == "" {
@@ -400,7 +403,7 @@ func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request
 	}()
 }
 
-// handleACPBridgeGetRun handles GET /acp/{agent_id}/runs/{run_id}.
+// handleACPBridgeGetRun handles GET /acp/bridge/{agent_id}/runs/{run_id}.
 func (s *HTTPServer) handleACPBridgeGetRun(w http.ResponseWriter, r *http.Request) {
 	runID := r.PathValue("run_id")
 	if runID == "" {
@@ -425,7 +428,7 @@ func (s *HTTPServer) handleACPBridgeGetRun(w http.ResponseWriter, r *http.Reques
 	writeACPBridgeJSON(w, http.StatusOK, v.(*acp.Run))
 }
 
-// handleACPBridgeCancelRun handles POST /acp/{agent_id}/runs/{run_id}/cancel.
+// handleACPBridgeCancelRun handles POST /acp/bridge/{agent_id}/runs/{run_id}/cancel.
 func (s *HTTPServer) handleACPBridgeCancelRun(w http.ResponseWriter, r *http.Request) {
 	runID := r.PathValue("run_id")
 	if runID == "" {
@@ -454,7 +457,7 @@ func (s *HTTPServer) handleACPBridgeCancelRun(w http.ResponseWriter, r *http.Req
 	writeACPBridgeJSON(w, http.StatusOK, run)
 }
 
-// handleACPBridgeAgentManifest handles GET /acp/{agent_id}/manifest.
+// handleACPBridgeAgentManifest handles GET /acp/bridge/{agent_id}/manifest.
 func (s *HTTPServer) handleACPBridgeAgentManifest(w http.ResponseWriter, r *http.Request) {
 	agentID := r.PathValue("agent_id")
 	if agentID == "" {
@@ -472,7 +475,7 @@ func (s *HTTPServer) handleACPBridgeAgentManifest(w http.ResponseWriter, r *http
 	writeACPBridgeJSON(w, http.StatusOK, manifest)
 }
 
-// handleACPBridgePing handles GET /acp/{agent_id}/ping.
+// handleACPBridgePing handles GET /acp/bridge/{agent_id}/ping.
 func (s *HTTPServer) handleACPBridgePing(w http.ResponseWriter, r *http.Request) {
 	writeACPBridgeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

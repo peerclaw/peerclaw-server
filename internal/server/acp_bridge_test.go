@@ -14,7 +14,7 @@ func TestACPBridge_AgentManifest(t *testing.T) {
 	s := newTestHTTPServerWithACL(t)
 	agentID := registerTestAgent(t, s)
 
-	req := httptest.NewRequest("GET", "/acp/"+agentID+"/manifest", nil)
+	req := httptest.NewRequest("GET", "/acp/bridge/"+agentID+"/manifest", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
@@ -38,7 +38,7 @@ func TestACPBridge_AgentManifest(t *testing.T) {
 func TestACPBridge_AgentManifest_NotFound(t *testing.T) {
 	s := newTestHTTPServerWithACL(t)
 
-	req := httptest.NewRequest("GET", "/acp/nonexistent/manifest", nil)
+	req := httptest.NewRequest("GET", "/acp/bridge/nonexistent/manifest", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
@@ -62,7 +62,7 @@ func TestACPBridge_CreateRun(t *testing.T) {
 		},
 	})
 
-	req := httptest.NewRequest("POST", "/acp/"+agentID+"/runs", bytes.NewBuffer(body))
+	req := httptest.NewRequest("POST", "/acp/bridge/"+agentID+"/runs", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
@@ -100,7 +100,7 @@ func TestACPBridge_CreateRun_NoAgent(t *testing.T) {
 		},
 	})
 
-	req := httptest.NewRequest("POST", "/acp/nonexistent/runs", bytes.NewBuffer(body))
+	req := httptest.NewRequest("POST", "/acp/bridge/nonexistent/runs", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
@@ -118,7 +118,7 @@ func TestACPBridge_CreateRun_MissingInput(t *testing.T) {
 		Input: []acp.Message{},
 	})
 
-	req := httptest.NewRequest("POST", "/acp/"+agentID+"/runs", bytes.NewBuffer(body))
+	req := httptest.NewRequest("POST", "/acp/bridge/"+agentID+"/runs", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
@@ -141,7 +141,7 @@ func TestACPBridge_GetRun(t *testing.T) {
 	})
 	s.acpRuns.runs.Store(run.RunID, run)
 
-	req := httptest.NewRequest("GET", "/acp/"+agentID+"/runs/"+run.RunID, nil)
+	req := httptest.NewRequest("GET", "/acp/bridge/"+agentID+"/runs/"+run.RunID, nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
@@ -160,7 +160,7 @@ func TestACPBridge_GetRun_NotFound(t *testing.T) {
 	s := newTestHTTPServerWithACL(t)
 	agentID := registerTestAgent(t, s)
 
-	req := httptest.NewRequest("GET", "/acp/"+agentID+"/runs/nonexistent", nil)
+	req := httptest.NewRequest("GET", "/acp/bridge/"+agentID+"/runs/nonexistent", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
@@ -182,7 +182,7 @@ func TestACPBridge_CancelRun(t *testing.T) {
 	})
 	s.acpRuns.runs.Store(run.RunID, run)
 
-	req := httptest.NewRequest("POST", "/acp/"+agentID+"/runs/"+run.RunID+"/cancel", nil)
+	req := httptest.NewRequest("POST", "/acp/bridge/"+agentID+"/runs/"+run.RunID+"/cancel", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
@@ -201,7 +201,7 @@ func TestACPBridge_CancelRun_NotFound(t *testing.T) {
 	s := newTestHTTPServerWithACL(t)
 	agentID := registerTestAgent(t, s)
 
-	req := httptest.NewRequest("POST", "/acp/"+agentID+"/runs/nonexistent/cancel", nil)
+	req := httptest.NewRequest("POST", "/acp/bridge/"+agentID+"/runs/nonexistent/cancel", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
@@ -214,7 +214,7 @@ func TestACPBridge_Ping(t *testing.T) {
 	s := newTestHTTPServerWithACL(t)
 	agentID := registerTestAgent(t, s)
 
-	req := httptest.NewRequest("GET", "/acp/"+agentID+"/ping", nil)
+	req := httptest.NewRequest("GET", "/acp/bridge/"+agentID+"/ping", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
