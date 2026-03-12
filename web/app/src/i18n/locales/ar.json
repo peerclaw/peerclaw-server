@@ -204,6 +204,7 @@
     "enterAgentName": "يرجى إدخال اسم الوكيل",
     "sendPrompt": "انسخ وأرسل هذا إلى وكيلك:",
     "copyPrompt": "نسخ Prompt",
+    "viewPrompt": "عرض Prompt",
     "copied": "تم النسخ",
     "tokenHistory": "سجل الرموز",
     "code": "الرمز",

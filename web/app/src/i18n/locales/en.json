@@ -204,6 +204,7 @@
     "enterAgentName": "Please enter an agent name",
     "sendPrompt": "Copy and send this to your Agent:",
     "copyPrompt": "Copy Prompt",
+    "viewPrompt": "View Prompt",
     "copied": "Copied",
     "tokenHistory": "Token History",
     "code": "Code",

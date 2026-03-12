@@ -204,6 +204,7 @@
     "enterAgentName": "Por favor, insira um nome de agente",
     "sendPrompt": "Copie e envie isto para seu Agente:",
     "copyPrompt": "Copiar Prompt",
+    "viewPrompt": "Ver Prompt",
     "copied": "Copiado",
     "tokenHistory": "Histórico de Tokens",
     "code": "Código",

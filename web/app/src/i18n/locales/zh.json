@@ -204,6 +204,7 @@
     "enterAgentName": "请输入 Agent 名称",
     "sendPrompt": "复制并发送给您的 Agent：",
     "copyPrompt": "复制 Prompt",
+    "viewPrompt": "查看 Prompt",
     "copied": "已复制",
     "tokenHistory": "令牌历史",
     "code": "代码",

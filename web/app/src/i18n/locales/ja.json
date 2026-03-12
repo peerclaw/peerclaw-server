@@ -204,6 +204,7 @@
     "enterAgentName": "Agent 名を入力してください",
     "sendPrompt": "これをコピーして Agent に送信してください：",
     "copyPrompt": "Prompt をコピー",
+    "viewPrompt": "Prompt を表示",
     "copied": "コピーしました",
     "tokenHistory": "トークン履歴",
     "code": "コード",

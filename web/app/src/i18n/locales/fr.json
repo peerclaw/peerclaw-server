@@ -204,6 +204,7 @@
     "enterAgentName": "Veuillez entrer un nom d'agent",
     "sendPrompt": "Copiez et envoyez ceci à votre agent :",
     "copyPrompt": "Copier le Prompt",
+    "viewPrompt": "Voir le Prompt",
     "copied": "Copié",
     "tokenHistory": "Historique des jetons",
     "code": "Code",

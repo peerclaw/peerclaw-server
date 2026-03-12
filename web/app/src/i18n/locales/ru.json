@@ -204,6 +204,7 @@
     "enterAgentName": "Пожалуйста, введите имя агента",
     "sendPrompt": "Скопируйте и отправьте это вашему агенту:",
     "copyPrompt": "Копировать Prompt",
+    "viewPrompt": "Показать Prompt",
     "copied": "Скопировано",
     "tokenHistory": "История токенов",
     "code": "Код",
