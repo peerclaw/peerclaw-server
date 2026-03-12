@@ -52,6 +52,10 @@ func (s *HTTPServer) handleGenerateClaimToken(w http.ResponseWriter, r *http.Req
 
 	token, err := s.claimToken.Generate(r.Context(), userID, params)
 	if err != nil {
+		if err == claimtoken.ErrTooManyPendingTokens {
+			s.jsonError(w, err.Error(), http.StatusTooManyRequests)
+			return
+		}
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

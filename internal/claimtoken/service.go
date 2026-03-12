@@ -16,8 +16,9 @@ import (
 const charset = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
 const (
-	codePrefix = "PCW"
-	codeTTL    = 30 * time.Minute
+	codePrefix      = "PCW"
+	codeTTL         = 30 * time.Minute
+	maxPendingTokens = 3
 )
 
 // Service implements claim token business logic.
@@ -51,14 +52,32 @@ type GenerateParams struct {
 	Protocols    string // comma-separated
 }
 
+// ErrTooManyPendingTokens is returned when a user exceeds the pending token limit.
+var ErrTooManyPendingTokens = fmt.Errorf("too many pending tokens (max %d)", maxPendingTokens)
+
 // Generate creates a new claim token for the given user, embedding agent metadata.
 func (s *Service) Generate(ctx context.Context, userID string, params GenerateParams) (*ClaimToken, error) {
+	// Check pending token limit.
+	tokens, err := s.store.ListByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("check pending tokens: %w", err)
+	}
+	now := time.Now().UTC()
+	pending := 0
+	for _, t := range tokens {
+		if t.Status == StatusPending && t.ExpiresAt.After(now) {
+			pending++
+		}
+	}
+	if pending >= maxPendingTokens {
+		return nil, ErrTooManyPendingTokens
+	}
+
 	code, err := generateCode()
 	if err != nil {
 		return nil, fmt.Errorf("generate code: %w", err)
 	}
 
-	now := time.Now().UTC()
 	token := &ClaimToken{
 		ID:           uuid.New().String(),
 		Code:         code,
