@@ -105,13 +105,13 @@ export function ProviderAgentsPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {agent.total_calls.toLocaleString()}
+                  {(agent.total_calls ?? 0).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {agent.success_rate.toFixed(1)}%
+                  {(agent.success_rate ?? 0).toFixed(1)}%
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {agent.avg_latency_ms.toFixed(0)}ms
+                  {(agent.avg_latency_ms ?? 0).toFixed(0)}ms
                 </TableCell>
               </TableRow>
             ))}

@@ -163,9 +163,10 @@ func (s *PostgresStore) UnsetAgentVerified(ctx context.Context, agentID string) 
 // ListStaleOnlineAgents returns IDs of agents whose status is online but
 // whose last heartbeat is older than the given timeout.
 func (s *PostgresStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {
+	cutoff := time.Now().UTC().Add(-timeout)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < $1`,
-		time.Now().UTC().Add(-timeout),
+		`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < $1 AND registered_at < $1`,
+		cutoff,
 	)
 	if err != nil {
 		return nil, err

@@ -177,9 +177,10 @@ func (s *SQLiteStore) UnsetAgentVerified(ctx context.Context, agentID string) er
 // ListStaleOnlineAgents returns IDs of agents whose status is online but
 // whose last heartbeat is older than the given timeout.
 func (s *SQLiteStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {
+	cutoff := time.Now().UTC().Add(-timeout).Format(time.RFC3339)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < ?`,
-		time.Now().UTC().Add(-timeout).Format(time.RFC3339),
+		`SELECT id FROM agents WHERE status = 'online' AND last_heartbeat < ? AND registered_at < ?`,
+		cutoff, cutoff,
 	)
 	if err != nil {
 		return nil, err

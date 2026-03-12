@@ -187,10 +187,9 @@ Full documentation: https://github.com/peerclaw/peerclaw/blob/main/docs/GUIDE.md
             />
           </div>
           <Button
-            size="sm"
             onClick={handleGenerate}
             disabled={generating}
-            className="shrink-0"
+            className="shrink-0 h-[38px]"
           >
             {generating ? (
               <Loader2 className="size-4 animate-spin" />

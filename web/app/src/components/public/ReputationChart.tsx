@@ -62,8 +62,9 @@ export function ReputationChart({ events }: { events: ReputationEvent[] }) {
           dataKey="score"
           stroke="hsl(var(--chart-1))"
           strokeWidth={2}
-          dot={{ r: 3 }}
-          activeDot={{ r: 5 }}
+          dot={{ r: 4, fill: "hsl(var(--chart-1))", strokeWidth: 0 }}
+          activeDot={{ r: 6, fill: "hsl(var(--chart-1))", strokeWidth: 2, stroke: "hsl(var(--card))" }}
+          connectNulls
         />
       </LineChart>
     </ResponsiveContainer>
