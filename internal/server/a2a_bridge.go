@@ -182,7 +182,7 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 
 	// Synchronous: collect all chunks from stream.
 	if s.bridges == nil {
-		task = s.updateTaskState(task, a2a.TaskStateFailed, "bridge not available")
+		_ = s.updateTaskState(task, a2a.TaskStateFailed, "bridge not available")
 		writeA2ABridgeError(w, req.ID, jsonrpc.CodeInternalError, "bridge not available")
 		return
 	}

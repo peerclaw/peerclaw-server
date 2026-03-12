@@ -368,7 +368,7 @@ func (s *SQLiteStore) GetAccessFlagsBatch(ctx context.Context, ids []string) (ma
 	if err != nil {
 		return nil, fmt.Errorf("get access flags batch: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	result := make(map[string]*AccessFlags, len(ids))
 	for rows.Next() {
