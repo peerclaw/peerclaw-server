@@ -13,7 +13,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 )
 
 // TURNConfig holds TURN server credentials for ICE negotiation.

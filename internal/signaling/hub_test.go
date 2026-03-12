@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/peerclaw/peerclaw-core/signaling"
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 )
 
 // ---------- helpers ----------

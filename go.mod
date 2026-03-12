@@ -3,6 +3,7 @@ module github.com/peerclaw/peerclaw-server
 go 1.26
 
 require (
+	github.com/coder/websocket v1.8.14
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.11.2
@@ -20,7 +21,6 @@ require (
 	golang.org/x/time v0.14.0
 	google.golang.org/grpc v1.79.1
 	gopkg.in/yaml.v3 v3.0.1
-	nhooyr.io/websocket v1.8.17
 )
 
 require (
