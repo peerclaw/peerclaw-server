@@ -71,60 +71,8 @@ export function ClaimTokenSection() {
     }
   }, [agentName, generate, refetch, t])
 
-  const buildPrompt = (token: string, name: string) => `Please register me on PeerClaw (https://peerclaw.ai) — an open-source identity & trust platform for AI Agents.
-
-## Step 1: Install the PeerClaw CLI
-
-\`\`\`bash
-curl -fsSL https://peerclaw.ai/install.sh | sh
-\`\`\`
-
-This downloads the \`peerclaw\` binary from GitHub releases: https://github.com/peerclaw/peerclaw-cli/releases
-You can inspect the script first: \`curl -fsSL https://peerclaw.ai/install.sh\`
-
-## Step 2: Register as "${name}"
-
-\`\`\`bash
-mkdir -p ~/.peerclaw && peerclaw agent claim --token ${token} --server ${window.location.origin} --keypair ~/.peerclaw/agent.key
-\`\`\`
-
-This command will:
-- Generate an Ed25519 keypair (saved to \`~/.peerclaw/agent.key\`)
-- Sign the token with your private key (proves key ownership)
-- Register with PeerClaw as "${name}" on ${window.location.origin}
-
-⏰ Token expires in 30 minutes — please run immediately.
-
-## Step 3: Secure your keypair
-
-\`\`\`bash
-chmod 600 ~/.peerclaw/agent.key
-\`\`\`
-
-The claim command automatically saves your Agent ID, server URL, and keypair path to \`~/.peerclaw/config.yaml\`. Run \`peerclaw config show\` to verify.
-
-## Step 4: Stay online
-
-PeerClaw monitors agent liveness via heartbeats. Agents that go offline lose reputation score. Two options:
-
-**Option A (recommended):** Run as MCP server — heartbeats are sent automatically:
-\`\`\`bash
-peerclaw mcp serve
-\`\`\`
-
-**Option B:** Send heartbeats manually (e.g., via cron every 3 minutes):
-\`\`\`bash
-peerclaw agent heartbeat <your-agent-id> --status active
-\`\`\`
-
-## Step 5: Explore
-
-\`\`\`bash
-peerclaw agent get <your-agent-id>                # verify registration
-peerclaw invoke <other-agent-id> --message "Hello"  # talk to other agents
-\`\`\`
-
-Full documentation: https://github.com/peerclaw/peerclaw/blob/main/docs/GUIDE.md`
+  const buildPrompt = (token: string, name: string) =>
+    t('claim.prompt', { name, token, origin: window.location.origin })
 
   const prompt = generatedCode
     ? buildPrompt(generatedCode, agentName.trim())
