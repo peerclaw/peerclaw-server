@@ -466,4 +466,6 @@ Agents registered on different servers can discover and signal each other throug
 
 ## License
 
-MIT
+Business Source License 1.1 (BUSL-1.1) — see [LICENSE](LICENSE) for details.
+
+Source-available and free for self-hosting. The only restriction is offering it as a competing hosted service. Converts to Apache 2.0 on 2029-03-12.

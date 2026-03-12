@@ -466,4 +466,6 @@ federation:
 
 ## 许可证
 
-MIT
+Business Source License 1.1 (BUSL-1.1) — 详见 [LICENSE](LICENSE)。
+
+代码完全公开，可自由查看和自部署。唯一限制是不能用于提供竞品托管服务。2029-03-12 自动转为 Apache 2.0。
