@@ -466,6 +466,6 @@ Agents registered on different servers can discover and signal each other throug
 
 ## License
 
-Business Source License 1.1 (BUSL-1.1) — see [LICENSE](LICENSE) for details.
+Licensed under the [Business Source License 1.1](LICENSE). Converts to [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) on 2029-03-12.
 
-Source-available and free for self-hosting. The only restriction is offering it as a competing hosted service. Converts to Apache 2.0 on 2029-03-12.
+Copyright 2025 PeerClaw Contributors.

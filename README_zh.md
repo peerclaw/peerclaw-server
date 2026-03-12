@@ -466,6 +466,6 @@ federation:
 
 ## 许可证
 
-Business Source License 1.1 (BUSL-1.1) — 详见 [LICENSE](LICENSE)。
+基于 [Business Source License 1.1](LICENSE) 开源，2029-03-12 自动转为 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)。
 
-代码完全公开，可自由查看和自部署。唯一限制是不能用于提供竞品托管服务。2029-03-12 自动转为 Apache 2.0。
+Copyright 2025 PeerClaw Contributors.
