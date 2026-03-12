@@ -1,12 +1,26 @@
-import { Outlet, Link, NavLink } from "react-router-dom"
+import { Outlet, Link, NavLink, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
-import { Github } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Github, User, Shield, LogOut, ChevronDown } from "lucide-react"
 
 export function PublicLayout() {
   const { user, logout } = useAuth()
   const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate("/login")
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,17 +82,41 @@ export function PublicLayout() {
                 >
                   {t('nav.console')}
                 </NavLink>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {user.display_name || user.email}
-                  </span>
-                  <button
-                    onClick={() => logout()}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  >
-                    {t('nav.signOut')}
-                  </button>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent/50 focus:outline-none">
+                      <div className="flex size-6 items-center justify-center rounded-full bg-accent text-xs font-medium">
+                        {(user.display_name || user.email).charAt(0).toUpperCase()}
+                      </div>
+                      <span className="max-w-[120px] truncate text-sm text-foreground">
+                        {user.display_name || user.email}
+                      </span>
+                      <ChevronDown className="size-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="bottom" align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <p className="text-sm font-medium truncate">{user.display_name || user.email}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/console/profile")}>
+                      <User />
+                      {t("nav.profile")}
+                    </DropdownMenuItem>
+                    {user.role === "admin" && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <Shield />
+                        {t("nav.adminPanel")}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut />
+                      {t("nav.signOut")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <Link
