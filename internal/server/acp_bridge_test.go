@@ -14,7 +14,7 @@ func TestACPBridge_AgentManifest(t *testing.T) {
 	s := newTestHTTPServerWithACL(t)
 	agentID := registerTestAgent(t, s)
 
-	req := httptest.NewRequest("GET", "/acp/"+agentID+"/agents", nil)
+	req := httptest.NewRequest("GET", "/acp/"+agentID+"/manifest", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 
@@ -38,7 +38,7 @@ func TestACPBridge_AgentManifest(t *testing.T) {
 func TestACPBridge_AgentManifest_NotFound(t *testing.T) {
 	s := newTestHTTPServerWithACL(t)
 
-	req := httptest.NewRequest("GET", "/acp/nonexistent/agents", nil)
+	req := httptest.NewRequest("GET", "/acp/nonexistent/manifest", nil)
 	w := httptest.NewRecorder()
 	s.mux.ServeHTTP(w, req)
 

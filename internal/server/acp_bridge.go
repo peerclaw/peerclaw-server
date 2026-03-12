@@ -41,7 +41,7 @@ func (s *HTTPServer) registerACPBridgeRoutes(ctx context.Context) {
 	s.mux.Handle("POST /acp/{agent_id}/runs", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCreateRun)))
 	s.mux.HandleFunc("GET /acp/{agent_id}/runs/{run_id}", s.handleACPBridgeGetRun)
 	s.mux.Handle("POST /acp/{agent_id}/runs/{run_id}/cancel", bridgeAuth(http.HandlerFunc(s.handleACPBridgeCancelRun)))
-	s.mux.HandleFunc("GET /acp/{agent_id}/agents", s.handleACPBridgeAgentManifest)
+	s.mux.HandleFunc("GET /acp/{agent_id}/manifest", s.handleACPBridgeAgentManifest)
 	s.mux.HandleFunc("GET /acp/{agent_id}/ping", s.handleACPBridgePing)
 
 	// Start background cleanup (stops when ctx is cancelled).
@@ -454,7 +454,7 @@ func (s *HTTPServer) handleACPBridgeCancelRun(w http.ResponseWriter, r *http.Req
 	writeACPBridgeJSON(w, http.StatusOK, run)
 }
 
-// handleACPBridgeAgentManifest handles GET /acp/{agent_id}/agents.
+// handleACPBridgeAgentManifest handles GET /acp/{agent_id}/manifest.
 func (s *HTTPServer) handleACPBridgeAgentManifest(w http.ResponseWriter, r *http.Request) {
 	agentID := r.PathValue("agent_id")
 	if agentID == "" {
