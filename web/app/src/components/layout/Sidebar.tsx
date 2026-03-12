@@ -7,7 +7,6 @@ import {
   Tags,
   BarChart3,
   Activity,
-  ExternalLink,
   Github,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
@@ -66,24 +65,25 @@ export function Sidebar() {
         {user && (
           <UserMenu user={user} onLogout={handleLogout} />
         )}
-        <NavLink
-          to="/"
-          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ExternalLink className="size-3.5" />
-          {t('nav.backToPublicSite')}
-        </NavLink>
-        <a
-          href="https://github.com/peerclaw/peerclaw"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Github className="size-3.5" />
-          {t('nav.github')}
-        </a>
-        <div className="px-3 pt-1">
-          <LanguageSwitcher />
+        <div className="flex items-center justify-between px-3">
+          <NavLink
+            to="/"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t('nav.backToPublicSite')}
+          </NavLink>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://github.com/peerclaw/peerclaw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title={t('nav.github')}
+            >
+              <Github className="size-3.5" />
+            </a>
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
     </aside>

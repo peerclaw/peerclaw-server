@@ -420,6 +420,10 @@ func main() {
 			sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
 		}
 	}
+	// Register routes after all services are configured so that
+	// optional-service routes (claim tokens, contacts, blobs, etc.) are included.
+	httpServer.RegisterRoutes()
+
 	// Start heartbeat timeout checker goroutine.
 	if repEngine != nil && repStore != nil {
 		go func() {

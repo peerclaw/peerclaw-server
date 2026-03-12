@@ -72,7 +72,8 @@ type HTTPServer struct {
 	cleanupCancel          context.CancelFunc // cancels bridge cleanup goroutines
 }
 
-// NewHTTPServer creates a new HTTP server with all routes registered.
+// NewHTTPServer creates a new HTTP server. Call RegisterRoutes() after all
+// Set* methods to ensure optional-service routes are registered correctly.
 func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *bridge.Manager, sigHub *signaling.Hub, logger *slog.Logger, opts *HTTPServerConfig) *HTTPServer {
 	if logger == nil {
 		logger = slog.Default()
@@ -93,8 +94,6 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 	if s.authCfg.Verifier == nil {
 		s.authCfg.Verifier = s.verifier
 	}
-
-	s.routes()
 
 	// Build middleware chain.
 	middlewares := []Middleware{
@@ -233,6 +232,13 @@ func (s *HTTPServer) wrapUserAuth(h http.HandlerFunc) http.Handler {
 		}
 		UserAuthMiddleware(s.userAuth.JWTManager(), s.logger)(http.HandlerFunc(h)).ServeHTTP(w, r)
 	})
+}
+
+// RegisterRoutes registers all HTTP routes. Must be called after all Set*
+// methods so that optional-service routes (claim tokens, contacts, blobs,
+// protocol bridges) are included.
+func (s *HTTPServer) RegisterRoutes() {
+	s.routes()
 }
 
 func (s *HTTPServer) routes() {

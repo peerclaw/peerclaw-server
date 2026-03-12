@@ -72,23 +72,25 @@ export function ConsoleLayout() {
               showAdminLink={user.role === "admin"}
             />
           )}
-          <NavLink
-            to="/"
-            className="block text-xs text-muted-foreground hover:text-foreground px-3"
-          >
-            {t('nav.backToPublicSite')}
-          </NavLink>
-          <a
-            href="https://github.com/peerclaw/peerclaw"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground px-3"
-          >
-            <Github className="size-3.5" />
-            {t('nav.github')}
-          </a>
-          <div className="px-3 pt-1">
-            <LanguageSwitcher />
+          <div className="flex items-center justify-between px-3">
+            <NavLink
+              to="/"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t('nav.backToPublicSite')}
+            </NavLink>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://github.com/peerclaw/peerclaw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title={t('nav.github')}
+              >
+                <Github className="size-3.5" />
+              </a>
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </aside>

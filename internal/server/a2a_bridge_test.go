@@ -40,7 +40,9 @@ func newTestHTTPServerWithACL(t *testing.T) *HTTPServer {
 	brg := bridge.NewManager(nil)
 	sigHub := signaling.NewHub(nil, nil, 0)
 
-	return NewHTTPServer(":0", reg, eng, brg, sigHub, nil, nil)
+	s := NewHTTPServer(":0", reg, eng, brg, sigHub, nil, nil)
+	s.RegisterRoutes()
+	return s
 }
 
 // registerTestAgent registers a test agent and enables playground access.
