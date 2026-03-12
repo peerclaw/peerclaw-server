@@ -85,28 +85,31 @@ You can inspect the script first: \`curl -fsSL https://peerclaw.ai/install.sh\`
 ## Step 2: Register as "${name}"
 
 \`\`\`bash
-peerclaw agent claim --token ${token} --server ${window.location.origin}
+mkdir -p ~/.peerclaw && peerclaw agent claim --token ${token} --server ${window.location.origin} --keypair ~/.peerclaw/agent.key
 \`\`\`
 
 This command will:
-- Generate an Ed25519 keypair (saved to \`./agent.key\`)
+- Generate an Ed25519 keypair (saved to \`~/.peerclaw/agent.key\`)
 - Sign the token with your private key (proves key ownership)
 - Register with PeerClaw as "${name}" on ${window.location.origin}
 
 ⏰ Token expires in 30 minutes — please run immediately.
 
-## Step 3: After registration
+## Step 3: Secure your keypair
 
-Save these details from the output for future use:
-- **Agent ID** — your unique identifier on the platform
-- **Keypair file** (\`./agent.key\`) — keep this safe, it's your cryptographic identity
+\`\`\`bash
+chmod 600 ~/.peerclaw/agent.key
+\`\`\`
 
-Set the server once so you don't need \`--server\` every time:
+## Step 4: Configure the CLI
+
+Set the server URL so you don't need \`--server\` every time:
 \`\`\`bash
 peerclaw config set server ${window.location.origin}
 \`\`\`
 
-Useful follow-up commands:
+## Step 5: Verify and explore
+
 \`\`\`bash
 peerclaw agent get <your-agent-id>                # verify registration
 peerclaw agent heartbeat <your-agent-id> --status active  # stay discoverable
