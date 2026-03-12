@@ -110,6 +110,19 @@ func (e *Engine) GetScore(ctx context.Context, agentID string) (float64, error) 
 	return score, nil
 }
 
+// GetScoresBatch returns reputation scores for multiple agents in a single pass.
+func (e *Engine) GetScoresBatch(ctx context.Context, agentIDs []string) map[string]float64 {
+	result := make(map[string]float64, len(agentIDs))
+	for _, id := range agentIDs {
+		score, _, err := e.store.GetScore(ctx, id)
+		if err != nil {
+			score = DefaultScore
+		}
+		result[id] = score
+	}
+	return result
+}
+
 // GetHistory returns the reputation event history for an agent.
 func (e *Engine) GetHistory(ctx context.Context, agentID string, limit int) ([]Event, error) {
 	if limit <= 0 {

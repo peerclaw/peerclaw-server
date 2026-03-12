@@ -330,6 +330,44 @@ func (s *PostgresStore) GetAccessFlags(ctx context.Context, id string) (*AccessF
 	}, nil
 }
 
+func (s *PostgresStore) GetAccessFlagsBatch(ctx context.Context, ids []string) (map[string]*AccessFlags, error) {
+	if len(ids) == 0 {
+		return map[string]*AccessFlags{}, nil
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(
+		`SELECT id, COALESCE(playground_enabled, FALSE), COALESCE(visibility, 'public') FROM agents WHERE id IN (%s)`,
+		strings.Join(placeholders, ","),
+	)
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get access flags batch: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]*AccessFlags, len(ids))
+	for rows.Next() {
+		var id string
+		var playgroundEnabled bool
+		var visibility string
+		if err := rows.Scan(&id, &playgroundEnabled, &visibility); err != nil {
+			return nil, fmt.Errorf("scan access flags: %w", err)
+		}
+		result[id] = &AccessFlags{
+			PlaygroundEnabled: playgroundEnabled,
+			Visibility:        visibility,
+		}
+	}
+	return result, rows.Err()
+}
+
 func (s *PostgresStore) SetAccessFlags(ctx context.Context, id string, flags *AccessFlags) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE agents SET playground_enabled = $1, visibility = $2 WHERE id = $3`,

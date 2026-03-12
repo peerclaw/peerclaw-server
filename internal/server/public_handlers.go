@@ -145,18 +145,31 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Batch-fetch access flags and reputation scores to avoid N+1 queries (H-14).
+	agentIDs := make([]string, len(result.Agents))
+	for i, card := range result.Agents {
+		agentIDs[i] = card.ID
+	}
+
+	flagsMap, _ := s.registry.GetAccessFlagsBatch(r.Context(), agentIDs)
+	if flagsMap == nil {
+		flagsMap = map[string]*registry.AccessFlags{}
+	}
+
+	var scoresMap map[string]float64
+	if s.reputation != nil {
+		scoresMap = s.reputation.GetScoresBatch(r.Context(), agentIDs)
+	}
+
 	profiles := make([]PublicAgentProfile, 0, len(result.Agents))
 	for _, card := range result.Agents {
 		p := toPublicProfile(card)
-		if flags, err := s.registry.GetAccessFlags(r.Context(), card.ID); err == nil && flags != nil {
+		if flags, ok := flagsMap[card.ID]; ok && flags != nil {
 			p.PlaygroundEnabled = flags.PlaygroundEnabled
 		}
-		// Enrich with reputation data from the engine if available.
-		if s.reputation != nil {
-			score, _ := s.reputation.GetScore(r.Context(), card.ID)
+		if score, ok := scoresMap[card.ID]; ok {
 			p.ReputationScore = score
 		}
-		// Enrich with call count.
 		if count, ok := callCounts[card.ID]; ok {
 			p.TotalCalls = count
 		}

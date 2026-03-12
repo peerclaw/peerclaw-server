@@ -66,6 +66,9 @@ type Store interface {
 	// GetAccessFlags returns access control flags for an agent.
 	GetAccessFlags(ctx context.Context, id string) (*AccessFlags, error)
 
+	// GetAccessFlagsBatch returns access control flags for multiple agents.
+	GetAccessFlagsBatch(ctx context.Context, ids []string) (map[string]*AccessFlags, error)
+
 	// SetAccessFlags updates access control flags for an agent.
 	SetAccessFlags(ctx context.Context, id string, flags *AccessFlags) error
 

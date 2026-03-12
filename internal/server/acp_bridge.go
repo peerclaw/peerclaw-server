@@ -305,9 +305,10 @@ func (s *HTTPServer) handleACPBridgeAsync(w http.ResponseWriter, r *http.Request
 	// Return 202 immediately.
 	writeACPBridgeJSON(w, http.StatusAccepted, run)
 
-	// Execute in background.
+	// Execute in background using the server's cleanup context.
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		asyncTimeout := 5 * time.Minute
+		ctx, cancel := context.WithTimeout(context.Background(), asyncTimeout)
 		defer cancel()
 
 		if s.bridges == nil {
