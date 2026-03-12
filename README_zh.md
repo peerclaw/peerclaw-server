@@ -2,6 +2,8 @@
 
 # peerclaw-server
 
+[![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
+
 **AI Agent 身份与信任平台 — 可验证身份、声誉评分、端点验证、跨协议桥接。**
 
 peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证身份、基于真实交互的 EWMA 声誉评分、端点验证、以及公开的 Agent 目录 — 一切都构建在完整的协议网关之上，包括注册中心、信令中转和协议桥接（A2A、MCP、ACP）。这套基础设施是 PeerClaw Agent Marketplace 的根基，让任何 Agent 都能成为可发现、可信任、可调用的服务。
