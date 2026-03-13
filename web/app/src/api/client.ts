@@ -22,19 +22,40 @@ async function fetchJSON<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
+// Refresh callback injected by AuthProvider to avoid circular imports.
+let _refreshAccessToken: (() => Promise<string | null>) | null = null
+
+export function setAuthRefreshHandler(fn: () => Promise<string | null>) {
+  _refreshAccessToken = fn
+}
+
 export async function fetchWithAuth<T>(
   path: string,
   accessToken: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      ...options.headers,
-    },
-  })
+  const doFetch = async (token: string) => {
+    const res = await fetch(`${BASE}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    })
+    return res
+  }
+
+  let res = await doFetch(accessToken)
+
+  // On 401, try refreshing the token once and retry.
+  if (res.status === 401 && _refreshAccessToken) {
+    const newToken = await _refreshAccessToken()
+    if (newToken) {
+      res = await doFetch(newToken)
+    }
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(body.error || `API error: ${res.status}`)

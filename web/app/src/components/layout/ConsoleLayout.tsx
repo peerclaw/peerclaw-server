@@ -37,23 +37,11 @@ export function ConsoleLayout() {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
       <aside className="flex h-screen w-60 flex-col border-r border-border bg-card">
-        {/* Logo + utility icons */}
-        <div className="flex h-14 items-center justify-between border-b border-border px-4">
+        {/* Logo */}
+        <div className="flex h-14 items-center border-b border-border px-4">
           <div className="flex items-center gap-2">
             <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
             <span className="font-semibold text-sm">{t('nav.peerclawConsole')}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <a
-              href="https://github.com/peerclaw/peerclaw"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              title={t('nav.github')}
-            >
-              <Github className="size-3.5" />
-            </a>
-            <LanguageSwitcher />
           </div>
         </div>
 
@@ -78,15 +66,29 @@ export function ConsoleLayout() {
           ))}
         </nav>
 
-        {/* Bottom: back link then user menu */}
+        {/* Bottom */}
         <div className="border-t border-border p-3 space-y-2">
-          <NavLink
-            to="/"
-            className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Home className="size-3.5" />
-            {t('nav.backToHome')}
-          </NavLink>
+          <div className="flex items-center justify-between px-3 py-1">
+            <NavLink
+              to="/"
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Home className="size-3.5" />
+              {t('nav.backToHome')}
+            </NavLink>
+            <div className="flex items-center gap-1.5">
+              <a
+                href="https://github.com/peerclaw/peerclaw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title={t('nav.github')}
+              >
+                <Github className="size-3.5" />
+              </a>
+              <LanguageSwitcher />
+            </div>
+          </div>
           {user && (
             <UserMenu
               user={user}

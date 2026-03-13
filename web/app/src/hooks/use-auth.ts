@@ -10,6 +10,7 @@ import {
 import { createElement } from "react"
 import type { AuthUser, AuthTokens } from "@/api/auth"
 import * as authAPI from "@/api/auth"
+import { setAuthRefreshHandler } from "@/api/client"
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -215,6 +216,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null
     }
   }, [])
+
+  // Wire up the global refresh handler so fetchWithAuth can auto-retry on 401.
+  useEffect(() => {
+    setAuthRefreshHandler(refreshAccessToken)
+  }, [refreshAccessToken])
 
   const value = useMemo(
     () => ({
