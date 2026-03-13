@@ -83,11 +83,13 @@ export function useAdminUsers(
 export function useAdminAgents(
   search?: string,
   protocol?: string,
-  status?: string
+  status?: string,
+  limit = 50,
+  offset = 0
 ): UseQueryResult<AgentListResponse> {
   const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminAgents(token, { search, protocol, status }),
-    [search, protocol, status]
+    (token: string) => adminAPI.fetchAdminAgents(token, { search, protocol, status, limit, offset }),
+    [search, protocol, status, limit, offset]
   )
   return useAdminQuery(fetcher)
 }

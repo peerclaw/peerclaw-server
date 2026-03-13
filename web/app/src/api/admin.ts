@@ -53,12 +53,14 @@ export function deleteAdminUser(token: string, id: string): Promise<void> {
 // Agent Management
 export function fetchAdminAgents(
   token: string,
-  params?: { search?: string; protocol?: string; status?: string }
+  params?: { search?: string; protocol?: string; status?: string; limit?: number; offset?: number }
 ): Promise<AgentListResponse> {
   const query = new URLSearchParams()
   if (params?.search) query.set("search", params.search)
   if (params?.protocol) query.set("protocol", params.protocol)
   if (params?.status) query.set("status", params.status)
+  if (params?.limit) query.set("limit", String(params.limit))
+  if (params?.offset) query.set("offset", String(params.offset))
   const qs = query.toString()
   return fetchWithAuth<AgentListResponse>(`/admin/agents${qs ? `?${qs}` : ""}`, token)
 }

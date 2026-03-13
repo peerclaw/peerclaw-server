@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -62,6 +63,18 @@ func (s *HTTPServer) handleAdminDashboard(w http.ResponseWriter, r *http.Request
 		}
 	}
 	resp["health"] = health
+
+	// Trends (last 7 days).
+	trends := map[string]any{}
+	if s.invocation != nil {
+		since7d := time.Now().Add(-7 * 24 * time.Hour)
+		if stats7d, err := s.invocation.GlobalStats(r.Context(), since7d); err == nil {
+			trends["invocations_7d"] = stats7d.TotalCalls
+		}
+	}
+	if len(trends) > 0 {
+		resp["trends"] = trends
+	}
 
 	s.jsonResponse(w, http.StatusOK, resp)
 }
@@ -167,10 +180,15 @@ func (s *HTTPServer) handleAdminDeleteUser(w http.ResponseWriter, r *http.Reques
 
 // handleAdminListAgents handles GET /api/v1/admin/agents.
 func (s *HTTPServer) handleAdminListAgents(w http.ResponseWriter, r *http.Request) {
+	limit := queryInt(r, "limit", 50)
+	offset := queryInt(r, "offset", 0)
+
 	filter := registry.ListFilter{
 		Search:   r.URL.Query().Get("search"),
 		Protocol: r.URL.Query().Get("protocol"),
 		Status:   agentcard.AgentStatus(r.URL.Query().Get("status")),
+		PageSize: limit,
+		PageToken: fmt.Sprintf("%d", offset),
 	}
 
 	result, err := s.registry.ListAgents(r.Context(), filter)
