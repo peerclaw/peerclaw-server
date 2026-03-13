@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -16,7 +13,6 @@ import (
 	"database/sql"
 
 	"github.com/peerclaw/peerclaw-server/internal/audit"
-	"github.com/peerclaw/peerclaw-server/internal/blob"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/acp"
@@ -189,45 +185,6 @@ func main() {
 		logger.Info("claim token service initialized")
 	}
 
-	// Initialize blob service.
-	var blobService *blob.Service
-	if cfg.Blob.Enabled && sqlDB != nil {
-		blobMeta := blob.NewMetaStore(cfg.Database.Driver, sqlDB)
-		if err := blobMeta.Migrate(context.Background()); err != nil {
-			logger.Error("failed to migrate blob tables", "error", err)
-			os.Exit(1)
-		}
-
-		storagePath := cfg.Blob.StoragePath
-		if storagePath == "" {
-			storagePath = "./blobs"
-		}
-		blobFiles, err := blob.NewDiskFileStore(storagePath)
-		if err != nil {
-			logger.Error("failed to create blob file store", "error", err)
-			os.Exit(1)
-		}
-
-		blobCfg := blob.ServiceConfig{}
-		if size, err := parseSize(cfg.Blob.MaxFileSize); err == nil {
-			blobCfg.MaxFileSize = size
-		}
-		if quota, err := parseSize(cfg.Blob.OwnerQuota); err == nil {
-			blobCfg.OwnerQuota = quota
-		}
-		if ttl, err := time.ParseDuration(cfg.Blob.TTL); err == nil {
-			blobCfg.TTL = ttl
-		}
-
-		blobService = blob.NewService(blobMeta, blobFiles, blobCfg, logger)
-		logger.Info("blob service initialized",
-			"storage_path", storagePath,
-			"max_file_size", cfg.Blob.MaxFileSize,
-			"owner_quota", cfg.Blob.OwnerQuota,
-			"ttl", cfg.Blob.TTL,
-		)
-	}
-
 	// Initialize contacts service.
 	var contactsService *contacts.Service
 	if sqlDB != nil {
@@ -373,9 +330,6 @@ func main() {
 	if claimTokenService != nil {
 		httpServer.SetClaimToken(claimTokenService)
 	}
-	if blobService != nil {
-		httpServer.SetBlob(blobService)
-	}
 	if contactsService != nil {
 		httpServer.SetContacts(contactsService)
 		// Per-source-agent rate limiter for bridge sends: 1 msg/sec, burst 10.
@@ -423,7 +377,7 @@ func main() {
 		}
 	}
 	// Register routes after all services are configured so that
-	// optional-service routes (claim tokens, contacts, blobs, etc.) are included.
+	// optional-service routes (claim tokens, contacts, etc.) are included.
 	httpServer.RegisterRoutes()
 
 	// Start heartbeat timeout checker goroutine.
@@ -470,28 +424,6 @@ func main() {
 		logger.Info("email verification cleanup goroutine started", "interval", "1h")
 	}
 
-	// Start blob cleanup goroutine.
-	if blobService != nil {
-		go func() {
-			ticker := time.NewTicker(15 * time.Minute)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					cleaned, err := blobService.CleanupExpired(ctx)
-					if err != nil {
-						logger.Warn("blob cleanup failed", "error", err)
-					} else if cleaned > 0 {
-						logger.Info("blob cleanup completed", "removed", cleaned)
-					}
-				}
-			}
-		}()
-		logger.Info("blob cleanup goroutine started", "interval", "15m")
-	}
-
 	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 
@@ -531,33 +463,4 @@ func main() {
 	}
 	_ = bridgeManager.Close()
 	logger.Info("PeerClaw gateway stopped")
-}
-
-// parseSize parses human-readable size strings like "100MB", "1GB" into bytes.
-func parseSize(s string) (int64, error) {
-	s = strings.TrimSpace(strings.ToUpper(s))
-	if s == "" {
-		return 0, fmt.Errorf("empty size")
-	}
-
-	multiplier := int64(1)
-	switch {
-	case strings.HasSuffix(s, "GB"):
-		multiplier = 1 << 30
-		s = s[:len(s)-2]
-	case strings.HasSuffix(s, "MB"):
-		multiplier = 1 << 20
-		s = s[:len(s)-2]
-	case strings.HasSuffix(s, "KB"):
-		multiplier = 1 << 10
-		s = s[:len(s)-2]
-	case strings.HasSuffix(s, "B"):
-		s = s[:len(s)-1]
-	}
-
-	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid size: %s", s)
-	}
-	return n * multiplier, nil
 }

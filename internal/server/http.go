@@ -12,7 +12,6 @@ import (
 	"github.com/peerclaw/peerclaw-core/protocol"
 	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
-	"github.com/peerclaw/peerclaw-server/internal/blob"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
 	"github.com/peerclaw/peerclaw-server/internal/contacts"
@@ -62,7 +61,6 @@ type HTTPServer struct {
 	invokeRateLimiter      *IPRateLimiter
 	reviewService          *review.Service
 	claimToken             *claimtoken.Service
-	blob                   *blob.Service
 	contacts               *contacts.Service
 	bridgeRateLimiter      *IPRateLimiter
 	useracl                UserACLChecker
@@ -187,11 +185,6 @@ func (s *HTTPServer) SetClaimToken(ct *claimtoken.Service) {
 	s.claimToken = ct
 }
 
-// SetBlob sets the blob service for file upload/download.
-func (s *HTTPServer) SetBlob(b *blob.Service) {
-	s.blob = b
-}
-
 // SetContacts sets the contacts service for agent whitelist management.
 func (s *HTTPServer) SetContacts(c *contacts.Service) {
 	s.contacts = c
@@ -235,7 +228,7 @@ func (s *HTTPServer) wrapUserAuth(h http.HandlerFunc) http.Handler {
 }
 
 // RegisterRoutes registers all HTTP routes. Must be called after all Set*
-// methods so that optional-service routes (claim tokens, contacts, blobs,
+// methods so that optional-service routes (claim tokens, contacts,
 // protocol bridges) are included.
 func (s *HTTPServer) RegisterRoutes() {
 	s.routes()
@@ -295,9 +288,6 @@ func (s *HTTPServer) routes() {
 
 	// User ACL routes.
 	s.registerUserACLRoutes()
-
-	// Blob routes.
-	s.registerBlobRoutes()
 
 	// A2A/ACP/MCP Bridge routes (per-agent endpoints) with shared cleanup context.
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
@@ -792,18 +782,6 @@ func (s *HTTPServer) registerUserACLRoutes() {
 	s.mux.Handle("GET /api/v1/provider/agents/{id}/access-requests", s.wrapUserAuth(s.handleProviderListAccessRequests))
 	s.mux.Handle("PUT /api/v1/provider/agents/{id}/access-requests/{request_id}", s.wrapUserAuth(s.handleProviderUpdateAccessRequest))
 	s.mux.Handle("DELETE /api/v1/provider/agents/{id}/access-requests/{request_id}", s.wrapUserAuth(s.handleProviderRevokeAccessRequest))
-}
-
-func (s *HTTPServer) registerBlobRoutes() {
-	if s.blob == nil {
-		return
-	}
-
-	// Upload requires authentication.
-	s.mux.Handle("POST /api/v1/blobs", s.wrapUserAuth(s.handleBlobUpload))
-
-	// Download is public (blob ID is the secret).
-	s.mux.HandleFunc("GET /api/v1/blobs/{id}", s.handleBlobDownload)
 }
 
 func (s *HTTPServer) registerInvokeRoutes() {
