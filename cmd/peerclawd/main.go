@@ -25,6 +25,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/reputation"
+	"github.com/peerclaw/peerclaw-server/internal/retention"
 	"github.com/peerclaw/peerclaw-server/internal/router"
 	"github.com/peerclaw/peerclaw-server/internal/server"
 	"github.com/peerclaw/peerclaw-server/internal/signaling"
@@ -152,8 +153,9 @@ func main() {
 
 	// Initialize invocation store.
 	var invocationService *invocation.Service
+	var invStore invocation.Store
 	if sqlDB != nil {
-		invStore := invocation.NewStore(cfg.Database.Driver, sqlDB)
+		invStore = invocation.NewStore(cfg.Database.Driver, sqlDB)
 		if err := invStore.Migrate(context.Background()); err != nil {
 			logger.Error("failed to migrate invocation tables", "error", err)
 			os.Exit(1)
@@ -164,8 +166,9 @@ func main() {
 
 	// Initialize review service.
 	var reviewService *review.Service
+	var revStore review.Store
 	if sqlDB != nil {
-		revStore := review.NewStore(cfg.Database.Driver, sqlDB)
+		revStore = review.NewStore(cfg.Database.Driver, sqlDB)
 		if err := revStore.Migrate(context.Background()); err != nil {
 			logger.Error("failed to migrate review tables", "error", err)
 			os.Exit(1)
@@ -438,6 +441,39 @@ func main() {
 			}
 		}()
 		logger.Info("email verification cleanup goroutine started", "interval", "1h")
+	}
+
+	// Start data retention cleanup goroutine.
+	if cfg.Retention.Enabled {
+		retentionInterval, err := time.ParseDuration(cfg.Retention.CleanupInterval)
+		if err != nil {
+			retentionInterval = 1 * time.Hour
+		}
+		retentionSvc := retention.NewService(repStore, invStore, revStore, retention.Config{
+			ReputationEventsDays: cfg.Retention.ReputationEventsDays,
+			InvocationsDays:      cfg.Retention.InvocationsDays,
+			AbuseReportsDays:     cfg.Retention.AbuseReportsDays,
+		}, logger)
+		go func() {
+			ticker := time.NewTicker(retentionInterval)
+			defer ticker.Stop()
+			// Run once on startup.
+			retentionSvc.RunOnce(ctx)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					retentionSvc.RunOnce(ctx)
+				}
+			}
+		}()
+		logger.Info("data retention cleanup started",
+			"interval", retentionInterval,
+			"reputation_events_days", cfg.Retention.ReputationEventsDays,
+			"invocations_days", cfg.Retention.InvocationsDays,
+			"abuse_reports_days", cfg.Retention.AbuseReportsDays,
+		)
 	}
 
 	var wg sync.WaitGroup

@@ -329,6 +329,18 @@ func (s *PostgresStore) CountInvocations(ctx context.Context) (int, error) {
 	return count, err
 }
 
+// PruneInvocations deletes invocation records older than the given time.
+func (s *PostgresStore) PruneInvocations(ctx context.Context, olderThan time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM invocations WHERE created_at < $1`,
+		olderThan.UTC(),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 func (s *PostgresStore) Close() error {
 	return nil
 }

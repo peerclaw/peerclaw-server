@@ -95,6 +95,11 @@ type Store interface {
 	// DeleteCategory removes a category by ID.
 	DeleteCategory(ctx context.Context, id string) error
 
+	// PruneResolvedReports deletes resolved abuse reports older than the given time.
+	// Only reports with status 'reviewed', 'dismissed', or 'actioned' are deleted.
+	// Returns the number of deleted rows.
+	PruneResolvedReports(ctx context.Context, olderThan time.Time) (int64, error)
+
 	// CountReviews returns the total number of reviews.
 	CountReviews(ctx context.Context) (int, error)
 

@@ -393,6 +393,18 @@ func (s *SQLiteStore) CountReports(ctx context.Context, status string) (int, err
 	return count, err
 }
 
+// PruneResolvedReports deletes resolved abuse reports older than the given time.
+func (s *SQLiteStore) PruneResolvedReports(ctx context.Context, olderThan time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM abuse_reports WHERE created_at < ? AND status IN ('reviewed','dismissed','actioned')`,
+		olderThan.UTC().Format(time.RFC3339),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 // Close is a no-op since the db is shared.
 func (s *SQLiteStore) Close() error {
 	return nil

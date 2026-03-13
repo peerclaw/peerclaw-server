@@ -60,6 +60,10 @@ type Store interface {
 	// whose last heartbeat is older than the given timeout.
 	ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error)
 
+	// PruneEvents deletes reputation events older than the given time.
+	// Returns the number of deleted rows.
+	PruneEvents(ctx context.Context, olderThan time.Time) (int64, error)
+
 	// Migrate creates the required tables and columns.
 	Migrate(ctx context.Context) error
 

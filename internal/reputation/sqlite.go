@@ -216,6 +216,18 @@ func (s *SQLiteStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Du
 	return ids, rows.Err()
 }
 
+// PruneEvents deletes reputation events older than the given time.
+func (s *SQLiteStore) PruneEvents(ctx context.Context, olderThan time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM reputation_events WHERE created_at < ?`,
+		olderThan.UTC().Format(time.RFC3339),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 // Close is a no-op since the db is shared with the registry store.
 func (s *SQLiteStore) Close() error {
 	return nil

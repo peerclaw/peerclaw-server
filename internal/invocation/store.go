@@ -83,6 +83,10 @@ type Store interface {
 	// TopAgents returns the top agents by call count since the given time.
 	TopAgents(ctx context.Context, since time.Time, limit int) ([]AgentCallStats, error)
 
+	// PruneInvocations deletes invocation records older than the given time.
+	// Returns the number of deleted rows.
+	PruneInvocations(ctx context.Context, olderThan time.Time) (int64, error)
+
 	// CountInvocations returns the total number of invocations.
 	CountInvocations(ctx context.Context) (int, error)
 

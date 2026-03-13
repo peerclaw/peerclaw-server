@@ -342,6 +342,18 @@ func (s *SQLiteStore) CountInvocations(ctx context.Context) (int, error) {
 	return count, err
 }
 
+// PruneInvocations deletes invocation records older than the given time.
+func (s *SQLiteStore) PruneInvocations(ctx context.Context, olderThan time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM invocations WHERE created_at < ?`,
+		olderThan.UTC().Format(time.RFC3339),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 func (s *SQLiteStore) Close() error {
 	return nil
 }

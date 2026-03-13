@@ -23,6 +23,7 @@ type Config struct {
 	Auth          AuthConfig          `yaml:"auth"`
 	UserAuth      UserAuthConfig      `yaml:"user_auth"`
 	SMTP          SMTPConfig          `yaml:"smtp"`
+	Retention     RetentionConfig     `yaml:"retention"`
 }
 
 // SMTPConfig holds SMTP email settings.
@@ -33,6 +34,15 @@ type SMTPConfig struct {
 	Password string `yaml:"password"`  // supports ${ENV_VAR}
 	From     string `yaml:"from"`
 	TLS      bool   `yaml:"tls"`       // default true
+}
+
+// RetentionConfig holds data retention and auto-cleanup settings.
+type RetentionConfig struct {
+	Enabled              bool   `yaml:"enabled"`
+	ReputationEventsDays int    `yaml:"reputation_events_days"`
+	InvocationsDays      int    `yaml:"invocations_days"`
+	AbuseReportsDays     int    `yaml:"abuse_reports_days"`
+	CleanupInterval      string `yaml:"cleanup_interval"`
 }
 
 // AuthConfig holds authentication settings.
@@ -195,6 +205,13 @@ func DefaultConfig() *Config {
 			AccessTTL:  "15m",
 			RefreshTTL: "168h",
 			BcryptCost: 12,
+		},
+		Retention: RetentionConfig{
+			Enabled:              true,
+			ReputationEventsDays: 90,
+			InvocationsDays:      30,
+			AbuseReportsDays:     365,
+			CleanupInterval:      "1h",
 		},
 	}
 }

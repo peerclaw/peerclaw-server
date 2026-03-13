@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 // PostgresStore implements Store using PostgreSQL.
@@ -381,6 +382,18 @@ func (s *PostgresStore) CountReports(ctx context.Context, status string) (int, e
 	}
 	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM abuse_reports").Scan(&count)
 	return count, err
+}
+
+// PruneResolvedReports deletes resolved abuse reports older than the given time.
+func (s *PostgresStore) PruneResolvedReports(ctx context.Context, olderThan time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM abuse_reports WHERE created_at < $1 AND status IN ('reviewed','dismissed','actioned')`,
+		olderThan.UTC(),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // Close is a no-op since the db is shared.

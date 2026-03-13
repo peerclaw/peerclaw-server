@@ -197,6 +197,18 @@ func (s *PostgresStore) ListStaleOnlineAgents(ctx context.Context, timeout time.
 	return ids, rows.Err()
 }
 
+// PruneEvents deletes reputation events older than the given time.
+func (s *PostgresStore) PruneEvents(ctx context.Context, olderThan time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM reputation_events WHERE created_at < $1`,
+		olderThan.UTC(),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 // Close is a no-op since the db is shared with the registry store.
 func (s *PostgresStore) Close() error {
 	return nil
