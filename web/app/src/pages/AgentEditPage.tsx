@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useParams, useNavigate, useBlocker } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useProviderAgent, useProviderMutations } from "@/hooks/use-provider"
 import type { RegisterAgentData } from "@/hooks/use-provider"
@@ -27,6 +27,9 @@ export function AgentEditPage() {
   const [capInput, setCapInput] = useState("")
   const [tagInput, setTagInput] = useState("")
 
+  const [isDirty, setIsDirty] = useState(false)
+  const submittingRef = useRef(false)
+
   // Initialize form when agent data loads
   if (agent && !form) {
     setForm({
@@ -42,6 +45,25 @@ export function AgentEditPage() {
       visibility: agent.visibility ?? "public",
     })
   }
+
+  // Track dirty state
+  const markDirty = useCallback(() => setIsDirty(true), [])
+
+  // Warn on browser close / tab close
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [isDirty])
+
+  // Block in-app navigation
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && !submittingRef.current && currentLocation.pathname !== nextLocation.pathname
+  )
 
   if (loading) {
     return (
@@ -61,8 +83,10 @@ export function AgentEditPage() {
 
   if (!agent || !form) return null
 
-  const update = (key: keyof RegisterAgentData, value: unknown) =>
+  const update = (key: keyof RegisterAgentData, value: unknown) => {
     setForm((prev) => prev ? { ...prev, [key]: value } : prev)
+    markDirty()
+  }
 
   const toggleProtocol = (proto: string) => {
     const current = form.protocols ?? []
@@ -92,11 +116,14 @@ export function AgentEditPage() {
     if (!id || !form) return
     setSubmitting(true)
     setSubmitError(null)
+    submittingRef.current = true
     try {
       await updateAgent(id, form as RegisterAgentData)
+      setIsDirty(false)
       navigate(`/console/agents/${id}`)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Failed to save")
+      submittingRef.current = false
     } finally {
       setSubmitting(false)
     }
@@ -323,6 +350,24 @@ export function AgentEditPage() {
           {submitting ? t('wizard.saving') : t('wizard.saveChanges')}
         </Button>
       </div>
+
+      {/* Unsaved changes navigation blocker */}
+      {blocker.state === "blocked" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-lg max-w-sm">
+            <h3 className="text-lg font-semibold">{t('wizard.unsavedChangesTitle')}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">{t('wizard.unsavedChangesDesc')}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => blocker.reset?.()}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => blocker.proceed?.()}>
+                {t('wizard.discardChanges')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
