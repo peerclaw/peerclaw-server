@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Bot, PhoneCall, CheckCircle, Timer } from "lucide-react"
+import { Bot, PhoneCall, CheckCircle, Timer, ArrowRight } from "lucide-react"
 
 export function ProviderDashboardPage() {
   const { t } = useTranslation()
@@ -21,7 +21,10 @@ export function ProviderDashboardPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">{t('provider.loadingDashboard')}</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="size-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          <p className="text-sm text-muted-foreground">{t('provider.loadingDashboard')}</p>
+        </div>
       </div>
     )
   }
@@ -49,8 +52,9 @@ export function ProviderDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">{t('provider.dashboard')}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('provider.dashboard')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {t('provider.overview')}
         </p>
@@ -85,61 +89,78 @@ export function ProviderDashboardPage() {
 
       {/* Agent list */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">{t('provider.myAgents')}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">{t('provider.myAgents')}</h2>
+          {(data.agents ?? []).length > 0 && (
+            <Link
+              to="/console/agents"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              View all
+              <ArrowRight className="size-3" />
+            </Link>
+          )}
+        </div>
+
         {(data.agents ?? []).length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
-            <Bot className="size-8 text-muted-foreground mb-2" />
+          <div className="flex flex-col items-center justify-center h-48 rounded-xl border border-dashed border-border/60">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/8 mb-3">
+              <Bot className="size-7 text-primary/50" />
+            </div>
             <p className="text-sm text-muted-foreground">{t('provider.noAgentsRegistered')}</p>
             <Link
               to="/console/register"
-              className="text-sm text-primary hover:underline mt-1"
+              className="mt-2 inline-flex items-center gap-1 text-sm text-primary font-medium hover:underline"
             >
               {t('provider.registerFirst')}
+              <ArrowRight className="size-3.5" />
             </Link>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('provider.name')}</TableHead>
-                <TableHead>{t('provider.status')}</TableHead>
-                <TableHead>{t('provider.calls')}</TableHead>
-                <TableHead>{t('provider.successRate')}</TableHead>
-                <TableHead>{t('provider.avgLatency')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data.agents ?? []).map((agent) => (
-                <TableRow key={agent.id}>
-                  <TableCell>
-                    <Link
-                      to={`/console/agents/${agent.id}`}
-                      className="font-medium text-foreground hover:text-primary transition-colors"
-                    >
-                      {agent.name}
-                    </Link>
-                    <p className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">
-                      {agent.description}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusColor(agent.status)}>
-                      {agent.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {(agent.total_calls ?? 0).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {(agent.success_rate ?? 0).toFixed(1)}%
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {(agent.avg_latency_ms ?? 0).toFixed(0)}ms
-                  </TableCell>
+          <div className="rounded-xl border border-border/60 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-medium">{t('provider.name')}</TableHead>
+                  <TableHead className="text-xs font-medium">{t('provider.status')}</TableHead>
+                  <TableHead className="text-xs font-medium">{t('provider.calls')}</TableHead>
+                  <TableHead className="text-xs font-medium">{t('provider.successRate')}</TableHead>
+                  <TableHead className="text-xs font-medium">{t('provider.avgLatency')}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {(data.agents ?? []).map((agent) => (
+                  <TableRow key={agent.id} className="group">
+                    <TableCell>
+                      <Link
+                        to={`/console/agents/${agent.id}`}
+                        className="font-medium text-foreground transition-colors group-hover:text-primary"
+                      >
+                        {agent.name}
+                      </Link>
+                      <p className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">
+                        {agent.description}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusColor(agent.status)}>
+                        {agent.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums font-mono text-xs">
+                      {(agent.total_calls ?? 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums font-mono text-xs">
+                      {(agent.success_rate ?? 0).toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums font-mono text-xs">
+                      {(agent.avg_latency_ms ?? 0).toFixed(0)}ms
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>

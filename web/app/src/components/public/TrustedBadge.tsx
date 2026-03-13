@@ -5,7 +5,7 @@ export function TrustedBadge() {
   const { t } = useTranslation()
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400"
+      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-primary/20"
       title={t('badge.trustedTooltip')}
     >
       <ShieldCheck className="size-3" />

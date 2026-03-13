@@ -24,10 +24,10 @@ export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
     <div className="flex flex-wrap gap-2">
       <button
         onClick={() => onChange(undefined)}
-        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
           !selected
-            ? "bg-primary text-primary-foreground"
-            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            ? "bg-primary text-primary-foreground shadow-[0_0_12px_oklch(0.72_0.15_192_/_0.15)]"
+            : "bg-secondary/60 text-secondary-foreground hover:bg-secondary"
         }`}
       >
         {t('categoryFilter.all')}
@@ -36,10 +36,10 @@ export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
         <button
           key={cat.id}
           onClick={() => onChange(cat.slug === selected ? undefined : cat.slug)}
-          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
             selected === cat.slug
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              ? "bg-primary text-primary-foreground shadow-[0_0_12px_oklch(0.72_0.15_192_/_0.15)]"
+              : "bg-secondary/60 text-secondary-foreground hover:bg-secondary"
           }`}
         >
           {cat.icon && <span className="mr-1">{cat.icon}</span>}

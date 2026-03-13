@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { fetchDirectory } from "@/api/client"
-import { Search, Shield, Activity, CheckCircle } from "lucide-react"
+import { Search, Shield, Activity, CheckCircle, ArrowRight, Fingerprint, BarChart3, Globe } from "lucide-react"
 
 export function LandingPage() {
   const navigate = useNavigate()
@@ -34,81 +34,124 @@ export function LandingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4">
-      {/* Hero */}
-      <section className="flex flex-col items-center py-20 text-center">
-        <img
-          src="/logo.jpg"
-          alt="PeerClaw"
-          className="size-28 rounded-2xl object-cover mb-6"
-        />
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          {t('landing.heroTitle')}
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-          {t('landing.heroDescription')}
-        </p>
+    <div className="relative">
+      {/* ─── Hero Section ─── */}
+      <section className="relative overflow-hidden">
+        {/* Animated gradient orbs */}
+        <div className="pointer-events-none absolute inset-0">
+          <div
+            className="animate-float-1 absolute -top-32 -left-32 size-[500px] rounded-full opacity-30"
+            style={{ background: "radial-gradient(circle, oklch(0.72 0.15 192 / 0.15), transparent 70%)" }}
+          />
+          <div
+            className="animate-float-2 absolute -top-16 -right-24 size-[400px] rounded-full opacity-25"
+            style={{ background: "radial-gradient(circle, oklch(0.65 0.18 285 / 0.12), transparent 70%)" }}
+          />
+          <div
+            className="animate-float-3 absolute -bottom-24 left-1/3 size-[350px] rounded-full opacity-20"
+            style={{ background: "radial-gradient(circle, oklch(0.72 0.15 192 / 0.1), transparent 70%)" }}
+          />
+        </div>
 
-        <form onSubmit={handleSearch} className="mt-8 flex w-full max-w-md gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={t('landing.searchPlaceholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background py-2.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+        {/* Dot grid overlay */}
+        <div className="pointer-events-none absolute inset-0 dot-grid" />
+
+        {/* Content */}
+        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-24">
+          <div className="flex flex-col items-center text-center">
+            {/* Logo mark */}
+            <div className="mb-8 flex items-center gap-3">
+              <img
+                src="/logo.jpg"
+                alt="PeerClaw"
+                className="size-14 rounded-2xl object-cover ring-2 ring-primary/20 shadow-[0_0_30px_oklch(0.72_0.15_192_/_0.15)]"
+              />
+            </div>
+
+            {/* Headline */}
+            <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+              <span className="gradient-text">{t('landing.heroTitle')}</span>
+            </h1>
+
+            {/* Subtitle */}
+            <p className="mt-5 max-w-xl text-base text-muted-foreground leading-relaxed sm:text-lg">
+              {t('landing.heroDescription')}
+            </p>
+
+            {/* Search bar */}
+            <form onSubmit={handleSearch} className="mt-10 flex w-full max-w-lg gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder={t('landing.searchPlaceholder')}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-xl border border-border/60 bg-card/50 py-3 pl-10 pr-4 text-sm backdrop-blur-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                />
+              </div>
+              <button
+                type="submit"
+                className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_20px_oklch(0.72_0.15_192_/_0.25)]"
+              >
+                {t('common.search')}
+              </button>
+            </form>
+
+            <Link
+              to="/directory"
+              className="mt-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              {t('landing.browseAll')}
+              <ArrowRight className="size-3.5" />
+            </Link>
           </div>
-          <button
-            type="submit"
-            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {t('common.search')}
-          </button>
-        </form>
-
-        <Link
-          to="/directory"
-          className="mt-4 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          {t('landing.browseAll')}
-        </Link>
+        </div>
       </section>
 
-      {/* Stats */}
-      <section className="grid grid-cols-1 gap-4 pb-16 sm:grid-cols-3">
-        <StatCard
-          icon={Shield}
-          label={t('landing.registeredAgents')}
-          value={stats.total}
-        />
-        <StatCard
-          icon={CheckCircle}
-          label={t('landing.verifiedAgents')}
-          value={stats.verified}
-        />
-        <StatCard
-          icon={Activity}
-          label={t('landing.onlineNow')}
-          value={stats.online}
-        />
+      {/* ─── Stats ─── */}
+      <section className="relative mx-auto max-w-6xl px-4 pb-20">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            icon={Shield}
+            label={t('landing.registeredAgents')}
+            value={stats.total}
+            accentColor="192"
+          />
+          <StatCard
+            icon={CheckCircle}
+            label={t('landing.verifiedAgents')}
+            value={stats.verified}
+            accentColor="160"
+          />
+          <StatCard
+            icon={Activity}
+            label={t('landing.onlineNow')}
+            value={stats.online}
+            accentColor="285"
+          />
+        </div>
       </section>
 
-      {/* Value Props */}
-      <section className="grid grid-cols-1 gap-6 pb-20 sm:grid-cols-3">
-        <ValueProp
-          title={t('landing.ed25519Title')}
-          description={t('landing.ed25519Desc')}
-        />
-        <ValueProp
-          title={t('landing.ewmaTitle')}
-          description={t('landing.ewmaDesc')}
-        />
-        <ValueProp
-          title={t('landing.endpointTitle')}
-          description={t('landing.endpointDesc')}
-        />
+      {/* ─── Value Propositions ─── */}
+      <section className="relative mx-auto max-w-6xl px-4 pb-24">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <ValueProp
+            icon={Fingerprint}
+            title={t('landing.ed25519Title')}
+            description={t('landing.ed25519Desc')}
+          />
+          <ValueProp
+            icon={BarChart3}
+            title={t('landing.ewmaTitle')}
+            description={t('landing.ewmaDesc')}
+          />
+          <ValueProp
+            icon={Globe}
+            title={t('landing.endpointTitle')}
+            description={t('landing.endpointDesc')}
+          />
+        </div>
       </section>
     </div>
   )
@@ -118,20 +161,28 @@ function StatCard({
   icon: Icon,
   label,
   value,
+  accentColor,
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   value: number
+  accentColor: string
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <div className="flex items-center gap-3">
-        <div className="rounded-md bg-primary/10 p-2">
-          <Icon className="size-5 text-primary" />
+    <div
+      className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 transition-all duration-300 hover:border-primary/20"
+      style={{ boxShadow: `inset 0 1px 0 0 oklch(0.72 0.15 ${accentColor} / 0.08)` }}
+    >
+      <div className="flex items-center gap-4">
+        <div
+          className="flex size-11 items-center justify-center rounded-xl transition-colors"
+          style={{ background: `oklch(0.72 0.15 ${accentColor} / 0.08)`, color: `oklch(0.72 0.15 ${accentColor})` }}
+        >
+          <Icon className="size-5" />
         </div>
         <div>
-          <p className="text-2xl font-bold tabular-nums">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-2xl font-bold tabular-nums tracking-tight">{value}</p>
+          <p className="text-xs text-muted-foreground font-medium">{label}</p>
         </div>
       </div>
     </div>
@@ -139,16 +190,21 @@ function StatCard({
 }
 
 function ValueProp({
+  icon: Icon,
   title,
   description,
 }: {
+  icon: React.ComponentType<{ className?: string }>
   title: string
   description: string
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
+    <div className="group relative rounded-xl border border-border/60 bg-card p-6 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_0_30px_oklch(0.72_0.15_192_/_0.04)]">
+      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/8 mb-4 transition-colors group-hover:bg-primary/12">
+        <Icon className="size-5 text-primary/80" />
+      </div>
       <h3 className="font-semibold text-sm">{title}</h3>
-      <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+      <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
         {description}
       </p>
     </div>

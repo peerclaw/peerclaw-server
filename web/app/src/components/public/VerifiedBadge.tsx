@@ -5,7 +5,7 @@ export function VerifiedBadge({ className }: { className?: string }) {
   const { t } = useTranslation()
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 ${className ?? ""}`}
+      className={`inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20 ${className ?? ""}`}
       title={t('badge.verifiedTooltip')}
     >
       <CheckCircle className="size-3" />
