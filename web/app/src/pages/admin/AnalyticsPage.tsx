@@ -308,8 +308,9 @@ export function AnalyticsPage() {
                       fill={chart1}
                       radius={[0, 4, 4, 0]}
                       cursor="pointer"
-                      onClick={(entry) => {
-                        if (entry?.agent_id) navigate(`/admin/agents/${entry.agent_id}`)
+                      onClick={(_entry, index) => {
+                        const agent = barData[index]
+                        if (agent?.agent_id) navigate(`/admin/agents/${agent.agent_id}`)
                       }}
                     />
                   </BarChart>

@@ -187,7 +187,7 @@ export function OverviewPage() {
                   <Tooltip
                     contentStyle={tooltipStyle}
                     labelStyle={{ color: fgColor }}
-                    formatter={(value: number, name: string) => [`${value} agents`, name]}
+                    formatter={(value, name) => [`${value} agents`, `${name}`]}
                   />
                   <Legend />
                 </PieChart>
