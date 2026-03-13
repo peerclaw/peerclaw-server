@@ -35,7 +35,8 @@
     "signIn": "تسجيل الدخول",
     "signOut": "تسجيل الخروج",
     "adminPanel": "لوحة الإدارة",
-    "backToPublicSite": "العودة إلى الموقع العام",
+    "backToPublicSite": "الرئيسية",
+    "backToHome": "الرئيسية",
     "peerclawConsole": "لوحة تحكم PeerClaw",
     "peerclawAdmin": "إدارة PeerClaw",
     "dashboard": "لوحة المعلومات",
@@ -139,7 +140,7 @@
     "capabilities": "القدرات",
     "protocols": "البروتوكولات",
     "skills": "المهارات",
-    "reputationHistory": "سجل السمعة",
+    "reputationHistory": "اتجاه درجة الثقة",
     "publicKey": "المفتاح العام",
     "endpoint": "نقطة النهاية",
     "event": "الحدث",
@@ -183,7 +184,7 @@
     "trustedTooltip": "موثوق: وكيل موثّق ذو سمعة عالية"
   },
   "provider": {
-    "dashboard": "لوحة معلومات المزوّد",
+    "dashboard": "لوحة التحكم",
     "overview": "نظرة عامة على وكلائك وأدائهم",
     "totalAgents": "إجمالي الوكلاء",
     "totalCalls": "إجمالي الاستدعاءات",
@@ -211,10 +212,17 @@
     "deleting": "جارٍ الحذف...",
     "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا الوكيل؟ لا يمكن التراجع عن هذا الإجراء.",
     "name": "الاسم",
-    "calls": "الاستدعاءات"
+    "calls": "الاستدعاءات",
+    "identityTrust": "الهوية والثقة",
+    "publicKey": "المفتاح العام",
+    "agentId": "معرّف الوكيل",
+    "reputationScore": "درجة السمعة",
+    "skills": "المهارات",
+    "categories": "الفئات",
+    "copied": "تم النسخ"
   },
   "claim": {
-    "title": "رموز المطالبة",
+    "title": "إقران Agent",
     "description": "أنشئ رمزاً لمرة واحدة لإقران وكيل بحسابك",
     "agentName": "اسم الوكيل",
     "agentNamePlaceholder": "مثال: my-research-agent",

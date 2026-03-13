@@ -36,6 +36,7 @@
     "signOut": "Sign Out",
     "adminPanel": "Admin Panel",
     "backToPublicSite": "Back to Public Site",
+    "backToHome": "Home",
     "peerclawConsole": "PeerClaw Console",
     "peerclawAdmin": "PeerClaw Admin",
     "dashboard": "Dashboard",
@@ -139,7 +140,7 @@
     "capabilities": "Capabilities",
     "protocols": "Protocols",
     "skills": "Skills",
-    "reputationHistory": "Reputation History",
+    "reputationHistory": "Trust Score Trend",
     "publicKey": "Public Key",
     "endpoint": "Endpoint",
     "event": "Event",
@@ -183,7 +184,7 @@
     "trustedTooltip": "Trusted: verified agent with high reputation"
   },
   "provider": {
-    "dashboard": "Provider Dashboard",
+    "dashboard": "Dashboard",
     "overview": "Overview of your agents and performance",
     "totalAgents": "Total Agents",
     "totalCalls": "Total Calls",
@@ -221,7 +222,7 @@
     "copied": "Copied"
   },
   "claim": {
-    "title": "Claim Tokens",
+    "title": "Agent Pairing",
     "description": "Generate a one-time code to pair an Agent with your account",
     "agentName": "Agent Name",
     "agentNamePlaceholder": "e.g., my-research-agent",

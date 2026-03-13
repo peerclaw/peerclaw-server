@@ -35,7 +35,8 @@
     "signIn": "Se connecter",
     "signOut": "Se déconnecter",
     "adminPanel": "Panneau d'administration",
-    "backToPublicSite": "Retour au site public",
+    "backToPublicSite": "Accueil",
+    "backToHome": "Accueil",
     "peerclawConsole": "Console PeerClaw",
     "peerclawAdmin": "Admin PeerClaw",
     "dashboard": "Tableau de bord",
@@ -139,7 +140,7 @@
     "capabilities": "Capacités",
     "protocols": "Protocoles",
     "skills": "Compétences",
-    "reputationHistory": "Historique de réputation",
+    "reputationHistory": "Tendance de confiance",
     "publicKey": "Clé publique",
     "endpoint": "Point de terminaison",
     "event": "Événement",
@@ -183,7 +184,7 @@
     "trustedTooltip": "De confiance : agent vérifié avec une haute réputation"
   },
   "provider": {
-    "dashboard": "Tableau de bord fournisseur",
+    "dashboard": "Tableau de bord",
     "overview": "Vue d'ensemble de vos agents et performances",
     "totalAgents": "Total des agents",
     "totalCalls": "Total des appels",
@@ -211,10 +212,17 @@
     "deleting": "Suppression...",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet agent ? Cette action est irréversible.",
     "name": "Nom",
-    "calls": "Appels"
+    "calls": "Appels",
+    "identityTrust": "Identité et confiance",
+    "publicKey": "Clé publique",
+    "agentId": "ID de l'agent",
+    "reputationScore": "Score de réputation",
+    "skills": "Compétences",
+    "categories": "Catégories",
+    "copied": "Copié"
   },
   "claim": {
-    "title": "Jetons de jumelage",
+    "title": "Jumelage d'Agent",
     "description": "Générer un code à usage unique pour associer un agent à votre compte",
     "agentName": "Nom de l'agent",
     "agentNamePlaceholder": "ex. : mon-agent-recherche",

@@ -35,7 +35,8 @@
     "signIn": "登录",
     "signOut": "退出",
     "adminPanel": "管理面板",
-    "backToPublicSite": "返回公共站点",
+    "backToPublicSite": "返回首页",
+    "backToHome": "首页",
     "peerclawConsole": "PeerClaw 控制台",
     "peerclawAdmin": "PeerClaw 管理",
     "dashboard": "仪表盘",
@@ -139,7 +140,7 @@
     "capabilities": "能力",
     "protocols": "协议",
     "skills": "技能",
-    "reputationHistory": "信誉历史",
+    "reputationHistory": "信誉趋势",
     "publicKey": "公钥",
     "endpoint": "端点",
     "event": "事件",
@@ -183,7 +184,7 @@
     "trustedTooltip": "可信赖：已验证且信誉良好的 Agent"
   },
   "provider": {
-    "dashboard": "服务商仪表盘",
+    "dashboard": "控制面板",
     "overview": "您的 Agent 和性能概览",
     "totalAgents": "Agent 总数",
     "totalCalls": "总调用次数",
@@ -221,7 +222,7 @@
     "copied": "已复制"
   },
   "claim": {
-    "title": "声明令牌",
+    "title": "Agent 配对",
     "description": "生成一次性代码以将 Agent 与您的账号配对",
     "agentName": "Agent 名称",
     "agentNamePlaceholder": "例如 my-research-agent",
@@ -343,7 +344,7 @@
     "peak": "峰值：{{count}}"
   },
   "admin": {
-    "dashboard": "管理仪表盘",
+    "dashboard": "管理面板",
     "systemOverview": "系统概览和健康状态",
     "totalUsers": "用户总数",
     "totalAgents": "Agent 总数",

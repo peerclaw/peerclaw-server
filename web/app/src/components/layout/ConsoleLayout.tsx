@@ -11,6 +11,7 @@ import {
   KeyRound,
   Github,
   Lock,
+  Home,
 } from "lucide-react"
 
 export function ConsoleLayout() {
@@ -36,10 +37,24 @@ export function ConsoleLayout() {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
       <aside className="flex h-screen w-60 flex-col border-r border-border bg-card">
-        {/* Logo */}
-        <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-          <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
-          <span className="font-semibold text-sm">{t('nav.peerclawConsole')}</span>
+        {/* Logo + utility icons */}
+        <div className="flex h-14 items-center justify-between border-b border-border px-4">
+          <div className="flex items-center gap-2">
+            <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
+            <span className="font-semibold text-sm">{t('nav.peerclawConsole')}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <a
+              href="https://github.com/peerclaw/peerclaw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title={t('nav.github')}
+            >
+              <Github className="size-3.5" />
+            </a>
+            <LanguageSwitcher />
+          </div>
         </div>
 
         {/* Navigation */}
@@ -63,8 +78,15 @@ export function ConsoleLayout() {
           ))}
         </nav>
 
-        {/* User menu + utility links */}
+        {/* Bottom: back link then user menu */}
         <div className="border-t border-border p-3 space-y-2">
+          <NavLink
+            to="/"
+            className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Home className="size-3.5" />
+            {t('nav.backToHome')}
+          </NavLink>
           {user && (
             <UserMenu
               user={user}
@@ -72,26 +94,6 @@ export function ConsoleLayout() {
               showAdminLink={user.role === "admin"}
             />
           )}
-          <div className="flex items-center justify-between px-3">
-            <NavLink
-              to="/"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {t('nav.backToPublicSite')}
-            </NavLink>
-            <div className="flex items-center gap-2">
-              <a
-                href="https://github.com/peerclaw/peerclaw"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                title={t('nav.github')}
-              >
-                <Github className="size-3.5" />
-              </a>
-              <LanguageSwitcher />
-            </div>
-          </div>
         </div>
       </aside>
 

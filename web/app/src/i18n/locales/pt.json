@@ -35,7 +35,8 @@
     "signIn": "Entrar",
     "signOut": "Sair",
     "adminPanel": "Painel Admin",
-    "backToPublicSite": "Voltar ao Site Público",
+    "backToPublicSite": "Início",
+    "backToHome": "Início",
     "peerclawConsole": "Console PeerClaw",
     "peerclawAdmin": "Admin PeerClaw",
     "dashboard": "Painel",
@@ -139,7 +140,7 @@
     "capabilities": "Capacidades",
     "protocols": "Protocolos",
     "skills": "Habilidades",
-    "reputationHistory": "Histórico de Reputação",
+    "reputationHistory": "Tendência de Confiança",
     "publicKey": "Chave Pública",
     "endpoint": "Endpoint",
     "event": "Evento",
@@ -183,7 +184,7 @@
     "trustedTooltip": "Confiável: agente verificado com alta reputação"
   },
   "provider": {
-    "dashboard": "Painel do Provedor",
+    "dashboard": "Painel",
     "overview": "Visão geral dos seus agentes e desempenho",
     "totalAgents": "Total de Agentes",
     "totalCalls": "Total de Chamadas",
@@ -211,10 +212,17 @@
     "deleting": "Excluindo...",
     "deleteConfirm": "Tem certeza de que deseja excluir este agente? Esta ação não pode ser desfeita.",
     "name": "Nome",
-    "calls": "Chamadas"
+    "calls": "Chamadas",
+    "identityTrust": "Identidade e Confiança",
+    "publicKey": "Chave Pública",
+    "agentId": "ID do Agente",
+    "reputationScore": "Pontuação de Reputação",
+    "skills": "Habilidades",
+    "categories": "Categorias",
+    "copied": "Copiado"
   },
   "claim": {
-    "title": "Tokens de Pareamento",
+    "title": "Pareamento de Agent",
     "description": "Gere um código único para parear um Agente com sua conta",
     "agentName": "Nome do Agente",
     "agentNamePlaceholder": "ex.: meu-agente-pesquisa",

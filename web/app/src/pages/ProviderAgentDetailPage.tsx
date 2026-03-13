@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
@@ -8,10 +8,13 @@ import {
   useAgentAccessRequests,
   useAccessRequestMutations,
 } from "@/hooks/use-provider"
+import { fetchReputationHistory } from "@/api/client"
+import type { ReputationEvent } from "@/api/types"
 import { AnalyticsChart } from "@/components/provider/AnalyticsChart"
 import { AgentStatsCard } from "@/components/provider/AgentStatsCard"
 import { ContactsSection } from "@/components/provider/ContactsSection"
 import { ReputationMeter } from "@/components/public/ReputationMeter"
+import { ReputationChart } from "@/components/public/ReputationChart"
 import { VerifiedBadge } from "@/components/public/VerifiedBadge"
 import { ReviewSection } from "@/components/public/ReviewSection"
 import { Badge } from "@/components/ui/badge"
@@ -44,6 +47,14 @@ export function ProviderAgentDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [repEvents, setRepEvents] = useState<ReputationEvent[]>([])
+
+  useEffect(() => {
+    if (!id) return
+    fetchReputationHistory(id, 100)
+      .then((res) => setRepEvents(res.events ?? []))
+      .catch(() => {})
+  }, [id])
 
   const handleDelete = async () => {
     if (!id) return
@@ -402,6 +413,18 @@ export function ProviderAgentDetailPage() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reputation Trend */}
+      {repEvents.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">{t('profile.reputationHistory')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReputationChart events={repEvents} />
           </CardContent>
         </Card>
       )}

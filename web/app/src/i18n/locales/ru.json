@@ -35,7 +35,8 @@
     "signIn": "Войти",
     "signOut": "Выйти",
     "adminPanel": "Панель администратора",
-    "backToPublicSite": "Вернуться на публичный сайт",
+    "backToPublicSite": "Главная",
+    "backToHome": "Главная",
     "peerclawConsole": "Консоль PeerClaw",
     "peerclawAdmin": "Администрирование PeerClaw",
     "dashboard": "Панель управления",
@@ -139,7 +140,7 @@
     "capabilities": "Возможности",
     "protocols": "Протоколы",
     "skills": "Навыки",
-    "reputationHistory": "История репутации",
+    "reputationHistory": "Динамика доверия",
     "publicKey": "Публичный ключ",
     "endpoint": "Конечная точка",
     "event": "Событие",
@@ -183,7 +184,7 @@
     "trustedTooltip": "Надёжный: верифицированный агент с высокой репутацией"
   },
   "provider": {
-    "dashboard": "Панель провайдера",
+    "dashboard": "Панель управления",
     "overview": "Обзор ваших агентов и производительности",
     "totalAgents": "Всего агентов",
     "totalCalls": "Всего вызовов",
@@ -211,10 +212,17 @@
     "deleting": "Удаление...",
     "deleteConfirm": "Вы уверены, что хотите удалить этого агента? Это действие нельзя отменить.",
     "name": "Имя",
-    "calls": "Вызовы"
+    "calls": "Вызовы",
+    "identityTrust": "Идентификация и доверие",
+    "publicKey": "Публичный ключ",
+    "agentId": "ID агента",
+    "reputationScore": "Оценка репутации",
+    "skills": "Навыки",
+    "categories": "Категории",
+    "copied": "Скопировано"
   },
   "claim": {
-    "title": "Токены привязки",
+    "title": "Привязка Agent",
     "description": "Сгенерируйте одноразовый код для привязки агента к вашему аккаунту",
     "agentName": "Имя агента",
     "agentNamePlaceholder": "например, my-research-agent",

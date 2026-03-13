@@ -35,7 +35,8 @@
     "signIn": "サインイン",
     "signOut": "サインアウト",
     "adminPanel": "管理パネル",
-    "backToPublicSite": "公開サイトへ戻る",
+    "backToPublicSite": "ホームへ戻る",
+    "backToHome": "ホーム",
     "peerclawConsole": "PeerClaw コンソール",
     "peerclawAdmin": "PeerClaw 管理",
     "dashboard": "ダッシュボード",
@@ -139,7 +140,7 @@
     "capabilities": "機能",
     "protocols": "プロトコル",
     "skills": "スキル",
-    "reputationHistory": "レピュテーション履歴",
+    "reputationHistory": "信頼スコアの推移",
     "publicKey": "公開鍵",
     "endpoint": "エンドポイント",
     "event": "イベント",
@@ -183,7 +184,7 @@
     "trustedTooltip": "信頼済み：高レピュテーションの検証済み Agent"
   },
   "provider": {
-    "dashboard": "プロバイダーダッシュボード",
+    "dashboard": "ダッシュボード",
     "overview": "Agent とパフォーマンスの概要",
     "totalAgents": "Agent 総数",
     "totalCalls": "呼び出し総数",
@@ -211,10 +212,17 @@
     "deleting": "削除中...",
     "deleteConfirm": "この Agent を削除してもよろしいですか？この操作は取り消せません。",
     "name": "名前",
-    "calls": "呼び出し回数"
+    "calls": "呼び出し回数",
+    "identityTrust": "アイデンティティと信頼",
+    "publicKey": "公開鍵",
+    "agentId": "Agent ID",
+    "reputationScore": "レピュテーションスコア",
+    "skills": "スキル",
+    "categories": "カテゴリ",
+    "copied": "コピーしました"
   },
   "claim": {
-    "title": "クレームトークン",
+    "title": "Agent ペアリング",
     "description": "Agent をアカウントにペアリングするためのワンタイムコードを生成します",
     "agentName": "Agent 名",
     "agentNamePlaceholder": "例: my-research-agent",

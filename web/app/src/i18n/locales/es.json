@@ -35,7 +35,8 @@
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
     "adminPanel": "Panel de administración",
-    "backToPublicSite": "Volver al sitio público",
+    "backToPublicSite": "Inicio",
+    "backToHome": "Inicio",
     "peerclawConsole": "Consola PeerClaw",
     "peerclawAdmin": "Administración PeerClaw",
     "dashboard": "Panel de control",
@@ -139,7 +140,7 @@
     "capabilities": "Capacidades",
     "protocols": "Protocolos",
     "skills": "Habilidades",
-    "reputationHistory": "Historial de reputación",
+    "reputationHistory": "Tendencia de confianza",
     "publicKey": "Clave pública",
     "endpoint": "Endpoint",
     "event": "Evento",
@@ -183,7 +184,7 @@
     "trustedTooltip": "Confiable: agente verificado con alta reputación"
   },
   "provider": {
-    "dashboard": "Panel del proveedor",
+    "dashboard": "Panel de control",
     "overview": "Resumen de tus agentes y rendimiento",
     "totalAgents": "Total de agentes",
     "totalCalls": "Total de llamadas",
@@ -211,10 +212,17 @@
     "deleting": "Eliminando...",
     "deleteConfirm": "¿Estás seguro de que deseas eliminar este agente? Esta acción no se puede deshacer.",
     "name": "Nombre",
-    "calls": "Llamadas"
+    "calls": "Llamadas",
+    "identityTrust": "Identidad y confianza",
+    "publicKey": "Clave pública",
+    "agentId": "ID del agente",
+    "reputationScore": "Puntuación de reputación",
+    "skills": "Habilidades",
+    "categories": "Categorías",
+    "copied": "Copiado"
   },
   "claim": {
-    "title": "Tokens de vinculación",
+    "title": "Vinculación de Agent",
     "description": "Genera un código de un solo uso para vincular un agente con tu cuenta",
     "agentName": "Nombre del agente",
     "agentNamePlaceholder": "ej., mi-agente-investigador",
