@@ -52,7 +52,7 @@ export interface AgentAnalytics {
   time_series: TimeSeriesPoint[]
 }
 
-export interface PublishAgentData {
+export interface RegisterAgentData {
   name: string
   description: string
   version: string
@@ -162,8 +162,8 @@ export function useProviderInvocations(
 export function useProviderMutations() {
   const { accessToken } = useAuth()
 
-  const publishAgent = useCallback(
-    async (data: PublishAgentData): Promise<ProviderAgent> => {
+  const registerAgent = useCallback(
+    async (data: RegisterAgentData): Promise<ProviderAgent> => {
       if (!accessToken) throw new Error("Not authenticated")
       return fetchWithAuth<ProviderAgent>("/provider/agents", accessToken, {
         method: "POST",
@@ -174,7 +174,7 @@ export function useProviderMutations() {
   )
 
   const updateAgent = useCallback(
-    async (id: string, data: Partial<PublishAgentData>): Promise<ProviderAgent> => {
+    async (id: string, data: Partial<RegisterAgentData>): Promise<ProviderAgent> => {
       if (!accessToken) throw new Error("Not authenticated")
       return fetchWithAuth<ProviderAgent>(`/provider/agents/${id}`, accessToken, {
         method: "PUT",
@@ -194,7 +194,7 @@ export function useProviderMutations() {
     [accessToken]
   )
 
-  return { publishAgent, updateAgent, deleteAgent }
+  return { registerAgent, updateAgent, deleteAgent }
 }
 
 // ----- Agent Contacts Hooks -----

@@ -2,7 +2,7 @@
 
 # PeerClaw Web App
 
-The PeerClaw web application — an Agent Marketplace frontend built with React + TypeScript + Vite.
+The PeerClaw web application — an Agent Platform frontend built with React + TypeScript + Vite.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ src/
 │   ├── auth/      # Login, register, auth guards
 │   ├── layout/    # AppLayout, Sidebar, ConsoleLayout, PublicLayout
 │   ├── provider/  # Provider console components
-│   ├── public/    # Public marketplace components
+│   ├── public/    # Public platform components
 │   ├── playground/# Agent playground & invocation UI
 │   └── overview/  # Dashboard overview components
 ├── hooks/         # Custom React hooks (auth, provider, playground, etc.)
@@ -31,7 +31,7 @@ src/
 | Route | Page | Description |
 |-------|------|-------------|
 | `/` | LandingPage | Platform stats, value propositions, search |
-| `/directory` | DirectoryPage | Agent marketplace with search, filter, sort |
+| `/directory` | DirectoryPage | Agent directory with search, filter, sort |
 | `/agents/:id` | PublicProfilePage | Agent profile, reputation, reviews |
 | `/playground` | PlaygroundPage | Try agents via chat interface |
 | `/playground/:agentId` | PlaygroundPage | Pre-selected agent playground |
@@ -43,9 +43,9 @@ src/
 | Route | Page | Description |
 |-------|------|-------------|
 | `/console` | ProviderDashboardPage | Agent stats, claim tokens |
-| `/console/publish` | AgentPublishPage | 5-step agent publish wizard |
+| `/console/publish` | AgentPublishPage | 5-step agent registration wizard |
 | `/console/agents/:id` | ProviderAgentDetailPage | Agent details, analytics, contacts |
-| `/console/agents/:id/edit` | AgentEditPage | Edit published agent |
+| `/console/agents/:id/edit` | AgentEditPage | Edit registered agent |
 | `/console/invocations` | InvocationHistoryPage | Invocation history |
 | `/console/api-keys` | APIKeysPage | API key management |
 
@@ -94,7 +94,7 @@ The app communicates with the PeerClaw server via REST API at `/api/v1/*`. Key e
 - `/auth/*` — User registration, login, JWT tokens, API keys
 - `/directory/*` — Public agent directory, profiles, reviews
 - `/invoke/:agentId` — Agent invocation (supports SSE streaming)
-- `/provider/*` — Provider console (publish, manage, analytics)
+- `/provider/*` — Provider console (register, manage, analytics)
 - `/admin/*` — Admin dashboard (users, agents, reports, categories)
 - `/claim-tokens` — Claim token generation for agent pairing
 - `/blobs` — File upload/download

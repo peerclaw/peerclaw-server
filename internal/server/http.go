@@ -744,7 +744,7 @@ func (s *HTTPServer) registerReviewRoutes() {
 }
 
 func (s *HTTPServer) registerProviderRoutes() {
-	s.mux.Handle("POST /api/v1/provider/agents", s.wrapUserAuth(s.handleProviderPublishAgent))
+	s.mux.Handle("POST /api/v1/provider/agents", s.wrapUserAuth(s.handleProviderRegisterAgent))
 	s.mux.Handle("GET /api/v1/provider/agents", s.wrapUserAuth(s.handleProviderListAgents))
 	s.mux.Handle("GET /api/v1/provider/agents/{id}", s.wrapUserAuth(s.handleProviderGetAgent))
 	s.mux.Handle("PUT /api/v1/provider/agents/{id}", s.wrapUserAuth(s.handleProviderUpdateAgent))

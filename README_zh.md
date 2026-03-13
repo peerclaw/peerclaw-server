@@ -6,7 +6,7 @@
 
 **AI Agent 身份与信任平台 — 可验证身份、声誉评分、端点验证、跨协议桥接。**
 
-peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证身份、基于真实交互的 EWMA 声誉评分、端点验证、以及公开的 Agent 目录 — 一切都构建在完整的协议网关之上，包括注册中心、信令中转和协议桥接（A2A、MCP、ACP）。这套基础设施是 PeerClaw Agent Marketplace 的根基，让任何 Agent 都能成为可发现、可信任、可调用的服务。
+peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证身份、基于真实交互的 EWMA 声誉评分、端点验证、以及公开的 Agent 目录 — 一切都构建在完整的协议网关之上，包括注册中心、信令中转和协议桥接（A2A、MCP、ACP）。这套基础设施是 PeerClaw Agent Platform 的根基，让任何 Agent 都能成为可发现、可信任、可调用的服务。
 
 一行命令启动，零外部依赖。
 
@@ -19,11 +19,11 @@ peerclaw-server 是 AI Agent 的信任基础设施。它提供密码学可验证
 
 | 能力 | 对你意味着什么 |
 |------|--------------|
-| **Web 控制台** | 内置 Web 界面：Agent Marketplace、Provider 控制台、管理后台，嵌入到二进制中。 |
+| **Web 控制台** | 内置 Web 界面：Agent Platform、Provider 控制台、管理后台，嵌入到二进制中。 |
 | **声誉引擎** | 基于真实事件（注册、心跳、桥接、验证）的 EWMA 评分。信任是赢得的，不是声称的。 |
 | **端点验证** | Challenge-Response 证明 Agent 控制其 URL，Ed25519 签名。 |
 | **公开目录** | 按声誉、能力、分类、验证状态浏览 Agent，无需认证。 |
-| **Agent Marketplace** | 用户账号、Agent 发布向导、Provider 控制台、调用分析。 |
+| **Agent Platform** | 用户账号、Agent 注册向导、Provider 控制台、调用分析。 |
 | **Playground 与调用** | 协议无关的调用端点，SSE 流式响应，匿名限速访问。 |
 | **评价与社区** | 星级评分、文字评价、Trusted 徽章、举报机制。 |
 | **管理后台** | 用户管理、Agent 审核、举报审查、分类管理、全局分析、调用日志。 |
@@ -264,7 +264,7 @@ redis:
 
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| `POST` | `/api/v1/provider/agents` | JWT | 发布新 Agent |
+| `POST` | `/api/v1/provider/agents` | JWT | 注册新 Agent |
 | `GET` | `/api/v1/provider/agents` | JWT | 列出我的 Agent |
 | `GET` | `/api/v1/provider/agents/{id}` | JWT | 获取我的 Agent 详情 |
 | `PUT` | `/api/v1/provider/agents/{id}` | JWT | 更新我的 Agent |
@@ -331,7 +331,7 @@ redis:
 
 - **Bearer Token（Agent）**：`Authorization: Bearer <api-key>` — 用于 Agent 与网关通信
 - **Ed25519 签名（Agent）**：`X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` 请求头
-- **JWT（用户）**：`Authorization: Bearer <jwt-access-token>` — 用于 Marketplace 用户会话
+- **JWT（用户）**：`Authorization: Bearer <jwt-access-token>` — 用于平台用户会话
 
 当 `auth.required: true` 时，所有 Agent 端点需要 Bearer Token 或 Ed25519 签名。用户端点（`/auth/*`、`/provider/*`、`/invoke/*`、评价提交）使用 JWT 认证。
 

@@ -6,7 +6,7 @@
 
 **AI Agent Identity & Trust Platform — verifiable identity, reputation scoring, endpoint verification, and cross-protocol bridging.**
 
-peerclaw-server is the trust infrastructure for AI agents. It provides cryptographically verifiable identities, EWMA-based reputation scoring from real interactions, endpoint verification, and a public agent directory — all built on top of a full protocol gateway with registry, signaling relay, and protocol bridges (A2A, MCP, ACP). This infrastructure serves as the foundation for PeerClaw's Agent Marketplace, where any Agent can become a discoverable, trustable, invocable service.
+peerclaw-server is the trust infrastructure for AI agents. It provides cryptographically verifiable identities, EWMA-based reputation scoring from real interactions, endpoint verification, and a public agent directory — all built on top of a full protocol gateway with registry, signaling relay, and protocol bridges (A2A, MCP, ACP). This infrastructure serves as the foundation for PeerClaw's Agent Platform, where any Agent can become a discoverable, trustable, invocable service.
 
 Start it with one command. No external dependencies required.
 
@@ -19,11 +19,11 @@ Start it with one command. No external dependencies required.
 
 | Capability | What it means for you |
 |-----------|----------------------|
-| **Web Dashboard** | Built-in web UI with Agent Marketplace, Provider Console, and Admin Dashboard. Embedded in the binary. |
+| **Web Dashboard** | Built-in web UI with Agent Platform, Provider Console, and Admin Dashboard. Embedded in the binary. |
 | **Reputation Engine** | EWMA scoring from real events (registration, heartbeat, bridge, verification). Trust that's earned, not claimed. |
 | **Endpoint Verification** | Challenge-response proof that an agent controls its URL. Ed25519 signed. |
 | **Public Directory** | Browse agents by reputation, capability, category, verification status. No auth required. |
-| **Agent Marketplace** | User accounts, agent publishing wizard, provider console, invocation analytics. |
+| **Agent Platform** | User accounts, agent registration wizard, provider console, invocation analytics. |
 | **Playground & Invoke** | Protocol-agnostic invocation endpoint with SSE streaming. Rate-limited anonymous access. |
 | **Reviews & Community** | Star ratings, text reviews, Trusted badges, abuse reporting. |
 | **Admin Dashboard** | User management, agent moderation, report review, category management, global analytics, invocation logs. |
@@ -264,7 +264,7 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/v1/provider/agents` | JWT | Publish a new agent |
+| `POST` | `/api/v1/provider/agents` | JWT | Register a new agent |
 | `GET` | `/api/v1/provider/agents` | JWT | List my agents |
 | `GET` | `/api/v1/provider/agents/{id}` | JWT | Get my agent details |
 | `PUT` | `/api/v1/provider/agents/{id}` | JWT | Update my agent |
@@ -331,7 +331,7 @@ The server supports three authentication mechanisms:
 
 - **Bearer token (agent)**: `Authorization: Bearer <api-key>` — for agent-to-gateway communication
 - **Ed25519 signature (agent)**: `X-PeerClaw-PublicKey` + `X-PeerClaw-Signature` headers
-- **JWT (user)**: `Authorization: Bearer <jwt-access-token>` — for marketplace user sessions
+- **JWT (user)**: `Authorization: Bearer <jwt-access-token>` — for platform user sessions
 
 When `auth.required: true`, all agent endpoints require Bearer token or Ed25519 signature. User endpoints (`/auth/*`, `/provider/*`, `/invoke/*`, review submission) use JWT authentication.
 

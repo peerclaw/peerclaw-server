@@ -12,8 +12,8 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 )
 
-// handleProviderPublishAgent handles POST /api/v1/provider/agents.
-func (s *HTTPServer) handleProviderPublishAgent(w http.ResponseWriter, r *http.Request) {
+// handleProviderRegisterAgent handles POST /api/v1/provider/agents.
+func (s *HTTPServer) handleProviderRegisterAgent(w http.ResponseWriter, r *http.Request) {
 	userID, ok := identity.UserIDFromContext(r.Context())
 	if !ok {
 		s.jsonError(w, "unauthorized", http.StatusUnauthorized)

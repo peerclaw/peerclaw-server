@@ -28,7 +28,7 @@ export function LoginPage() {
         <img src="/logo.jpg" alt="PeerClaw" className="mx-auto mb-4 size-12 rounded-md object-cover" />
         <h1 className="text-xl font-bold">{t('auth.signInToPeerclaw')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t('auth.accessMarketplace')}
+          {t('auth.accessPlatform')}
         </p>
       </div>
       <LoginForm onSubmit={handleLogin} />

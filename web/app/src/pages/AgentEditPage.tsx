@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useProviderAgent, useProviderMutations } from "@/hooks/use-provider"
-import { PublishWizard } from "@/components/provider/PublishWizard"
-import type { PublishAgentData } from "@/hooks/use-provider"
+import { RegisterWizard } from "@/components/provider/RegisterWizard"
+import type { RegisterAgentData } from "@/hooks/use-provider"
 
 export function AgentEditPage() {
   const { t } = useTranslation()
@@ -11,7 +11,7 @@ export function AgentEditPage() {
   const { data: agent, loading, error } = useProviderAgent(id)
   const { updateAgent } = useProviderMutations()
 
-  const handleSubmit = async (data: PublishAgentData) => {
+  const handleSubmit = async (data: RegisterAgentData) => {
     if (!id) return
     await updateAgent(id, data)
     navigate(`/console/agents/${id}`)
@@ -35,7 +35,7 @@ export function AgentEditPage() {
 
   if (!agent) return null
 
-  const initialData: Partial<PublishAgentData> = {
+  const initialData: Partial<RegisterAgentData> = {
     name: agent.name,
     description: agent.description,
     version: agent.version,
@@ -57,7 +57,7 @@ export function AgentEditPage() {
         </p>
       </div>
 
-      <PublishWizard onSubmit={handleSubmit} initialData={initialData} editMode />
+      <RegisterWizard onSubmit={handleSubmit} initialData={initialData} editMode />
     </div>
   )
 }

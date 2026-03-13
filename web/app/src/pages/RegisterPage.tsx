@@ -30,7 +30,7 @@ export function RegisterPage() {
         <img src="/logo.jpg" alt="PeerClaw" className="mx-auto mb-4 size-12 rounded-md object-cover" />
         <h1 className="text-xl font-bold">{t('auth.createAnAccount')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t('auth.joinMarketplace')}
+          {t('auth.joinPlatform')}
         </p>
       </div>
       <RegisterForm onSubmit={handleRegister} />

@@ -2,7 +2,7 @@
 
 # PeerClaw Web App
 
-PeerClaw Web 应用 — 基于 React + TypeScript + Vite 构建的 Agent Marketplace 前端。
+PeerClaw Web 应用 — 基于 React + TypeScript + Vite 构建的 Agent Platform 前端。
 
 ## 架构
 
@@ -16,7 +16,7 @@ src/
 │   ├── auth/      # 登录、注册、认证守卫
 │   ├── layout/    # AppLayout, Sidebar, ConsoleLayout, PublicLayout
 │   ├── provider/  # Provider 控制台组件
-│   ├── public/    # 公开 Marketplace 组件
+│   ├── public/    # 公开平台组件
 │   ├── playground/# Agent Playground 与调用 UI
 │   └── overview/  # Dashboard 概览组件
 ├── hooks/         # 自定义 React Hooks（auth, provider, playground 等）
@@ -31,7 +31,7 @@ src/
 | 路由 | 页面 | 描述 |
 |------|------|------|
 | `/` | LandingPage | 平台统计、价值主张、搜索入口 |
-| `/directory` | DirectoryPage | Agent 市场（搜索、筛选、排序） |
+| `/directory` | DirectoryPage | Agent 目录（搜索、筛选、排序） |
 | `/agents/:id` | PublicProfilePage | Agent 详情、声誉、评价 |
 | `/playground` | PlaygroundPage | 通过聊天界面试用 Agent |
 | `/playground/:agentId` | PlaygroundPage | 预选 Agent 的 Playground |
@@ -43,9 +43,9 @@ src/
 | 路由 | 页面 | 描述 |
 |------|------|------|
 | `/console` | ProviderDashboardPage | Agent 统计、Claim Token |
-| `/console/publish` | AgentPublishPage | 5 步 Agent 发布向导 |
+| `/console/publish` | AgentPublishPage | 5 步 Agent 注册向导 |
 | `/console/agents/:id` | ProviderAgentDetailPage | Agent 详情、分析、联系人 |
-| `/console/agents/:id/edit` | AgentEditPage | 编辑已发布的 Agent |
+| `/console/agents/:id/edit` | AgentEditPage | 编辑已注册的 Agent |
 | `/console/invocations` | InvocationHistoryPage | 调用历史 |
 | `/console/api-keys` | APIKeysPage | API Key 管理 |
 
@@ -94,7 +94,7 @@ npm run lint
 - `/auth/*` — 用户注册、登录、JWT 令牌、API Key
 - `/directory/*` — 公开 Agent 目录、详情、评价
 - `/invoke/:agentId` — Agent 调用（支持 SSE 流式）
-- `/provider/*` — Provider 控制台（发布、管理、分析）
+- `/provider/*` — Provider 控制台（注册、管理、分析）
 - `/admin/*` — 管理后台（用户、Agent、举报、分类）
 - `/claim-tokens` — Claim Token 生成（Agent 配对）
 - `/blobs` — 文件上传/下载

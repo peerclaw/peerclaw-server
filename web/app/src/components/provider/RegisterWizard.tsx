@@ -5,18 +5,18 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react"
-import type { PublishAgentData } from "@/hooks/use-provider"
+import type { RegisterAgentData } from "@/hooks/use-provider"
 
-interface PublishWizardProps {
-  onSubmit: (data: PublishAgentData) => Promise<void>
-  initialData?: Partial<PublishAgentData>
+interface RegisterWizardProps {
+  onSubmit: (data: RegisterAgentData) => Promise<void>
+  initialData?: Partial<RegisterAgentData>
   editMode?: boolean
 }
 
 const AUTH_TYPES = ["none", "api_key", "bearer_token", "oauth2"]
 const PROTOCOL_OPTIONS = ["a2a", "mcp", "http", "grpc"]
 
-export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizardProps) {
+export function RegisterWizard({ onSubmit, initialData, editMode }: RegisterWizardProps) {
   const { t } = useTranslation()
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -130,7 +130,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
   }
 
   const handleSubmit = async () => {
-    const data: PublishAgentData = {
+    const data: RegisterAgentData = {
       name: name.trim(),
       description: description.trim(),
       version: version.trim(),
@@ -152,7 +152,7 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
     try {
       await onSubmit(data)
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('wizard.failedPublish'))
+      setError(e instanceof Error ? e.message : t('wizard.failedRegister'))
     } finally {
       setSubmitting(false)
     }
@@ -524,8 +524,8 @@ export function PublishWizard({ onSubmit, initialData, editMode }: PublishWizard
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="size-4 animate-spin" />}
               {submitting
-                ? editMode ? t('wizard.saving') : t('wizard.publishing')
-                : editMode ? t('wizard.saveChanges') : t('wizard.publishAgent')}
+                ? editMode ? t('wizard.saving') : t('wizard.registering')
+                : editMode ? t('wizard.saveChanges') : t('wizard.registerAgent')}
             </Button>
           )}
         </div>

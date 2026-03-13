@@ -89,12 +89,12 @@ export function ProviderDashboardPage() {
         {data.agents.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
             <Bot className="size-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">{t('provider.noAgentsPublished')}</p>
+            <p className="text-sm text-muted-foreground">{t('provider.noAgentsRegistered')}</p>
             <Link
-              to="/console/publish"
+              to="/console/register"
               className="text-sm text-primary hover:underline mt-1"
             >
-              {t('provider.publishFirst')}
+              {t('provider.registerFirst')}
             </Link>
           </div>
         ) : (
