@@ -14,7 +14,7 @@ export function ReputationChart({ events }: { events: ReputationEvent[] }) {
   const { t } = useTranslation()
 
   // Events come newest first, reverse for chronological display.
-  const data = [...events].reverse().map((e) => ({
+  const data = [...(events ?? [])].reverse().map((e) => ({
     time: new Date(e.created_at).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",

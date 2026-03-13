@@ -56,7 +56,7 @@ export function EventFeed({ agents }: Props) {
                   <div>
                     <p className="text-sm font-medium">{agent.name}</p>
                     <div className="flex gap-1 mt-1">
-                      {agent.protocols.map((p) => (
+                      {(agent.protocols ?? []).map((p) => (
                         <Badge key={p} variant="secondary" className="text-[10px] px-1.5 py-0">
                           {p.toUpperCase()}
                         </Badge>

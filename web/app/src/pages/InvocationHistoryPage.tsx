@@ -75,7 +75,7 @@ export function InvocationHistoryPage() {
 
       {data && (
         <>
-          {data.invocations.length === 0 ? (
+          {(data.invocations ?? []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
               <p className="text-sm text-muted-foreground">{t('invocations.noInvocations')}</p>
             </div>
@@ -91,7 +91,7 @@ export function InvocationHistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.invocations.map((inv) => (
+                {(data.invocations ?? []).map((inv) => (
                   <TableRow key={inv.id}>
                     <TableCell>
                       <span className="font-medium font-mono text-xs">{inv.agent_id}</span>

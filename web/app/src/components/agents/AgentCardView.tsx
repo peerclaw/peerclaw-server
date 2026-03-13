@@ -77,7 +77,7 @@ export function AgentCardView({ agent }: Props) {
               Protocols
             </h4>
             <div className="flex gap-1.5">
-              {agent.protocols.map((p) => (
+              {(agent.protocols ?? []).map((p) => (
                 <Badge key={p} variant="outline">
                   {p.toUpperCase()}
                 </Badge>

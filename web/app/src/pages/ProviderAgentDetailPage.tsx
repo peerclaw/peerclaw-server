@@ -167,7 +167,7 @@ export function ProviderAgentDetailPage() {
             <div>
               <span className="text-muted-foreground">{t('provider.capabilities')}</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {agent.capabilities.map((cap) => (
+                {(agent.capabilities ?? []).map((cap) => (
                   <Badge key={cap} variant="secondary">
                     {cap}
                   </Badge>
@@ -177,18 +177,18 @@ export function ProviderAgentDetailPage() {
             <div>
               <span className="text-muted-foreground">{t('provider.protocols')}</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {agent.protocols.map((proto) => (
+                {(agent.protocols ?? []).map((proto) => (
                   <Badge key={proto} variant="outline">
                     {proto.toUpperCase()}
                   </Badge>
                 ))}
               </div>
             </div>
-            {agent.tags.length > 0 && (
+            {(agent.tags ?? []).length > 0 && (
               <div className="sm:col-span-2">
                 <span className="text-muted-foreground">{t('provider.tags')}</span>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {agent.tags.map((tag) => (
+                  {(agent.tags ?? []).map((tag) => (
                     <Badge key={tag} variant="secondary">
                       {tag}
                     </Badge>
@@ -216,14 +216,14 @@ export function ProviderAgentDetailPage() {
       {id && <ContactsSection agentId={id} />}
 
       {/* Access Requests */}
-      {accessRequestsData && accessRequestsData.requests.length > 0 && (
+      {accessRequestsData && (accessRequestsData.requests ?? []).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">{t('accessRequest.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {accessRequestsData.requests.map((req) => (
+              {(accessRequestsData.requests ?? []).map((req) => (
                 <div
                   key={req.id}
                   className="flex items-center justify-between rounded-md border border-border p-3 text-sm"
@@ -304,22 +304,22 @@ export function ProviderAgentDetailPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <AgentStatsCard
               title={t('provider.totalCalls')}
-              value={analytics.total_calls.toLocaleString()}
+              value={(analytics.total_calls ?? 0).toLocaleString()}
               icon={PhoneCall}
             />
             <AgentStatsCard
               title={t('provider.successRate')}
-              value={`${analytics.success_rate.toFixed(1)}%`}
+              value={`${(analytics.success_rate ?? 0).toFixed(1)}%`}
               icon={CheckCircle}
             />
             <AgentStatsCard
               title={t('provider.avgLatency')}
-              value={`${analytics.avg_latency_ms.toFixed(0)}ms`}
+              value={`${(analytics.avg_latency_ms ?? 0).toFixed(0)}ms`}
               icon={Timer}
             />
           </div>
 
-          {analytics.time_series.length > 0 && (
+          {(analytics.time_series ?? []).length > 0 && (
             <AnalyticsChart data={analytics.time_series} />
           )}
         </>

@@ -96,15 +96,15 @@ export function ReviewSection({ agentId }: ReviewSectionProps) {
                     className="h-2 rounded-full bg-yellow-400"
                     style={{
                       width: `${
-                        summary.total_reviews > 0
-                          ? (summary.distribution[4 - idx] / summary.total_reviews) * 100
+                        summary.total_reviews > 0 && summary.distribution
+                          ? ((summary.distribution[4 - idx] ?? 0) / summary.total_reviews) * 100
                           : 0
                       }%`,
                     }}
                   />
                 </div>
                 <span className="w-6 text-right text-muted-foreground">
-                  {summary.distribution[4 - idx]}
+                  {summary.distribution?.[4 - idx] ?? 0}
                 </span>
               </div>
             ))}

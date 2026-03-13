@@ -86,7 +86,7 @@ export function ProviderDashboardPage() {
       {/* Agent list */}
       <div>
         <h2 className="text-lg font-semibold mb-3">{t('provider.myAgents')}</h2>
-        {data.agents.length === 0 ? (
+        {(data.agents ?? []).length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
             <Bot className="size-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">{t('provider.noAgentsRegistered')}</p>
@@ -109,7 +109,7 @@ export function ProviderDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.agents.map((agent) => (
+              {(data.agents ?? []).map((agent) => (
                 <TableRow key={agent.id}>
                   <TableCell>
                     <Link

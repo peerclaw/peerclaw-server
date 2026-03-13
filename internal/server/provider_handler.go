@@ -341,19 +341,43 @@ func (s *HTTPServer) handleProviderAgentAnalytics(w http.ResponseWriter, r *http
 
 	stats, err := s.invocation.AgentStats(r.Context(), id, since)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
-		return
+		s.logger.Warn("analytics: agent stats failed", "agent_id", id, "error", err)
 	}
 
 	timeSeries, err := s.invocation.AgentTimeSeries(r.Context(), id, since, bucketMinutes)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
-		return
+		s.logger.Warn("analytics: agent time series failed", "agent_id", id, "error", err)
+	}
+
+	// Transform to flat shape the frontend expects.
+	var totalCalls int64
+	var successRate float64
+	var avgLatencyMs float64
+	if stats != nil {
+		totalCalls = stats.TotalCalls
+		if stats.TotalCalls > 0 {
+			successRate = float64(stats.SuccessCalls) / float64(stats.TotalCalls) * 100
+		}
+		avgLatencyMs = stats.AvgDurationMs
+	}
+
+	type tsPoint struct {
+		Timestamp string `json:"timestamp"`
+		Count     int64  `json:"count"`
+	}
+	points := make([]tsPoint, 0, len(timeSeries))
+	for _, p := range timeSeries {
+		points = append(points, tsPoint{
+			Timestamp: p.Timestamp.Format(time.RFC3339),
+			Count:     p.TotalCalls,
+		})
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]any{
-		"stats":       stats,
-		"time_series": timeSeries,
+		"total_calls":    totalCalls,
+		"success_rate":   successRate,
+		"avg_latency_ms": avgLatencyMs,
+		"time_series":    points,
 	})
 }
 

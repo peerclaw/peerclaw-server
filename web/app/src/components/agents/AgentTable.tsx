@@ -84,7 +84,7 @@ export function AgentTable({ agents }: Props) {
                   ))}
                   {(agent.capabilities ?? []).length > 3 && (
                     <Badge variant="secondary" className="text-[10px]">
-                      +{agent.capabilities.length - 3}
+                      +{(agent.capabilities ?? []).length - 3}
                     </Badge>
                   )}
                 </div>

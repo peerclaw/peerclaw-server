@@ -7,18 +7,20 @@ interface Props {
 }
 
 export function StatsCards({ stats }: Props) {
-  const activeBridges = stats.bridges.filter((b) => b.available).length
+  const bridges = stats.bridges ?? []
+  const activeBridges = bridges.filter((b) => b.available).length
+  const health = stats.health ?? { status: "unknown", components: {} }
 
   const cards = [
     {
       title: "Registered Agents",
-      value: stats.registered_agents,
+      value: stats.registered_agents ?? 0,
       icon: Bot,
       description: "Total registered",
     },
     {
       title: "Online Now",
-      value: stats.connected_agents,
+      value: stats.connected_agents ?? 0,
       icon: Wifi,
       description: "Connected via signaling",
     },
@@ -26,14 +28,14 @@ export function StatsCards({ stats }: Props) {
       title: "Active Bridges",
       value: activeBridges,
       icon: Network,
-      description: `of ${stats.bridges.length} configured`,
+      description: `of ${bridges.length} configured`,
     },
     {
       title: "System Health",
-      value: stats.health.status === "ok" ? "OK" : "Degraded",
+      value: health.status === "ok" ? "OK" : "Degraded",
       icon: HeartPulse,
-      description: `${Object.keys(stats.health.components).length} components`,
-      variant: stats.health.status === "ok" ? "default" : ("destructive" as const),
+      description: `${Object.keys(health.components ?? {}).length} components`,
+      variant: health.status === "ok" ? "default" : ("destructive" as const),
     },
   ]
 

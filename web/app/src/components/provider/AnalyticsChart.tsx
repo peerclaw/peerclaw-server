@@ -12,7 +12,7 @@ export function AnalyticsChart({ data, title }: AnalyticsChartProps) {
 
   const displayTitle = title ?? t('analyticsChart.invocationsOverTime')
 
-  if (!data.length) {
+  if (!data || !data.length) {
     return (
       <Card>
         <CardHeader>

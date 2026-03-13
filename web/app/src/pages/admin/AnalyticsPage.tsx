@@ -147,7 +147,7 @@ export function AnalyticsPage() {
                         <TableCell>{point.total_calls}</TableCell>
                         <TableCell className="text-green-500">{point.success_calls}</TableCell>
                         <TableCell className="text-red-500">{point.error_calls}</TableCell>
-                        <TableCell>{point.avg_duration_ms.toFixed(0)}ms</TableCell>
+                        <TableCell>{(point.avg_duration_ms ?? 0).toFixed(0)}ms</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -186,15 +186,15 @@ export function AnalyticsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="font-bold">
-                        {agent.total_calls.toLocaleString()}
+                        {(agent.total_calls ?? 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-green-500">
-                        {agent.success_calls.toLocaleString()}
+                        {(agent.success_calls ?? 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-red-500">
-                        {agent.error_calls.toLocaleString()}
+                        {(agent.error_calls ?? 0).toLocaleString()}
                       </TableCell>
-                      <TableCell>{agent.avg_duration_ms.toFixed(0)}ms</TableCell>
+                      <TableCell>{(agent.avg_duration_ms ?? 0).toFixed(0)}ms</TableCell>
                     </TableRow>
                   ))}
                   {topAgents.length === 0 && (

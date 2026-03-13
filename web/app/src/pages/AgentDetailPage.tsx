@@ -235,25 +235,25 @@ export function AgentDetailPage() {
               <div>
                 <span className="text-muted-foreground">{t('adminDetail.totalCalls')}</span>
                 <p className="text-lg font-bold">
-                  {invocation_stats.total_calls.toLocaleString()}
+                  {(invocation_stats.total_calls ?? 0).toLocaleString()}
                 </p>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('adminDetail.success')}</span>
                 <p className="text-lg font-bold text-green-500">
-                  {invocation_stats.success_calls.toLocaleString()}
+                  {(invocation_stats.success_calls ?? 0).toLocaleString()}
                 </p>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('adminDetail.errors')}</span>
                 <p className="text-lg font-bold text-red-500">
-                  {invocation_stats.error_calls.toLocaleString()}
+                  {(invocation_stats.error_calls ?? 0).toLocaleString()}
                 </p>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('adminDetail.avgDuration')}</span>
                 <p className="text-lg font-bold">
-                  {invocation_stats.avg_duration_ms.toFixed(0)}ms
+                  {(invocation_stats.avg_duration_ms ?? 0).toFixed(0)}ms
                 </p>
               </div>
             </div>
