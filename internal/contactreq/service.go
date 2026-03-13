@@ -67,20 +67,21 @@ func (s *Service) Submit(ctx context.Context, fromAgentID, toAgentID, message st
 }
 
 // Approve approves a contact request and adds both agents as contacts of each other.
-func (s *Service) Approve(ctx context.Context, id string) error {
+// Returns the approved request so callers can notify both agents.
+func (s *Service) Approve(ctx context.Context, id string) (*ContactRequest, error) {
 	req, err := s.store.GetByID(ctx, id)
 	if err != nil {
-		return fmt.Errorf("get contact request: %w", err)
+		return nil, fmt.Errorf("get contact request: %w", err)
 	}
 	if req == nil {
-		return fmt.Errorf("contact request not found")
+		return nil, fmt.Errorf("contact request not found")
 	}
 	if req.Status != "pending" {
-		return fmt.Errorf("contact request is not pending (status: %s)", req.Status)
+		return nil, fmt.Errorf("contact request is not pending (status: %s)", req.Status)
 	}
 
 	if err := s.store.UpdateStatus(ctx, id, "approved", ""); err != nil {
-		return fmt.Errorf("approve contact request: %w", err)
+		return nil, fmt.Errorf("approve contact request: %w", err)
 	}
 
 	// Bidirectional contact addition.
@@ -94,7 +95,7 @@ func (s *Service) Approve(ctx context.Context, id string) error {
 	}
 
 	s.logger.Info("contact request approved", "id", id, "from", req.FromAgentID, "to", req.ToAgentID)
-	return nil
+	return req, nil
 }
 
 // Reject rejects a contact request with a reason.

@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/contactreq"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
 )
@@ -105,10 +108,12 @@ func (s *HTTPServer) handleAgentUpdateContactRequest(w http.ResponseWriter, r *h
 
 	switch body.Action {
 	case "approve":
-		if err := s.contactReq.Approve(r.Context(), requestID); err != nil {
+		req, err := s.contactReq.Approve(r.Context(), requestID)
+		if err != nil {
 			s.jsonError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		s.notifyContactAdded(r.Context(), req)
 	case "reject":
 		if err := s.contactReq.Reject(r.Context(), requestID, body.Reason); err != nil {
 			s.jsonError(w, err.Error(), http.StatusBadRequest)
@@ -120,6 +125,25 @@ func (s *HTTPServer) handleAgentUpdateContactRequest(w http.ResponseWriter, r *h
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// notifyContactAdded pushes a contact_added WebSocket notification to both agents.
+func (s *HTTPServer) notifyContactAdded(ctx context.Context, req *contactreq.ContactRequest) {
+	if s.sigHub == nil || req == nil {
+		return
+	}
+	for _, pair := range [][2]string{
+		{req.FromAgentID, req.ToAgentID},
+		{req.ToAgentID, req.FromAgentID},
+	} {
+		notif := coresignaling.SignalMessage{
+			Type:    coresignaling.MessageTypeContactAdded,
+			From:    "server",
+			To:      pair[0],
+			Payload: json.RawMessage(fmt.Sprintf(`{"agent_id":"%s"}`, pair[1])),
+		}
+		s.sigHub.DeliverLocal(ctx, notif)
+	}
 }
 
 // --- Provider-side contact request handlers (UserAuthMiddleware + ownership check) ---
@@ -184,10 +208,12 @@ func (s *HTTPServer) handleProviderUpdateContactRequest(w http.ResponseWriter, r
 
 	switch body.Action {
 	case "approve":
-		if err := s.contactReq.Approve(r.Context(), requestID); err != nil {
+		req, err := s.contactReq.Approve(r.Context(), requestID)
+		if err != nil {
 			s.jsonError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		s.notifyContactAdded(r.Context(), req)
 	case "reject":
 		if err := s.contactReq.Reject(r.Context(), requestID, body.Reason); err != nil {
 			s.jsonError(w, err.Error(), http.StatusBadRequest)
