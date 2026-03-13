@@ -36,6 +36,7 @@
     "signOut": "تسجيل الخروج",
     "adminPanel": "لوحة الإدارة",
     "backToPublicSite": "الرئيسية",
+    "backToConsole": "العودة إلى لوحة التحكم",
     "backToHome": "الرئيسية",
     "peerclawConsole": "لوحة تحكم PeerClaw",
     "peerclawAdmin": "إدارة PeerClaw",
@@ -355,7 +356,9 @@
     "pendingReports": "البلاغات المعلّقة",
     "systemHealth": "صحة النظام",
     "database": "قاعدة البيانات",
-    "overallStatus": "الحالة العامة"
+    "overallStatus": "الحالة العامة",
+    "healthy": "سليم",
+    "unhealthy": "غير سليم"
   },
   "adminAgents": {
     "title": "الوكلاء",

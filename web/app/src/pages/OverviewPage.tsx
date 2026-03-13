@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { CircleCheck, CircleAlert } from "lucide-react"
 
 export function OverviewPage() {
   const { t } = useTranslation()
@@ -48,9 +48,17 @@ export function OverviewPage() {
             {t('admin.systemOverview')}
           </p>
         </div>
-        <Badge variant={data.health?.status === "ok" ? "default" : "destructive"}>
-          {data.health?.status ?? "unknown"}
-        </Badge>
+        {data.health?.status === "ok" ? (
+          <span className="inline-flex items-center gap-1.5 text-sm text-emerald-500">
+            <CircleCheck className="size-4" />
+            {t('admin.healthy')}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-sm text-destructive">
+            <CircleAlert className="size-4" />
+            {t('admin.unhealthy')}
+          </span>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -76,15 +84,17 @@ export function OverviewPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('admin.database')}</span>
-              <Badge variant={data.health?.database === "ok" ? "default" : "destructive"}>
-                {data.health?.database ?? "n/a"}
-              </Badge>
+              <span className={`inline-flex items-center gap-1.5 text-sm ${data.health?.database === "ok" ? "text-emerald-500" : "text-destructive"}`}>
+                <span className={`size-2 rounded-full ${data.health?.database === "ok" ? "bg-emerald-500" : "bg-destructive"}`} />
+                {data.health?.database === "ok" ? t('admin.healthy') : (data.health?.database ?? "n/a")}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('admin.overallStatus')}</span>
-              <Badge variant={data.health?.status === "ok" ? "default" : "destructive"}>
-                {data.health?.status ?? "unknown"}
-              </Badge>
+              <span className={`inline-flex items-center gap-1.5 text-sm ${data.health?.status === "ok" ? "text-emerald-500" : "text-destructive"}`}>
+                <span className={`size-2 rounded-full ${data.health?.status === "ok" ? "bg-emerald-500" : "bg-destructive"}`} />
+                {data.health?.status === "ok" ? t('admin.healthy') : (data.health?.status ?? "unknown")}
+              </span>
             </div>
           </div>
         </CardContent>

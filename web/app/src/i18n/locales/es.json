@@ -36,6 +36,7 @@
     "signOut": "Cerrar sesión",
     "adminPanel": "Panel de administración",
     "backToPublicSite": "Inicio",
+    "backToConsole": "Volver a la Consola",
     "backToHome": "Inicio",
     "peerclawConsole": "Consola PeerClaw",
     "peerclawAdmin": "Administración PeerClaw",
@@ -355,7 +356,9 @@
     "pendingReports": "Reportes pendientes",
     "systemHealth": "Estado del sistema",
     "database": "Base de datos",
-    "overallStatus": "Estado general"
+    "overallStatus": "Estado general",
+    "healthy": "Saludable",
+    "unhealthy": "No saludable"
   },
   "adminAgents": {
     "title": "Agentes",

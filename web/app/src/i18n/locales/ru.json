@@ -36,6 +36,7 @@
     "signOut": "Выйти",
     "adminPanel": "Панель администратора",
     "backToPublicSite": "Главная",
+    "backToConsole": "Вернуться в консоль",
     "backToHome": "Главная",
     "peerclawConsole": "Консоль PeerClaw",
     "peerclawAdmin": "Администрирование PeerClaw",
@@ -355,7 +356,9 @@
     "pendingReports": "Ожидающие жалобы",
     "systemHealth": "Состояние системы",
     "database": "База данных",
-    "overallStatus": "Общий статус"
+    "overallStatus": "Общий статус",
+    "healthy": "Исправно",
+    "unhealthy": "Неисправно"
   },
   "adminAgents": {
     "title": "Агенты",

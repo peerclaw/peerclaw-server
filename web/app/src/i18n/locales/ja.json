@@ -36,6 +36,7 @@
     "signOut": "サインアウト",
     "adminPanel": "管理パネル",
     "backToPublicSite": "ホームへ戻る",
+    "backToConsole": "コンソールに戻る",
     "backToHome": "ホーム",
     "peerclawConsole": "PeerClaw コンソール",
     "peerclawAdmin": "PeerClaw 管理",
@@ -355,7 +356,9 @@
     "pendingReports": "保留中の報告",
     "systemHealth": "システムヘルス",
     "database": "データベース",
-    "overallStatus": "全体ステータス"
+    "overallStatus": "全体ステータス",
+    "healthy": "正常",
+    "unhealthy": "異常"
   },
   "adminAgents": {
     "title": "Agent 一覧",

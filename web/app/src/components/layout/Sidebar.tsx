@@ -8,6 +8,7 @@ import {
   BarChart3,
   Activity,
   Github,
+  ArrowLeft,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
@@ -62,17 +63,24 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border p-3 space-y-2">
+        <NavLink
+          to="/console"
+          className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-3.5" />
+          {t('nav.backToConsole')}
+        </NavLink>
         {user && (
           <UserMenu user={user} onLogout={handleLogout} />
         )}
-        <div className="flex items-center justify-between px-3">
+        <div className="flex items-center justify-between px-3 py-1">
           <NavLink
             to="/"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             {t('nav.backToPublicSite')}
           </NavLink>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <a
               href="https://github.com/peerclaw/peerclaw"
               target="_blank"

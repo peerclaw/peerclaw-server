@@ -36,6 +36,7 @@
     "signOut": "Sair",
     "adminPanel": "Painel Admin",
     "backToPublicSite": "Início",
+    "backToConsole": "Voltar ao Console",
     "backToHome": "Início",
     "peerclawConsole": "Console PeerClaw",
     "peerclawAdmin": "Admin PeerClaw",
@@ -355,7 +356,9 @@
     "pendingReports": "Denúncias Pendentes",
     "systemHealth": "Saúde do Sistema",
     "database": "Banco de Dados",
-    "overallStatus": "Status Geral"
+    "overallStatus": "Status Geral",
+    "healthy": "Saudável",
+    "unhealthy": "Não saudável"
   },
   "adminAgents": {
     "title": "Agentes",

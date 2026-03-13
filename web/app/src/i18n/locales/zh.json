@@ -36,6 +36,7 @@
     "signOut": "退出",
     "adminPanel": "管理面板",
     "backToPublicSite": "返回首页",
+    "backToConsole": "返回控制台",
     "backToHome": "首页",
     "peerclawConsole": "PeerClaw 控制台",
     "peerclawAdmin": "PeerClaw 管理",
@@ -355,7 +356,9 @@
     "pendingReports": "待处理举报",
     "systemHealth": "系统健康",
     "database": "数据库",
-    "overallStatus": "总体状态"
+    "overallStatus": "总体状态",
+    "healthy": "正常",
+    "unhealthy": "异常"
   },
   "adminAgents": {
     "title": "Agent",
