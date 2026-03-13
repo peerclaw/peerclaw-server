@@ -53,6 +53,9 @@ type Store interface {
 	// UnsetAgentVerified removes the verified status from an agent.
 	UnsetAgentVerified(ctx context.Context, agentID string) error
 
+	// IsAgentVerified returns whether the agent is verified and, if so, when.
+	IsAgentVerified(ctx context.Context, agentID string) (bool, *time.Time, error)
+
 	// ListStaleOnlineAgents returns IDs of agents whose status is online but
 	// whose last heartbeat is older than the given timeout.
 	ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error)

@@ -30,6 +30,19 @@ export interface ProviderAgent {
   updated_at: string
   playground_enabled?: boolean
   visibility?: string
+  public_key?: string
+  skills?: Array<{ name: string; description?: string }>
+  categories?: string[]
+  verified?: boolean
+  verified_at?: string
+  registered_at?: string
+  last_heartbeat?: string
+  reputation_score?: number
+  review_summary?: {
+    average_rating: number
+    total_reviews: number
+    distribution: number[]
+  }
 }
 
 export interface ProviderDashboardData {

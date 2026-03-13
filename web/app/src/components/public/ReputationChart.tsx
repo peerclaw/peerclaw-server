@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -35,7 +35,13 @@ export function ReputationChart({ events }: { events: ReputationEvent[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={data}>
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+            <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis
           dataKey="time"
@@ -57,16 +63,17 @@ export function ReputationChart({ events }: { events: ReputationEvent[] }) {
           }}
           labelStyle={{ color: "hsl(var(--foreground))" }}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="score"
           stroke="hsl(var(--chart-1))"
-          strokeWidth={2}
+          strokeWidth={2.5}
+          fill="url(#chartGradient)"
           dot={{ r: 4, fill: "hsl(var(--chart-1))", strokeWidth: 0 }}
           activeDot={{ r: 6, fill: "hsl(var(--chart-1))", strokeWidth: 2, stroke: "hsl(var(--card))" }}
           connectNulls
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   )
 }

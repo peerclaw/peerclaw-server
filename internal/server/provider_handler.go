@@ -165,23 +165,61 @@ func (s *HTTPServer) handleProviderGetAgent(w http.ResponseWriter, r *http.Reque
 	// Enrich response with access flags.
 	flags, _ := s.registry.GetAccessFlags(r.Context(), id)
 	resp := map[string]any{
-		"id":           card.ID,
-		"name":         card.Name,
-		"description":  card.Description,
-		"version":      card.Version,
-		"capabilities": card.Capabilities,
-		"protocols":    card.Protocols,
-		"status":       card.Status,
-		"endpoint_url": card.Endpoint.URL,
-		"auth_type":    card.Auth.Type,
-		"tags":         card.PeerClaw.Tags,
-		"created_at":   card.RegisteredAt,
-		"updated_at":   card.LastHeartbeat,
+		"id":             card.ID,
+		"name":           card.Name,
+		"description":    card.Description,
+		"version":        card.Version,
+		"capabilities":   card.Capabilities,
+		"protocols":      card.Protocols,
+		"status":         card.Status,
+		"endpoint_url":   card.Endpoint.URL,
+		"auth_type":      card.Auth.Type,
+		"tags":           card.PeerClaw.Tags,
+		"created_at":     card.RegisteredAt,
+		"updated_at":     card.LastHeartbeat,
+		"public_key":     card.PublicKey,
+		"skills":         card.Skills,
+		"registered_at":  card.RegisteredAt,
+		"last_heartbeat": card.LastHeartbeat,
 	}
 	if flags != nil {
 		resp["playground_enabled"] = flags.PlaygroundEnabled
 		resp["visibility"] = flags.Visibility
 	}
+
+	// Enrich with live reputation score and verified status.
+	if s.reputation != nil {
+		score, _ := s.reputation.GetScore(r.Context(), card.ID)
+		resp["reputation_score"] = score
+		verified, verifiedAt, err := s.reputation.IsVerified(r.Context(), card.ID)
+		if err == nil {
+			resp["verified"] = verified
+			if verifiedAt != nil {
+				resp["verified_at"] = verifiedAt
+			}
+		}
+	}
+
+	// Enrich with review summary and categories.
+	if s.reviewService != nil {
+		summary, err := s.reviewService.GetSummary(r.Context(), card.ID)
+		if err == nil && summary != nil {
+			resp["review_summary"] = map[string]any{
+				"average_rating": summary.AverageRating,
+				"total_reviews":  summary.TotalReviews,
+				"distribution":   summary.Distribution,
+			}
+		}
+		categories, err := s.reviewService.GetCategoriesByAgent(r.Context(), card.ID)
+		if err == nil && len(categories) > 0 {
+			slugs := make([]string, len(categories))
+			for i, c := range categories {
+				slugs[i] = c.Slug
+			}
+			resp["categories"] = slugs
+		}
+	}
+
 	s.jsonResponse(w, http.StatusOK, resp)
 }
 

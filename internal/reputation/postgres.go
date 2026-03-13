@@ -160,6 +160,19 @@ func (s *PostgresStore) UnsetAgentVerified(ctx context.Context, agentID string) 
 	return err
 }
 
+// IsAgentVerified returns whether the agent is verified and, if so, when.
+func (s *PostgresStore) IsAgentVerified(ctx context.Context, agentID string) (bool, *time.Time, error) {
+	var verified bool
+	var verifiedAt *time.Time
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(verified, FALSE), verified_at FROM agents WHERE id = $1`, agentID,
+	).Scan(&verified, &verifiedAt)
+	if err != nil {
+		return false, nil, err
+	}
+	return verified, verifiedAt, nil
+}
+
 // ListStaleOnlineAgents returns IDs of agents whose status is online but
 // whose last heartbeat is older than the given timeout.
 func (s *PostgresStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {

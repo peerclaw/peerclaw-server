@@ -174,6 +174,24 @@ func (s *SQLiteStore) UnsetAgentVerified(ctx context.Context, agentID string) er
 	return err
 }
 
+// IsAgentVerified returns whether the agent is verified and, if so, when.
+func (s *SQLiteStore) IsAgentVerified(ctx context.Context, agentID string) (bool, *time.Time, error) {
+	var verified bool
+	var verifiedAt *string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(verified, 0), verified_at FROM agents WHERE id = ?`, agentID,
+	).Scan(&verified, &verifiedAt)
+	if err != nil {
+		return false, nil, err
+	}
+	if verifiedAt != nil {
+		if t, err := time.Parse(time.RFC3339, *verifiedAt); err == nil {
+			return verified, &t, nil
+		}
+	}
+	return verified, nil, nil
+}
+
 // ListStaleOnlineAgents returns IDs of agents whose status is online but
 // whose last heartbeat is older than the given timeout.
 func (s *SQLiteStore) ListStaleOnlineAgents(ctx context.Context, timeout time.Duration) ([]string, error) {

@@ -114,6 +114,11 @@ func (s *Service) ListCategories(ctx context.Context) ([]Category, error) {
 	return s.store.ListCategories(ctx)
 }
 
+// GetCategoriesByAgent returns the categories associated with an agent.
+func (s *Service) GetCategoriesByAgent(ctx context.Context, agentID string) ([]Category, error) {
+	return s.store.GetCategoriesByAgent(ctx, agentID)
+}
+
 // ListReports returns abuse reports with optional status filter.
 func (s *Service) ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error) {
 	return s.store.ListReports(ctx, status, limit, offset)

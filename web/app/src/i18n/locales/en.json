@@ -211,7 +211,14 @@
     "deleting": "Deleting...",
     "deleteConfirm": "Are you sure you want to delete this agent? This action cannot be undone.",
     "name": "Name",
-    "calls": "Calls"
+    "calls": "Calls",
+    "identityTrust": "Identity & Trust",
+    "publicKey": "Public Key",
+    "agentId": "Agent ID",
+    "reputationScore": "Reputation Score",
+    "skills": "Skills",
+    "categories": "Categories",
+    "copied": "Copied"
   },
   "claim": {
     "title": "Claim Tokens",

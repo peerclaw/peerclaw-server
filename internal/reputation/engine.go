@@ -175,3 +175,8 @@ func (e *Engine) SetVerified(ctx context.Context, agentID string) error {
 func (e *Engine) UnsetVerified(ctx context.Context, agentID string) error {
 	return e.store.UnsetAgentVerified(ctx, agentID)
 }
+
+// IsVerified returns whether the agent is verified and, if so, when.
+func (e *Engine) IsVerified(ctx context.Context, agentID string) (bool, *time.Time, error) {
+	return e.store.IsAgentVerified(ctx, agentID)
+}

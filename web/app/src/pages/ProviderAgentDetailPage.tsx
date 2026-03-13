@@ -11,6 +11,9 @@ import {
 import { AnalyticsChart } from "@/components/provider/AnalyticsChart"
 import { AgentStatsCard } from "@/components/provider/AgentStatsCard"
 import { ContactsSection } from "@/components/provider/ContactsSection"
+import { ReputationMeter } from "@/components/public/ReputationMeter"
+import { VerifiedBadge } from "@/components/public/VerifiedBadge"
+import { ReviewSection } from "@/components/public/ReviewSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +28,8 @@ import {
   Check,
   X,
   RotateCcw,
+  Key,
+  Copy,
 } from "lucide-react"
 
 export function ProviderAgentDetailPage() {
@@ -38,6 +43,7 @@ export function ProviderAgentDetailPage() {
   const { deleteAgent } = useProviderMutations()
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   const handleDelete = async () => {
     if (!id) return
@@ -56,6 +62,12 @@ export function ProviderAgentDetailPage() {
     } finally {
       setDeleting(false)
     }
+  }
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
   }
 
   if (loading) {
@@ -99,7 +111,10 @@ export function ProviderAgentDetailPage() {
             <ArrowLeft className="size-3" />
             {t('provider.backToAgents')}
           </button>
-          <h1 className="text-2xl font-bold">{agent.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{agent.name}</h1>
+            {agent.verified && <VerifiedBadge />}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">{agent.description}</p>
         </div>
         <div className="flex gap-2">
@@ -127,6 +142,69 @@ export function ProviderAgentDetailPage() {
         <p className="text-sm text-destructive">{deleteError}</p>
       )}
 
+      {/* Identity & Trust */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Key className="size-4" />
+            {t('provider.identityTrust')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 text-sm sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <span className="text-muted-foreground">{t('provider.agentId')}</span>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="font-mono text-xs truncate">{agent.id}</span>
+                <button
+                  onClick={() => copyToClipboard(agent.id, "id")}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {copiedField === "id" ? (
+                    <Check className="size-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+            {agent.public_key && (
+              <div className="sm:col-span-2">
+                <span className="text-muted-foreground">{t('provider.publicKey')}</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="font-mono text-xs truncate">{agent.public_key}</span>
+                  <button
+                    onClick={() => copyToClipboard(agent.public_key!, "pk")}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {copiedField === "pk" ? (
+                      <Check className="size-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+            {agent.reputation_score != null && (
+              <div>
+                <span className="text-muted-foreground">{t('provider.reputationScore')}</span>
+                <div className="mt-1">
+                  <ReputationMeter score={agent.reputation_score} size="sm" />
+                </div>
+              </div>
+            )}
+            <div>
+              <span className="text-muted-foreground">{t('provider.status')}</span>
+              <div className="mt-1 flex items-center gap-2">
+                <Badge variant={statusColor(agent.status)}>{agent.status}</Badge>
+                {agent.verified && <VerifiedBadge />}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Info card */}
       <Card>
         <CardHeader>
@@ -134,12 +212,6 @@ export function ProviderAgentDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <span className="text-muted-foreground">{t('provider.status')}</span>
-              <div className="mt-1">
-                <Badge variant={statusColor(agent.status)}>{agent.status}</Badge>
-              </div>
-            </div>
             <div>
               <span className="text-muted-foreground">{t('provider.version')}</span>
               <p className="mt-1 font-medium">{agent.version}</p>
@@ -184,6 +256,18 @@ export function ProviderAgentDetailPage() {
                 ))}
               </div>
             </div>
+            {(agent.categories ?? []).length > 0 && (
+              <div>
+                <span className="text-muted-foreground">{t('provider.categories')}</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(agent.categories ?? []).map((cat) => (
+                    <Badge key={cat} variant="secondary">
+                      {cat}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
             {(agent.tags ?? []).length > 0 && (
               <div className="sm:col-span-2">
                 <span className="text-muted-foreground">{t('provider.tags')}</span>
@@ -212,8 +296,32 @@ export function ProviderAgentDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Skills */}
+      {(agent.skills ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">{t('provider.skills')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {(agent.skills ?? []).map((skill) => (
+                <div key={skill.name} className="rounded-md border border-border p-3">
+                  <p className="text-sm font-medium">{skill.name}</p>
+                  {skill.description && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{skill.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Contacts Whitelist */}
       {id && <ContactsSection agentId={id} />}
+
+      {/* Reviews */}
+      {id && <ReviewSection agentId={id} />}
 
       {/* Access Requests */}
       {accessRequestsData && (accessRequestsData.requests ?? []).length > 0 && (
