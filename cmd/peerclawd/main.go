@@ -19,6 +19,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/bridge/mcp"
 	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
 	"github.com/peerclaw/peerclaw-server/internal/config"
+	"github.com/peerclaw/peerclaw-server/internal/contactreq"
 	"github.com/peerclaw/peerclaw-server/internal/contacts"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
@@ -197,6 +198,18 @@ func main() {
 		logger.Info("contacts service initialized")
 	}
 
+	// Initialize contact request service.
+	var contactReqService *contactreq.Service
+	if sqlDB != nil {
+		crStore := contactreq.NewStore(cfg.Database.Driver, sqlDB)
+		if err := crStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate contact request tables", "error", err)
+			os.Exit(1)
+		}
+		contactReqService = contactreq.NewService(crStore, contactsService, logger)
+		logger.Info("contact request service initialized")
+	}
+
 	// Initialize user ACL service.
 	var userACLService *useracl.Service
 	if sqlDB != nil {
@@ -338,6 +351,9 @@ func main() {
 		defer stopBridgeCleanup()
 		httpServer.SetBridgeRateLimiter(bridgeRL)
 		logger.Info("bridge per-agent rate limiter enabled", "rate", 1.0, "burst", 10)
+	}
+	if contactReqService != nil {
+		httpServer.SetContactRequests(contactReqService)
 	}
 	if userACLService != nil {
 		httpServer.SetUserACL(userACLService)

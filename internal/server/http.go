@@ -14,6 +14,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
+	"github.com/peerclaw/peerclaw-server/internal/contactreq"
 	"github.com/peerclaw/peerclaw-server/internal/contacts"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
@@ -62,6 +63,7 @@ type HTTPServer struct {
 	reviewService          *review.Service
 	claimToken             *claimtoken.Service
 	contacts               *contacts.Service
+	contactReq             *contactreq.Service
 	bridgeRateLimiter      *IPRateLimiter
 	useracl                UserACLChecker
 	a2aTasks               *a2aBridgeTasks
@@ -190,6 +192,11 @@ func (s *HTTPServer) SetContacts(c *contacts.Service) {
 	s.contacts = c
 }
 
+// SetContactRequests sets the contact request service.
+func (s *HTTPServer) SetContactRequests(cr *contactreq.Service) {
+	s.contactReq = cr
+}
+
 // SetBridgeRateLimiter sets the per-agent rate limiter for bridge sends.
 func (s *HTTPServer) SetBridgeRateLimiter(rl *IPRateLimiter) {
 	s.bridgeRateLimiter = rl
@@ -285,6 +292,9 @@ func (s *HTTPServer) routes() {
 
 	// Contacts routes.
 	s.registerContactRoutes()
+
+	// Contact request routes.
+	s.registerContactRequestRoutes()
 
 	// User ACL routes.
 	s.registerUserACLRoutes()
@@ -770,6 +780,22 @@ func (s *HTTPServer) registerContactRoutes() {
 	s.mux.Handle("POST /api/v1/provider/agents/{id}/contacts", s.wrapUserAuth(s.handleProviderAddContact))
 	s.mux.Handle("GET /api/v1/provider/agents/{id}/contacts", s.wrapUserAuth(s.handleProviderListContacts))
 	s.mux.Handle("DELETE /api/v1/provider/agents/{id}/contacts/{contact_id}", s.wrapUserAuth(s.handleProviderRemoveContact))
+}
+
+func (s *HTTPServer) registerContactRequestRoutes() {
+	if s.contactReq == nil {
+		return
+	}
+
+	// Agent-side: authenticated agent must match {id}.
+	s.mux.Handle("POST /api/v1/agents/{id}/contact-requests", s.wrapOwner(s.handleAgentSendContactRequest))
+	s.mux.Handle("GET /api/v1/agents/{id}/contact-requests/incoming", s.wrapOwner(s.handleAgentListIncomingContactRequests))
+	s.mux.Handle("GET /api/v1/agents/{id}/contact-requests/sent", s.wrapOwner(s.handleAgentListSentContactRequests))
+	s.mux.Handle("PUT /api/v1/agents/{id}/contact-requests/{request_id}", s.wrapOwner(s.handleAgentUpdateContactRequest))
+
+	// Provider-side: JWT-authenticated user who owns the agent.
+	s.mux.Handle("GET /api/v1/provider/agents/{id}/contact-requests", s.wrapUserAuth(s.handleProviderListContactRequests))
+	s.mux.Handle("PUT /api/v1/provider/agents/{id}/contact-requests/{request_id}", s.wrapUserAuth(s.handleProviderUpdateContactRequest))
 }
 
 func (s *HTTPServer) registerUserACLRoutes() {

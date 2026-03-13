@@ -337,6 +337,13 @@ func (h *Hub) Forward(ctx context.Context, msg signaling.SignalMessage) {
 		}
 		if !allowed {
 			h.logger.Warn("signaling blocked: not in contacts", "from", msg.From, "to", msg.To, "type", msg.Type)
+			errMsg := signaling.SignalMessage{
+				Type:    signaling.MessageTypeSignalingError,
+				From:    "server",
+				To:      msg.From,
+				Payload: json.RawMessage(`{"error":"not_in_contacts","message":"recipient has not added you as a contact"}`),
+			}
+			h.DeliverLocal(ctx, errMsg)
 			return
 		}
 	}
