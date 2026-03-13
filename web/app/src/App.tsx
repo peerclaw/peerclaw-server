@@ -31,6 +31,7 @@ import { ReportsPage } from "@/pages/admin/ReportsPage"
 import { CategoriesPage } from "@/pages/admin/CategoriesPage"
 import { AnalyticsPage } from "@/pages/admin/AnalyticsPage"
 import { InvocationsPage } from "@/pages/admin/InvocationsPage"
+import { NotFoundPage } from "@/pages/NotFoundPage"
 
 export function App() {
   return (
@@ -89,6 +90,9 @@ export function App() {
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="invocations" element={<InvocationsPage />} />
           </Route>
+
+          {/* Catch-all 404 */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
     </div>

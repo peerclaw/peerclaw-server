@@ -324,7 +324,10 @@
     "visibility": "Visibilité",
     "visibilityPublic": "Public",
     "visibilityPrivate": "Privé",
-    "visibilityDesc": "Les agents privés sont masqués de l'annuaire public."
+    "visibilityDesc": "Les agents privés sont masqués de l'annuaire public.",
+    "unsavedChangesTitle": "Modifications non enregistrées",
+    "unsavedChangesDesc": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter ?",
+    "discardChanges": "Abandonner les modifications"
   },
   "contacts": {
     "title": "Liste blanche de contacts",
@@ -358,7 +361,8 @@
     "database": "Base de données",
     "overallStatus": "Statut général",
     "healthy": "Sain",
-    "unhealthy": "Défaillant"
+    "unhealthy": "Défaillant",
+    "protocolDistribution": "Distribution des protocoles"
   },
   "adminAgents": {
     "title": "Agents",
@@ -591,6 +595,13 @@
     "requestAccess": "Demander l'accès",
     "accessRequested": "Accès demandé",
     "ownAgent": "Votre Agent"
+  },
+  "footer": {
+    "copyright": "PeerClaw {{year}}. Open source."
+  },
+  "notFound": {
+    "description": "La page que vous recherchez n'existe pas.",
+    "backHome": "Retour à l'accueil"
   },
   "profilePage": {
     "title": "Paramètres du profil",

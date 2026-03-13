@@ -324,7 +324,10 @@
     "visibility": "可见性",
     "visibilityPublic": "公开",
     "visibilityPrivate": "私有",
-    "visibilityDesc": "私有 Agent 不会显示在公共目录中。"
+    "visibilityDesc": "私有 Agent 不会显示在公共目录中。",
+    "unsavedChangesTitle": "未保存的更改",
+    "unsavedChangesDesc": "您有未保存的更改。确定要离开吗？",
+    "discardChanges": "放弃更改"
   },
   "contacts": {
     "title": "联系人白名单",
@@ -358,7 +361,8 @@
     "database": "数据库",
     "overallStatus": "总体状态",
     "healthy": "正常",
-    "unhealthy": "异常"
+    "unhealthy": "异常",
+    "protocolDistribution": "协议分布"
   },
   "adminAgents": {
     "title": "Agent",
@@ -591,6 +595,13 @@
     "requestAccess": "请求访问",
     "accessRequested": "已请求访问",
     "ownAgent": "我的 Agent"
+  },
+  "footer": {
+    "copyright": "PeerClaw {{year}}。开源项目。"
+  },
+  "notFound": {
+    "description": "您访问的页面不存在。",
+    "backHome": "返回首页"
   },
   "profilePage": {
     "title": "个人设置",

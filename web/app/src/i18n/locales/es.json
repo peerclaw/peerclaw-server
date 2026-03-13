@@ -324,7 +324,10 @@
     "visibility": "Visibilidad",
     "visibilityPublic": "Público",
     "visibilityPrivate": "Privado",
-    "visibilityDesc": "Los agentes privados están ocultos del directorio público."
+    "visibilityDesc": "Los agentes privados están ocultos del directorio público.",
+    "unsavedChangesTitle": "Cambios sin guardar",
+    "unsavedChangesDesc": "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?",
+    "discardChanges": "Descartar cambios"
   },
   "contacts": {
     "title": "Lista blanca de contactos",
@@ -358,7 +361,8 @@
     "database": "Base de datos",
     "overallStatus": "Estado general",
     "healthy": "Saludable",
-    "unhealthy": "No saludable"
+    "unhealthy": "No saludable",
+    "protocolDistribution": "Distribución de protocolos"
   },
   "adminAgents": {
     "title": "Agentes",
@@ -591,6 +595,13 @@
     "requestAccess": "Solicitar Acceso",
     "accessRequested": "Acceso Solicitado",
     "ownAgent": "Tu Agente"
+  },
+  "footer": {
+    "copyright": "PeerClaw {{year}}. Código abierto."
+  },
+  "notFound": {
+    "description": "La página que buscas no existe.",
+    "backHome": "Volver al inicio"
   },
   "profilePage": {
     "title": "Configuración del perfil",

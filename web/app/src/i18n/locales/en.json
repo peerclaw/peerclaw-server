@@ -324,7 +324,10 @@
     "visibility": "Visibility",
     "visibilityPublic": "Public",
     "visibilityPrivate": "Private",
-    "visibilityDesc": "Private agents are hidden from the public directory."
+    "visibilityDesc": "Private agents are hidden from the public directory.",
+    "unsavedChangesTitle": "Unsaved Changes",
+    "unsavedChangesDesc": "You have unsaved changes. Are you sure you want to leave?",
+    "discardChanges": "Discard Changes"
   },
   "contacts": {
     "title": "Contacts Whitelist",
@@ -358,7 +361,8 @@
     "database": "Database",
     "overallStatus": "Overall Status",
     "healthy": "Healthy",
-    "unhealthy": "Unhealthy"
+    "unhealthy": "Unhealthy",
+    "protocolDistribution": "Protocol Distribution"
   },
   "adminAgents": {
     "title": "Agents",
@@ -591,6 +595,13 @@
     "requestAccess": "Request Access",
     "accessRequested": "Access Requested",
     "ownAgent": "Your Agent"
+  },
+  "footer": {
+    "copyright": "PeerClaw {{year}}. Open Source."
+  },
+  "notFound": {
+    "description": "The page you're looking for doesn't exist.",
+    "backHome": "Back to Home"
   },
   "profilePage": {
     "title": "Profile Settings",

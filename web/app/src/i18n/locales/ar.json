@@ -324,7 +324,10 @@
     "visibility": "الظهور",
     "visibilityPublic": "عام",
     "visibilityPrivate": "خاص",
-    "visibilityDesc": "الوكلاء الخاصون مخفيون من الدليل العام."
+    "visibilityDesc": "الوكلاء الخاصون مخفيون من الدليل العام.",
+    "unsavedChangesTitle": "تغييرات غير محفوظة",
+    "unsavedChangesDesc": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟",
+    "discardChanges": "تجاهل التغييرات"
   },
   "contacts": {
     "title": "قائمة جهات الاتصال المسموح بها",
@@ -358,7 +361,8 @@
     "database": "قاعدة البيانات",
     "overallStatus": "الحالة العامة",
     "healthy": "سليم",
-    "unhealthy": "غير سليم"
+    "unhealthy": "غير سليم",
+    "protocolDistribution": "توزيع البروتوكولات"
   },
   "adminAgents": {
     "title": "الوكلاء",
@@ -591,6 +595,13 @@
     "requestAccess": "طلب الوصول",
     "accessRequested": "تم طلب الوصول",
     "ownAgent": "وكيلك"
+  },
+  "footer": {
+    "copyright": "PeerClaw {{year}}. مفتوح المصدر."
+  },
+  "notFound": {
+    "description": "الصفحة التي تبحث عنها غير موجودة.",
+    "backHome": "العودة إلى الرئيسية"
   },
   "profilePage": {
     "title": "إعدادات الملف الشخصي",

@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Github, User, Shield, LogOut, ChevronDown } from "lucide-react"
+import { Footer } from "./Footer"
 
 export function PublicLayout() {
   const { user, logout } = useAuth()
@@ -23,7 +24,7 @@ export function PublicLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -140,9 +141,11 @@ export function PublicLayout() {
         </div>
       </header>
 
-      <main>
+      <main className="flex-1">
         <Outlet />
       </main>
+
+      <Footer />
     </div>
   )
 }

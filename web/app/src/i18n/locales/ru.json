@@ -324,7 +324,10 @@
     "visibility": "Видимость",
     "visibilityPublic": "Публичный",
     "visibilityPrivate": "Приватный",
-    "visibilityDesc": "Приватные агенты скрыты из публичного каталога."
+    "visibilityDesc": "Приватные агенты скрыты из публичного каталога.",
+    "unsavedChangesTitle": "Несохранённые изменения",
+    "unsavedChangesDesc": "У вас есть несохранённые изменения. Вы уверены, что хотите уйти?",
+    "discardChanges": "Отменить изменения"
   },
   "contacts": {
     "title": "Список разрешённых контактов",
@@ -358,7 +361,8 @@
     "database": "База данных",
     "overallStatus": "Общий статус",
     "healthy": "Исправно",
-    "unhealthy": "Неисправно"
+    "unhealthy": "Неисправно",
+    "protocolDistribution": "Распределение протоколов"
   },
   "adminAgents": {
     "title": "Агенты",
@@ -591,6 +595,13 @@
     "requestAccess": "Запросить доступ",
     "accessRequested": "Доступ запрошен",
     "ownAgent": "Ваш агент"
+  },
+  "footer": {
+    "copyright": "PeerClaw {{year}}. Открытый исходный код."
+  },
+  "notFound": {
+    "description": "Страница, которую вы ищете, не существует.",
+    "backHome": "Вернуться на главную"
   },
   "profilePage": {
     "title": "Настройки профиля",

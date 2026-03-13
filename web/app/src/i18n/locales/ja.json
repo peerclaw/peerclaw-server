@@ -324,7 +324,10 @@
     "visibility": "公開設定",
     "visibilityPublic": "公開",
     "visibilityPrivate": "非公開",
-    "visibilityDesc": "非公開の Agent は公開ディレクトリに表示されません。"
+    "visibilityDesc": "非公開の Agent は公開ディレクトリに表示されません。",
+    "unsavedChangesTitle": "未保存の変更",
+    "unsavedChangesDesc": "未保存の変更があります。このページを離れてもよろしいですか？",
+    "discardChanges": "変更を破棄"
   },
   "contacts": {
     "title": "連絡先ホワイトリスト",
@@ -358,7 +361,8 @@
     "database": "データベース",
     "overallStatus": "全体ステータス",
     "healthy": "正常",
-    "unhealthy": "異常"
+    "unhealthy": "異常",
+    "protocolDistribution": "プロトコル分布"
   },
   "adminAgents": {
     "title": "Agent 一覧",
@@ -591,6 +595,13 @@
     "requestAccess": "アクセスを要求",
     "accessRequested": "アクセス要求済み",
     "ownAgent": "あなたのエージェント"
+  },
+  "footer": {
+    "copyright": "PeerClaw {{year}}。オープンソース。"
+  },
+  "notFound": {
+    "description": "お探しのページは存在しません。",
+    "backHome": "ホームに戻る"
   },
   "profilePage": {
     "title": "プロフィール設定",
