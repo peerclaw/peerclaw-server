@@ -47,7 +47,7 @@ func (s *HTTPServer) handleGenerateClaimToken(w http.ResponseWriter, r *http.Req
 		Protocols:    strings.Join(req.Protocols, ","),
 	}
 	if params.Protocols == "" {
-		params.Protocols = "a2a"
+		params.Protocols = "a2a,mcp,acp"
 	}
 
 	token, err := s.claimToken.Generate(r.Context(), userID, params)
@@ -151,7 +151,7 @@ func (s *HTTPServer) handleClaimAgent(w http.ResponseWriter, r *http.Request) {
 		protoList = strings.Split(ct.Protocols, ",")
 	}
 	if len(protoList) == 0 {
-		protoList = []string{"a2a"}
+		protoList = []string{"a2a", "mcp", "acp"}
 	}
 
 	caps := req.Capabilities
@@ -189,7 +189,29 @@ func (s *HTTPServer) handleClaimAgent(w http.ResponseWriter, r *http.Request) {
 		// Agent is registered; don't fail the response.
 	}
 
-	// 5. Update routing table.
+	// 5. Auto-whitelist: mutually add all agents owned by the same user.
+	if s.contacts != nil && ct.UserID != "" {
+		ownedResult, err := s.registry.ListAgents(r.Context(), registry.ListFilter{
+			OwnerUserID: ct.UserID,
+			PageSize:    100,
+		})
+		if err == nil {
+			for _, sibling := range ownedResult.Agents {
+				if sibling.ID == card.ID {
+					continue
+				}
+				// Mutual: new→sibling + sibling→new
+				if _, err := s.contacts.Add(r.Context(), card.ID, sibling.ID, "", nil); err != nil {
+					s.logger.Debug("auto-whitelist: failed to add contact", "from", card.ID, "to", sibling.ID, "error", err)
+				}
+				if _, err := s.contacts.Add(r.Context(), sibling.ID, card.ID, "", nil); err != nil {
+					s.logger.Debug("auto-whitelist: failed to add contact", "from", sibling.ID, "to", card.ID, "error", err)
+				}
+			}
+		}
+	}
+
+	// 6. Update routing table.
 	s.engine.UpdateFromCard(card)
 
 	// Record reputation event.

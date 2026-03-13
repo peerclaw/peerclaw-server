@@ -58,7 +58,7 @@ export function ClaimTokenSection() {
     try {
       const res = await generate({
         agent_name: agentName.trim(),
-        protocols: ["a2a"],
+        protocols: ["a2a", "mcp", "acp"],
       })
       setGeneratedCode(res.token)
       setExpiresAt(res.expires_at)

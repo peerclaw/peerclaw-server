@@ -170,7 +170,12 @@ func (s *PostgresStore) List(ctx context.Context, filter ListFilter) (*ListResul
 	if filter.PlaygroundOnly {
 		conditions = append(conditions, "COALESCE(playground_enabled, FALSE) = TRUE")
 	}
-	if filter.PublicOnly {
+	if filter.IncludeOwnerUserID != "" {
+		// Show public agents + this user's own agents (including private ones).
+		conditions = append(conditions, fmt.Sprintf("(COALESCE(visibility, 'public') = 'public' OR owner_user_id = $%d)", argIdx))
+		args = append(args, filter.IncludeOwnerUserID)
+		argIdx++
+	} else if filter.PublicOnly {
 		conditions = append(conditions, "COALESCE(visibility, 'public') = 'public'")
 	}
 

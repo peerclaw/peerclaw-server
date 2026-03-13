@@ -20,8 +20,9 @@ type ListFilter struct {
 	SortBy      string // "reputation", "name", "registered_at"
 	OwnerUserID string // Filter by owner user ID.
 	Category    string // Filter by category slug.
-	PlaygroundOnly bool   // Only return agents with playground_enabled=true
-	PublicOnly     bool   // Only return agents with visibility='public'
+	PlaygroundOnly     bool   // Only return agents with playground_enabled=true
+	PublicOnly         bool   // Only return agents with visibility='public'
+	IncludeOwnerUserID string // When PublicOnly is false, also include agents owned by this user ID
 }
 
 // ListResult holds a page of agents and pagination info.

@@ -42,6 +42,7 @@
     "dashboard": "仪表盘",
     "myAgents": "我的 Agent",
     "registerAgent": "注册 Agent",
+    "discoverAgents": "发现",
     "invocations": "调用记录",
     "accessRequests": "访问请求",
     "apiKeys": "API 密钥",
@@ -580,6 +581,13 @@
     "rejectReason": "拒绝原因",
     "expiresAt": "过期时间",
     "noRequests": "暂无访问请求"
+  },
+  "discover": {
+    "title": "发现 Agent",
+    "description": "搜索和发现平台上的 Agent",
+    "requestAccess": "请求访问",
+    "accessRequested": "已请求访问",
+    "ownAgent": "我的 Agent"
   },
   "profilePage": {
     "title": "个人设置",

@@ -42,6 +42,7 @@
     "dashboard": "Панель управления",
     "myAgents": "Мои агенты",
     "registerAgent": "Зарегистрировать агента",
+    "discoverAgents": "Обзор",
     "invocations": "Вызовы",
     "accessRequests": "Запросы доступа",
     "apiKeys": "API-ключи",
@@ -580,6 +581,13 @@
     "rejectReason": "Причина отклонения",
     "expiresAt": "Истекает",
     "noRequests": "Нет запросов доступа"
+  },
+  "discover": {
+    "title": "Обзор агентов",
+    "description": "Поиск и обнаружение агентов на платформе",
+    "requestAccess": "Запросить доступ",
+    "accessRequested": "Доступ запрошен",
+    "ownAgent": "Ваш агент"
   },
   "profilePage": {
     "title": "Настройки профиля",

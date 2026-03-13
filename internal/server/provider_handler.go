@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -494,5 +495,118 @@ func (s *HTTPServer) handleProviderDashboard(w http.ResponseWriter, r *http.Requ
 		"success_rate":  successRate,
 		"avg_latency_ms": avgLatency,
 		"agents":        agents,
+	})
+}
+
+// handleConsoleDirectory handles GET /api/v1/provider/directory — console directory search.
+// Unlike the public directory, this includes the user's own private agents.
+func (s *HTTPServer) handleConsoleDirectory(w http.ResponseWriter, r *http.Request) {
+	userID, ok := identity.UserIDFromContext(r.Context())
+	if !ok {
+		s.jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	q := r.URL.Query()
+
+	filter := registry.ListFilter{
+		Protocol:           q.Get("protocol"),
+		Capability:         q.Get("capability"),
+		Search:             q.Get("search"),
+		PageToken:          q.Get("page_token"),
+		SortBy:             q.Get("sort"),
+		IncludeOwnerUserID: userID,
+	}
+
+	if q.Get("status") != "" {
+		filter.Status = agentcard.AgentStatus(q.Get("status"))
+	}
+	if q.Get("verified") == "true" {
+		filter.Verified = true
+	}
+	if ms := q.Get("min_score"); ms != "" {
+		if score, err := strconv.ParseFloat(ms, 64); err == nil {
+			filter.MinScore = score
+		}
+	}
+	if ps := q.Get("page_size"); ps != "" {
+		if size, err := strconv.Atoi(ps); err == nil {
+			filter.PageSize = size
+		}
+	}
+	if q.Get("category") != "" {
+		filter.Category = q.Get("category")
+	}
+	if q.Get("playground_only") == "true" {
+		filter.PlaygroundOnly = true
+	}
+
+	sortByPopular := filter.SortBy == "popular"
+	if filter.SortBy == "" {
+		filter.SortBy = "reputation"
+	}
+	if sortByPopular {
+		filter.SortBy = "reputation"
+	}
+
+	result, err := s.registry.ListAgents(r.Context(), filter)
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Build call counts for popular sort.
+	callCounts := make(map[string]int64)
+	if sortByPopular && s.invocation != nil {
+		since := time.Now().AddDate(0, 0, -7)
+		topAgents, err := s.invocation.TopAgents(r.Context(), since, 200)
+		if err == nil {
+			for _, a := range topAgents {
+				callCounts[a.AgentID] = a.TotalCalls
+			}
+		}
+	}
+
+	// Batch-fetch access flags and reputation.
+	agentIDs := make([]string, len(result.Agents))
+	for i, card := range result.Agents {
+		agentIDs[i] = card.ID
+	}
+
+	flagsMap, _ := s.registry.GetAccessFlagsBatch(r.Context(), agentIDs)
+	if flagsMap == nil {
+		flagsMap = map[string]*registry.AccessFlags{}
+	}
+
+	var scoresMap map[string]float64
+	if s.reputation != nil {
+		scoresMap = s.reputation.GetScoresBatch(r.Context(), agentIDs)
+	}
+
+	profiles := make([]PublicAgentProfile, 0, len(result.Agents))
+	for _, card := range result.Agents {
+		p := toPublicProfile(card)
+		if flags, ok := flagsMap[card.ID]; ok && flags != nil {
+			p.PlaygroundEnabled = flags.PlaygroundEnabled
+		}
+		if score, ok := scoresMap[card.ID]; ok {
+			p.ReputationScore = score
+		}
+		if count, ok := callCounts[card.ID]; ok {
+			p.TotalCalls = count
+		}
+		profiles = append(profiles, p)
+	}
+
+	if sortByPopular {
+		sort.Slice(profiles, func(i, j int) bool {
+			return profiles[i].TotalCalls > profiles[j].TotalCalls
+		})
+	}
+
+	s.jsonResponse(w, http.StatusOK, DirectoryResponse{
+		Agents:        profiles,
+		NextPageToken: result.NextPageToken,
+		TotalCount:    result.TotalCount,
 	})
 }

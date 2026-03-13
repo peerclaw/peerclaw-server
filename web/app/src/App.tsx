@@ -19,7 +19,7 @@ import { PlaygroundPage } from "@/pages/PlaygroundPage"
 import { AboutPage } from "@/pages/AboutPage"
 import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage"
 import { ProviderAgentsPage } from "@/pages/ProviderAgentsPage"
-import { AgentRegisterPage } from "@/pages/AgentRegisterPage"
+import { DiscoverAgentsPage } from "@/pages/DiscoverAgentsPage"
 import { ProviderAgentDetailPage } from "@/pages/ProviderAgentDetailPage"
 import { AgentEditPage } from "@/pages/AgentEditPage"
 import { InvocationHistoryPage } from "@/pages/InvocationHistoryPage"
@@ -61,7 +61,7 @@ export function App() {
             }
           >
             <Route index element={<ProviderDashboardPage />} />
-            <Route path="register" element={<AgentRegisterPage />} />
+            <Route path="discover" element={<DiscoverAgentsPage />} />
             <Route path="agents" element={<ProviderAgentsPage />} />
             <Route path="agents/:id" element={<ProviderAgentDetailPage />} />
             <Route path="agents/:id/edit" element={<AgentEditPage />} />

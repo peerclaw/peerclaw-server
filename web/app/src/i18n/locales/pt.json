@@ -42,6 +42,7 @@
     "dashboard": "Painel",
     "myAgents": "Meus Agentes",
     "registerAgent": "Registrar Agente",
+    "discoverAgents": "Descobrir",
     "invocations": "Invocações",
     "accessRequests": "Solicitações de Acesso",
     "apiKeys": "Chaves de API",
@@ -580,6 +581,13 @@
     "rejectReason": "Motivo da Rejeição",
     "expiresAt": "Expira em",
     "noRequests": "Nenhuma solicitação de acesso"
+  },
+  "discover": {
+    "title": "Descobrir Agentes",
+    "description": "Pesquisar e descobrir agentes na plataforma",
+    "requestAccess": "Solicitar Acesso",
+    "accessRequested": "Acesso Solicitado",
+    "ownAgent": "Seu Agente"
   },
   "profilePage": {
     "title": "Configurações do Perfil",

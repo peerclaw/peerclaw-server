@@ -1,6 +1,8 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useProviderAgents } from "@/hooks/use-provider"
+import { ClaimTokenSection } from "@/components/provider/ClaimTokenSection"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -10,11 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Bot, PlusCircle } from "lucide-react"
+import { Bot, PlusCircle, ChevronDown, ChevronUp } from "lucide-react"
 
 export function ProviderAgentsPage() {
   const { t } = useTranslation()
   const { data, loading, error } = useProviderAgents()
+  const [showRegister, setShowRegister] = useState(false)
 
   if (loading) {
     return (
@@ -54,25 +57,31 @@ export function ProviderAgentsPage() {
             {t('directory.agentsRegistered', { count: agents.length })}
           </p>
         </div>
-        <Link
-          to="/console/register"
+        <button
+          onClick={() => setShowRegister(!showRegister)}
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <PlusCircle className="size-4" />
           {t('nav.registerAgent')}
-        </Link>
+          {showRegister ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+        </button>
       </div>
+
+      {/* Inline registration panel */}
+      {showRegister && <ClaimTokenSection />}
 
       {agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
           <Bot className="size-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">{t('provider.noAgentsRegistered')}</p>
-          <Link
-            to="/console/register"
-            className="text-sm text-primary hover:underline mt-1"
-          >
-            {t('provider.registerFirst')}
-          </Link>
+          {!showRegister && (
+            <button
+              onClick={() => setShowRegister(true)}
+              className="text-sm text-primary hover:underline mt-1"
+            >
+              {t('provider.registerFirst')}
+            </button>
+          )}
         </div>
       ) : (
         <Table>

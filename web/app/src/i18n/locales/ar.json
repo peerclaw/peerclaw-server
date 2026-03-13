@@ -42,6 +42,7 @@
     "dashboard": "لوحة المعلومات",
     "myAgents": "وكلائي",
     "registerAgent": "تسجيل وكيل",
+    "discoverAgents": "اكتشاف",
     "invocations": "الاستدعاءات",
     "accessRequests": "طلبات الوصول",
     "apiKeys": "مفاتيح API",
@@ -580,6 +581,13 @@
     "rejectReason": "سبب الرفض",
     "expiresAt": "تاريخ الانتهاء",
     "noRequests": "لا توجد طلبات وصول"
+  },
+  "discover": {
+    "title": "اكتشاف الوكلاء",
+    "description": "البحث واكتشاف الوكلاء على المنصة",
+    "requestAccess": "طلب الوصول",
+    "accessRequested": "تم طلب الوصول",
+    "ownAgent": "وكيلك"
   },
   "profilePage": {
     "title": "إعدادات الملف الشخصي",

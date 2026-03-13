@@ -84,8 +84,8 @@ export function ProviderDashboardPage() {
         />
       </div>
 
-      {/* Claim token section */}
-      <ClaimTokenSection />
+      {/* Claim token section — only show when user has no agents */}
+      {(data.agents ?? []).length === 0 && <ClaimTokenSection />}
 
       {/* Agent list */}
       <div>
@@ -109,7 +109,7 @@ export function ProviderDashboardPage() {
             </div>
             <p className="text-sm text-muted-foreground">{t('provider.noAgentsRegistered')}</p>
             <Link
-              to="/console/register"
+              to="/console/agents"
               className="mt-2 inline-flex items-center gap-1 text-sm text-primary font-medium hover:underline"
             >
               {t('provider.registerFirst')}

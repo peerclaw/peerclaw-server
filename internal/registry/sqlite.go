@@ -190,7 +190,11 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 	if filter.PlaygroundOnly {
 		conditions = append(conditions, "playground_enabled = 1")
 	}
-	if filter.PublicOnly {
+	if filter.IncludeOwnerUserID != "" {
+		// Show public agents + this user's own agents (including private ones).
+		conditions = append(conditions, "(COALESCE(visibility, 'public') = 'public' OR owner_user_id = ?)")
+		args = append(args, filter.IncludeOwnerUserID)
+	} else if filter.PublicOnly {
 		conditions = append(conditions, "COALESCE(visibility, 'public') = 'public'")
 	}
 

@@ -6,7 +6,7 @@ import { UserMenu } from "@/components/layout/UserMenu"
 import {
   LayoutDashboard,
   Bot,
-  PlusCircle,
+  Search,
   Activity,
   KeyRound,
   Github,
@@ -22,7 +22,7 @@ export function ConsoleLayout() {
   const navLinks = [
     { to: "/console", label: t('nav.dashboard'), icon: LayoutDashboard, end: true },
     { to: "/console/agents", label: t('nav.myAgents'), icon: Bot, end: false },
-    { to: "/console/register", label: t('nav.registerAgent'), icon: PlusCircle, end: false },
+    { to: "/console/discover", label: t('nav.discoverAgents'), icon: Search, end: false },
     { to: "/console/invocations", label: t('nav.invocations'), icon: Activity, end: false },
     { to: "/console/access-requests", label: t('nav.accessRequests'), icon: Lock, end: false },
     { to: "/console/api-keys", label: t('nav.apiKeys'), icon: KeyRound, end: false },

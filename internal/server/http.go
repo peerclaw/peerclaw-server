@@ -751,6 +751,7 @@ func (s *HTTPServer) registerProviderRoutes() {
 	s.mux.Handle("DELETE /api/v1/provider/agents/{id}", s.wrapUserAuth(s.handleProviderDeleteAgent))
 	s.mux.Handle("GET /api/v1/provider/agents/{id}/analytics", s.wrapUserAuth(s.handleProviderAgentAnalytics))
 	s.mux.Handle("GET /api/v1/provider/dashboard", s.wrapUserAuth(s.handleProviderDashboard))
+	s.mux.Handle("GET /api/v1/provider/directory", s.wrapUserAuth(s.handleConsoleDirectory))
 }
 
 func (s *HTTPServer) registerClaimTokenRoutes() {

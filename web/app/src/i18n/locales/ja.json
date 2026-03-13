@@ -42,6 +42,7 @@
     "dashboard": "ダッシュボード",
     "myAgents": "マイ Agent",
     "registerAgent": "Agent を登録",
+    "discoverAgents": "発見",
     "invocations": "呼び出し履歴",
     "accessRequests": "アクセスリクエスト",
     "apiKeys": "API キー",
@@ -580,6 +581,13 @@
     "rejectReason": "拒否理由",
     "expiresAt": "有効期限",
     "noRequests": "アクセスリクエストはありません"
+  },
+  "discover": {
+    "title": "エージェントを発見",
+    "description": "プラットフォーム上のエージェントを検索・発見",
+    "requestAccess": "アクセスを要求",
+    "accessRequested": "アクセス要求済み",
+    "ownAgent": "あなたのエージェント"
   },
   "profilePage": {
     "title": "プロフィール設定",
