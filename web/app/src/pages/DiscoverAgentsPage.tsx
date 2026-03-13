@@ -8,20 +8,12 @@ import { CategoryFilter } from "@/components/public/CategoryFilter"
 import { VerifiedBadge } from "@/components/public/VerifiedBadge"
 import { ReputationMeter } from "@/components/public/ReputationMeter"
 import { Button } from "@/components/ui/button"
+import { useDebounce } from "@/hooks/use-debounce"
 import { Search, SlidersHorizontal, UserPlus, Check } from "lucide-react"
 
 type SortOption = "reputation" | "name" | "registered_at" | "popular"
 
 const PAGE_SIZE = 24
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-  return debouncedValue
-}
 
 const statusColors: Record<string, string> = {
   online: "bg-emerald-500 shadow-[0_0_6px_oklch(0.72_0.2_160_/_0.5)]",

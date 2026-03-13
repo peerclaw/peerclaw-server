@@ -5,20 +5,12 @@ import { fetchDirectory } from "@/api/client"
 import type { PublicAgentProfile } from "@/api/types"
 import { AgentDirectoryCard } from "@/components/public/AgentDirectoryCard"
 import { CategoryFilter } from "@/components/public/CategoryFilter"
+import { useDebounce } from "@/hooks/use-debounce"
 import { Search, SlidersHorizontal } from "lucide-react"
 
 type SortOption = "reputation" | "name" | "registered_at" | "popular"
 
 const PAGE_SIZE = 24
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-  return debouncedValue
-}
 
 export function DirectoryPage() {
   const { t } = useTranslation()
