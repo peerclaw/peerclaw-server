@@ -30,10 +30,10 @@ export function AboutPage() {
     { icon: Handshake, titleKey: "about.stepTrustTitle", descKey: "about.stepTrustDesc" },
   ]
 
-  const phases = [
-    { titleKey: "about.phase1Title", descKey: "about.phase1Desc", status: "done" as const },
-    { titleKey: "about.phase2Title", descKey: "about.phase2Desc", status: "done" as const },
-    { titleKey: "about.phase3Title", descKey: "about.phase3Desc", status: "done" as const },
+  const phases: { titleKey: string; descKey: string; status: "done" | "current" | "upcoming" }[] = [
+    { titleKey: "about.phase1Title", descKey: "about.phase1Desc", status: "done" },
+    { titleKey: "about.phase2Title", descKey: "about.phase2Desc", status: "done" },
+    { titleKey: "about.phase3Title", descKey: "about.phase3Desc", status: "done" },
   ]
 
   return (
