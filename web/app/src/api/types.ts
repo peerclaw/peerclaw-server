@@ -288,6 +288,9 @@ export interface AdminDashboardStats {
     status: string
     database?: string
   }
+  trends?: {
+    invocations_7d?: number
+  }
 }
 
 export interface AdminUser {
