@@ -611,6 +611,19 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	// Include version advisory if the agent's SDK is outdated.
+	if s.versionCheck != nil {
+		if sdk, ok := req.Metadata["sdk_version"]; ok && s.versionCheck.IsOutdated(sdk) {
+			latest, url := s.versionCheck.Latest()
+			resp["version_advisory"] = map[string]any{
+				"sdk_update_available": true,
+				"latest_sdk":          latest,
+				"release_url":         url,
+			}
+		}
+	}
+
 	s.jsonResponse(w, http.StatusOK, resp)
 }
 
