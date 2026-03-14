@@ -359,6 +359,36 @@ func (h *Hub) Forward(ctx context.Context, msg signaling.SignalMessage) {
 	h.DeliverLocal(ctx, msg)
 }
 
+// PushNotification sends a notification to a connected agent via WebSocket signaling.
+func (h *Hub) PushNotification(ctx context.Context, agentID string, payload json.RawMessage) error {
+	h.mu.RLock()
+	conn, ok := h.conns[agentID]
+	h.mu.RUnlock()
+
+	if !ok {
+		return fmt.Errorf("agent %s not connected", agentID)
+	}
+
+	msg := signaling.SignalMessage{
+		Type:    signaling.MessageTypeNotification,
+		From:    "server",
+		To:      agentID,
+		Payload: payload,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal notification message: %w", err)
+	}
+
+	if err := conn.Write(ctx, websocket.MessageText, data); err != nil {
+		return fmt.Errorf("deliver notification: %w", err)
+	}
+
+	h.logger.Debug("pushed notification via signaling", "agent_id", agentID)
+	return nil
+}
+
 // DeliverEnvelope sends a bridge_message to a connected agent via WebSocket.
 func (h *Hub) DeliverEnvelope(ctx context.Context, agentID string, envPayload json.RawMessage) error {
 	h.mu.RLock()

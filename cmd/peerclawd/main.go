@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"log/slog"
 	"os"
@@ -227,6 +228,9 @@ func main() {
 		logger.Info("user ACL service initialized")
 	}
 
+	// Forward-declare sigHub so the notification emitter closure can reference it.
+	var sigHub *signaling.Hub
+
 	// Initialize notification service.
 	var notificationSvc *notification.Service
 	var notifHub *notification.DashboardHub
@@ -242,8 +246,14 @@ func main() {
 		// Set emitter: WebSocket push + optional email for critical events.
 		emailSender := userauth.NewEmailSender(cfg.SMTP, logger)
 		notificationSvc.SetEmitter(func(n *notification.Notification) {
-			// Push via WebSocket.
+			// Push via WebSocket (dashboard).
 			notifHub.Push(n)
+
+			// Push via signaling to agent (for OpenClaw integration).
+			if sigHub != nil && n.AgentID != "" {
+				payload, _ := json.Marshal(n)
+				_ = sigHub.PushNotification(context.Background(), n.AgentID, payload)
+			}
 
 			// Send email for critical events if enabled.
 			if cfg.Notification.EmailEnabled && n.Severity == notification.SeverityCritical {
@@ -281,7 +291,6 @@ func main() {
 	}
 
 	// Initialize signaling hub.
-	var sigHub *signaling.Hub
 	if cfg.Signaling.Enabled {
 		var turnCfg *signaling.TURNConfig
 		if len(cfg.Signaling.TURN.URLs) > 0 {
