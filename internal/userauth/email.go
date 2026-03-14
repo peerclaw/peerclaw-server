@@ -10,9 +10,10 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/config"
 )
 
-// EmailSender sends verification emails.
+// EmailSender sends verification and notification emails.
 type EmailSender interface {
 	SendVerificationCode(to, code, purpose string) error
+	SendNotification(to, subject, body string) error
 }
 
 // SMTPSender sends emails via SMTP.
@@ -112,11 +113,67 @@ func (s *SMTPSender) SendVerificationCode(to, code, purpose string) error {
 	return smtp.SendMail(addr, auth, s.from, []string{to}, []byte(msg))
 }
 
+func (s *SMTPSender) SendNotification(to, subject, body string) error {
+	msg := strings.Join([]string{
+		"From: " + s.from,
+		"To: " + to,
+		"Subject: " + subject,
+		"MIME-Version: 1.0",
+		"Content-Type: text/plain; charset=utf-8",
+		"",
+		body,
+	}, "\r\n")
+
+	addr := fmt.Sprintf("%s:%d", s.host, s.port)
+	auth := smtp.PlainAuth("", s.username, s.password, s.host)
+
+	if s.useTLS {
+		tlsConfig := &tls.Config{ServerName: s.host}
+		conn, err := tls.Dial("tcp", addr, tlsConfig)
+		if err != nil {
+			return fmt.Errorf("smtp tls dial: %w", err)
+		}
+		client, err := smtp.NewClient(conn, s.host)
+		if err != nil {
+			return fmt.Errorf("smtp new client: %w", err)
+		}
+		defer func() { _ = client.Quit() }()
+
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("smtp auth: %w", err)
+		}
+		if err := client.Mail(s.from); err != nil {
+			return fmt.Errorf("smtp mail: %w", err)
+		}
+		if err := client.Rcpt(to); err != nil {
+			return fmt.Errorf("smtp rcpt: %w", err)
+		}
+		w, err := client.Data()
+		if err != nil {
+			return fmt.Errorf("smtp data: %w", err)
+		}
+		if _, err := w.Write([]byte(msg)); err != nil {
+			return fmt.Errorf("smtp write: %w", err)
+		}
+		return w.Close()
+	}
+
+	return smtp.SendMail(addr, auth, s.from, []string{to}, []byte(msg))
+}
+
 func (s *LogSender) SendVerificationCode(to, code, purpose string) error {
 	s.logger.Warn("EMAIL VERIFICATION CODE (dev mode)",
 		"to", to,
 		"code", code,
 		"purpose", purpose,
+	)
+	return nil
+}
+
+func (s *LogSender) SendNotification(to, subject, body string) error {
+	s.logger.Warn("EMAIL NOTIFICATION (dev mode)",
+		"to", to,
+		"subject", subject,
 	)
 	return nil
 }

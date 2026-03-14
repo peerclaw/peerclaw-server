@@ -9,6 +9,7 @@ import (
 	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/contactreq"
 	"github.com/peerclaw/peerclaw-server/internal/identity"
+	"github.com/peerclaw/peerclaw-server/internal/notification"
 )
 
 // --- Agent-side contact request handlers (AuthMiddleware + OwnerOnlyMiddleware) ---
@@ -41,6 +42,14 @@ func (s *HTTPServer) handleAgentSendContactRequest(w http.ResponseWriter, r *htt
 		s.jsonError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Notify target agent owner about the contact request.
+	s.emitNotification(r.Context(), body.TargetAgentID,
+		notification.TypeContactRequestReceived, notification.SeverityInfo,
+		"New contact request",
+		"An agent has sent a contact request",
+		map[string]string{"request_id": req.ID, "from_agent_id": fromAgentID},
+	)
 
 	s.jsonResponse(w, http.StatusCreated, req)
 }
@@ -129,20 +138,35 @@ func (s *HTTPServer) handleAgentUpdateContactRequest(w http.ResponseWriter, r *h
 
 // notifyContactAdded pushes a contact_added WebSocket notification to both agents.
 func (s *HTTPServer) notifyContactAdded(ctx context.Context, req *contactreq.ContactRequest) {
-	if s.sigHub == nil || req == nil {
+	if req == nil {
 		return
 	}
+	if s.sigHub != nil {
+		for _, pair := range [][2]string{
+			{req.FromAgentID, req.ToAgentID},
+			{req.ToAgentID, req.FromAgentID},
+		} {
+			notif := coresignaling.SignalMessage{
+				Type:    coresignaling.MessageTypeContactAdded,
+				From:    "server",
+				To:      pair[0],
+				Payload: json.RawMessage(fmt.Sprintf(`{"agent_id":"%s"}`, pair[1])),
+			}
+			s.sigHub.DeliverLocal(ctx, notif)
+		}
+	}
+
+	// Notify both agent owners about the new contact.
 	for _, pair := range [][2]string{
 		{req.FromAgentID, req.ToAgentID},
 		{req.ToAgentID, req.FromAgentID},
 	} {
-		notif := coresignaling.SignalMessage{
-			Type:    coresignaling.MessageTypeContactAdded,
-			From:    "server",
-			To:      pair[0],
-			Payload: json.RawMessage(fmt.Sprintf(`{"agent_id":"%s"}`, pair[1])),
-		}
-		s.sigHub.DeliverLocal(ctx, notif)
+		s.emitNotification(ctx, pair[0],
+			notification.TypeContactAdded, notification.SeverityInfo,
+			"Contact added",
+			"A new contact has been added",
+			map[string]string{"contact_agent_id": pair[1]},
+		)
 	}
 }
 

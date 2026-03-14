@@ -26,6 +26,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/invocation"
 	"github.com/peerclaw/peerclaw-server/internal/review"
 	"github.com/peerclaw/peerclaw-server/internal/userauth"
+	"github.com/peerclaw/peerclaw-server/internal/notification"
 	"github.com/peerclaw/peerclaw-server/internal/versioncheck"
 	"github.com/peerclaw/peerclaw-server/internal/verification"
 	"go.opentelemetry.io/otel/trace"
@@ -71,6 +72,8 @@ type HTTPServer struct {
 	acpRuns                *acpBridgeRuns
 	mcpSessions            *mcpBridgeSessions
 	versionCheck           *versioncheck.Service
+	notificationSvc        *notification.Service
+	notifHub               *notification.DashboardHub
 	cleanupCancel          context.CancelFunc // cancels bridge cleanup goroutines
 }
 
@@ -219,6 +222,16 @@ func (s *HTTPServer) SetUserACL(ua UserACLChecker) {
 	s.useracl = ua
 }
 
+// SetNotification sets the notification service.
+func (s *HTTPServer) SetNotification(n *notification.Service) {
+	s.notificationSvc = n
+}
+
+// SetNotificationHub sets the dashboard WebSocket notification hub.
+func (s *HTTPServer) SetNotificationHub(h *notification.DashboardHub) {
+	s.notifHub = h
+}
+
 // wrapAuth applies agent authentication middleware to a handler.
 func (s *HTTPServer) wrapAuth(h http.HandlerFunc) http.Handler {
 	return AuthMiddleware(s.authCfg, s.logger)(h)
@@ -305,6 +318,9 @@ func (s *HTTPServer) routes() {
 
 	// User ACL routes.
 	s.registerUserACLRoutes()
+
+	// Notification routes.
+	s.registerNotificationRoutes()
 
 	// A2A/ACP/MCP Bridge routes (per-agent endpoints) with shared cleanup context.
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
@@ -585,7 +601,17 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.jsonResponse(w, http.StatusOK, map[string]any{"next_deadline": deadline})
+	resp := map[string]any{"next_deadline": deadline}
+	if s.notificationSvc != nil {
+		card, err := s.registry.GetAgent(r.Context(), id)
+		if err == nil && card.Metadata != nil {
+			if ownerUserID, ok := card.Metadata["owner_user_id"]; ok {
+				count, _ := s.notificationSvc.CountUnread(r.Context(), ownerUserID)
+				resp["pending_notifications"] = count
+			}
+		}
+	}
+	s.jsonResponse(w, http.StatusOK, resp)
 }
 
 type discoverRequest struct {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/peerclaw/peerclaw-server/internal/identity"
+	"github.com/peerclaw/peerclaw-server/internal/notification"
 	"github.com/peerclaw/peerclaw-server/internal/useracl"
 )
 
@@ -46,6 +47,14 @@ func (s *HTTPServer) handleSubmitAccessRequest(w http.ResponseWriter, r *http.Re
 		s.jsonError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Notify agent owner about new access request.
+	s.emitNotification(r.Context(), agentID,
+		notification.TypeAccessRequestReceived, notification.SeverityInfo,
+		"New access request",
+		"A user has requested access to your agent",
+		map[string]string{"request_id": req.ID, "user_id": userID},
+	)
 
 	s.jsonResponse(w, http.StatusCreated, req)
 }
@@ -205,10 +214,30 @@ func (s *HTTPServer) handleProviderUpdateAccessRequest(w http.ResponseWriter, r 
 			s.jsonError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		// Notify the requester that their access request was approved.
+		if accessReq, err := svc.GetByID(r.Context(), requestID); err == nil && accessReq != nil {
+			s.emitNotificationToUser(r.Context(), accessReq.UserID, agentID,
+				notification.TypeAccessRequestApproved, notification.SeverityInfo,
+				"Access request approved",
+				"Your access request has been approved",
+				map[string]string{"request_id": requestID, "agent_id": agentID},
+			)
+		}
 	case "reject":
+		// Fetch the request before rejecting to get the requester's user ID.
+		accessReq, _ := svc.GetByID(r.Context(), requestID)
 		if err := svc.Reject(r.Context(), requestID, body.RejectReason); err != nil {
 			s.jsonError(w, err.Error(), http.StatusBadRequest)
 			return
+		}
+		// Notify the requester that their access request was rejected.
+		if accessReq != nil {
+			s.emitNotificationToUser(r.Context(), accessReq.UserID, agentID,
+				notification.TypeAccessRequestRejected, notification.SeverityInfo,
+				"Access request rejected",
+				"Your access request has been rejected",
+				map[string]string{"request_id": requestID, "agent_id": agentID},
+			)
 		}
 	default:
 		s.jsonError(w, "action must be 'approve' or 'reject'", http.StatusBadRequest)

@@ -46,6 +46,10 @@ func (m *mockEmailSender) SendVerificationCode(to, code, purpose string) error {
 	return nil
 }
 
+func (m *mockEmailSender) SendNotification(to, subject, body string) error {
+	return nil
+}
+
 func (m *mockEmailSender) lastCode() string {
 	if len(m.codes) == 0 {
 		return ""

@@ -24,7 +24,8 @@ type Config struct {
 	UserAuth      UserAuthConfig      `yaml:"user_auth"`
 	SMTP          SMTPConfig          `yaml:"smtp"`
 	Retention     RetentionConfig     `yaml:"retention"`
-	VersionCheck  VersionCheckConfig  `yaml:"version_check"`
+	VersionCheck   VersionCheckConfig   `yaml:"version_check"`
+	Notification   NotificationConfig   `yaml:"notification"`
 }
 
 // SMTPConfig holds SMTP email settings.
@@ -51,6 +52,14 @@ type VersionCheckConfig struct {
 	Enabled  bool   `yaml:"enabled"`  // default true
 	Repo     string `yaml:"repo"`     // default "peerclaw/peerclaw-cli"
 	Interval string `yaml:"interval"` // default "1h"
+}
+
+// NotificationConfig holds notification system settings.
+type NotificationConfig struct {
+	Enabled        bool `yaml:"enabled"`          // default true
+	RetentionDays  int  `yaml:"retention_days"`   // default 90
+	EmailEnabled   bool `yaml:"email_enabled"`    // default false
+	EmailOnOffline bool `yaml:"email_on_offline"` // default true (when email_enabled)
 }
 
 // AuthConfig holds authentication settings.
@@ -218,6 +227,12 @@ func DefaultConfig() *Config {
 			Enabled:  true,
 			Repo:     "peerclaw/peerclaw-cli",
 			Interval: "1h",
+		},
+		Notification: NotificationConfig{
+			Enabled:        true,
+			RetentionDays:  90,
+			EmailEnabled:   false,
+			EmailOnOffline: true,
 		},
 		Retention: RetentionConfig{
 			Enabled:              true,

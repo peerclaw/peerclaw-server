@@ -22,6 +22,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/contactreq"
 	"github.com/peerclaw/peerclaw-server/internal/contacts"
 	"github.com/peerclaw/peerclaw-server/internal/federation"
+	"github.com/peerclaw/peerclaw-server/internal/notification"
 	"github.com/peerclaw/peerclaw-server/internal/observability"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/reputation"
@@ -226,6 +227,42 @@ func main() {
 		logger.Info("user ACL service initialized")
 	}
 
+	// Initialize notification service.
+	var notificationSvc *notification.Service
+	var notifHub *notification.DashboardHub
+	if cfg.Notification.Enabled && sqlDB != nil {
+		notifStore := notification.NewStore(cfg.Database.Driver, sqlDB)
+		if err := notifStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate notification tables", "error", err)
+			os.Exit(1)
+		}
+		notificationSvc = notification.NewService(notifStore, logger)
+		notifHub = notification.NewDashboardHub(logger)
+
+		// Set emitter: WebSocket push + optional email for critical events.
+		emailSender := userauth.NewEmailSender(cfg.SMTP, logger)
+		notificationSvc.SetEmitter(func(n *notification.Notification) {
+			// Push via WebSocket.
+			notifHub.Push(n)
+
+			// Send email for critical events if enabled.
+			if cfg.Notification.EmailEnabled && n.Severity == notification.SeverityCritical {
+				if cfg.Notification.EmailOnOffline || n.Type != notification.TypeAgentOffline {
+					// Look up user email for notification.
+					if userAuthService != nil {
+						if user, err := userAuthService.GetUser(context.Background(), n.UserID); err == nil && user != nil {
+							_ = emailSender.SendNotification(user.Email, n.Title, n.Body)
+						}
+					}
+				}
+			}
+		})
+		logger.Info("notification service initialized",
+			"retention_days", cfg.Notification.RetentionDays,
+			"email_enabled", cfg.Notification.EmailEnabled,
+		)
+	}
+
 	// Initialize services.
 	regService := registry.NewService(store, logger)
 	routeTable := router.NewTable()
@@ -362,6 +399,10 @@ func main() {
 	if userACLService != nil {
 		httpServer.SetUserACL(userACLService)
 	}
+	if notificationSvc != nil {
+		httpServer.SetNotification(notificationSvc)
+		httpServer.SetNotificationHub(notifHub)
+	}
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)
 		sigHub.SetMetrics(otelMetrics)
@@ -430,6 +471,21 @@ func main() {
 					for _, agentID := range staleAgents {
 						_ = repEngine.RecordEvent(ctx, agentID, "heartbeat_miss", "")
 						logger.Debug("heartbeat miss recorded", "agent_id", agentID)
+
+						// Emit agent offline notification to owner.
+						if notificationSvc != nil {
+							card, err := regService.GetAgent(ctx, agentID)
+							if err == nil && card.Metadata != nil {
+								if ownerUserID, ok := card.Metadata["owner_user_id"]; ok && ownerUserID != "" {
+									_, _ = notificationSvc.Notify(ctx, ownerUserID, agentID,
+										notification.TypeAgentOffline, notification.SeverityCritical,
+										"Agent offline",
+										"Your agent has stopped sending heartbeats",
+										map[string]string{"agent_id": agentID},
+									)
+								}
+							}
+						}
 					}
 				}
 			}
@@ -486,6 +542,32 @@ func main() {
 			"reputation_events_days", cfg.Retention.ReputationEventsDays,
 			"invocations_days", cfg.Retention.InvocationsDays,
 			"abuse_reports_days", cfg.Retention.AbuseReportsDays,
+		)
+	}
+
+	// Start notification retention cleanup goroutine.
+	if notificationSvc != nil && cfg.Notification.RetentionDays > 0 {
+		go func() {
+			ticker := time.NewTicker(6 * time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					cutoff := time.Now().AddDate(0, 0, -cfg.Notification.RetentionDays)
+					deleted, err := notificationSvc.Prune(ctx, cutoff)
+					if err != nil {
+						logger.Warn("notification retention cleanup failed", "error", err)
+					} else if deleted > 0 {
+						logger.Info("notification retention cleanup", "deleted", deleted)
+					}
+				}
+			}
+		}()
+		logger.Info("notification retention cleanup started",
+			"interval", "6h",
+			"retention_days", cfg.Notification.RetentionDays,
 		)
 	}
 
