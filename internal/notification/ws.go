@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"sync"
@@ -62,7 +63,7 @@ func (h *DashboardHub) Push(n *Notification) {
 		return
 	}
 
-	if err := conn.Write(nil, websocket.MessageText, data); err != nil {
+	if err := conn.Write(context.Background(), websocket.MessageText, data); err != nil {
 		h.logger.Debug("failed to push notification via ws", "user_id", n.UserID, "error", err)
 	}
 }

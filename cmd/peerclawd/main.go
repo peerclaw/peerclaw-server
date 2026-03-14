@@ -536,13 +536,13 @@ func main() {
 			ticker := time.NewTicker(retentionInterval)
 			defer ticker.Stop()
 			// Run once on startup.
-			retentionSvc.RunOnce(ctx)
+			_, _ = retentionSvc.RunOnce(ctx)
 			for {
 				select {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					retentionSvc.RunOnce(ctx)
+					_, _ = retentionSvc.RunOnce(ctx)
 				}
 			}
 		}()
