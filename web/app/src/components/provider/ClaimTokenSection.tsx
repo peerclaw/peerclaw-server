@@ -20,6 +20,7 @@ export function ClaimTokenSection() {
   const { generate } = useGenerateClaimToken()
 
   const [agentName, setAgentName] = useState("")
+  const [platform, setPlatform] = useState("cli")
   const [generatedCode, setGeneratedCode] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [remaining, setRemaining] = useState<number>(0)
@@ -71,15 +72,19 @@ export function ClaimTokenSection() {
     }
   }, [agentName, generate, refetch, t])
 
-  const buildPrompt = (token: string, name: string) =>
-    t('claim.prompt', { name, token, origin: window.location.origin })
+  const buildPrompt = (token: string, name: string, plat: string) => {
+    const base = t('claim.prompt_base', { name, token, origin: window.location.origin })
+    if (plat === "cli") return base
+    const platformPrompt = t(`claim.prompt_${plat}`, { origin: window.location.origin })
+    return base + platformPrompt
+  }
 
   const prompt = generatedCode
-    ? buildPrompt(generatedCode, agentName.trim())
+    ? buildPrompt(generatedCode, agentName.trim(), platform)
     : ""
 
   const viewPrompt = viewingToken
-    ? buildPrompt(viewingToken.code, viewingToken.agent_name)
+    ? buildPrompt(viewingToken.code, viewingToken.agent_name, "cli")
     : ""
 
   const handleCopy = useCallback(() => {
@@ -153,6 +158,24 @@ export function ClaimTokenSection() {
             )}
             {generating ? t('claim.generating') : t('claim.generateToken')}
           </Button>
+        </div>
+
+        {/* Platform select */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">
+            {t('claim.platformLabel')}
+          </label>
+          <select
+            value={platform}
+            onChange={(e) => setPlatform(e.target.value)}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {(["cli", "openclaw", "ironclaw", "picoclaw", "nanobot"] as const).map((p) => (
+              <option key={p} value={p}>
+                {t(`claim.platformOptions.${p}`)}
+              </option>
+            ))}
+          </select>
         </div>
 
         {genError && (
