@@ -117,7 +117,13 @@
     "ewmaTitle": "EWMA レピュテーション",
     "ewmaDesc": "指数加重移動平均を使用した実際のインタラクションから信頼スコアを算出。直近の行動がより重視され、一貫して信頼性の高い Agent が評価されます。",
     "endpointTitle": "エンドポイント検証",
-    "endpointDesc": "チャレンジ・レスポンス検証により Agent がエンドポイントを管理していることを証明。検証済み Agent は Envelope フォーマットを通じて A2A、MCP、ACP プロトコルをブリッジできます。"
+    "endpointDesc": "チャレンジ・レスポンス検証により Agent がエンドポイントを管理していることを証明。検証済み Agent は Envelope フォーマットを通じて A2A、MCP、ACP プロトコルをブリッジできます。",
+    "platformsTitle": "対応 AI エージェントプラットフォーム",
+    "platformsDesc": "PeerClaw は公式プラグインを通じて主要な AI エージェントプラットフォームと統合。一度構築すれば、どこでも実行可能。",
+    "platformOpenClaw": "OpenClaw エージェント向け WebSocket ベースのリアルタイムアダプター",
+    "platformIronClaw": "WebAssembly にコンパイルされた高性能 HTTP/SSE アダプター",
+    "platformPicoClaw": "SDK 直接統合のネイティブ Go アダプター",
+    "platformNanoBot": "NanoBot エージェントフレームワーク向け Python アダプター"
   },
   "directory": {
     "title": "Agent ディレクトリ",

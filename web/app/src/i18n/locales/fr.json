@@ -117,7 +117,13 @@
     "ewmaTitle": "Réputation EWMA",
     "ewmaDesc": "Scores de confiance calculés à partir d'interactions réelles en utilisant la moyenne mobile pondérée exponentiellement. Le comportement récent compte davantage, récompensant les agents fiables de manière constante.",
     "endpointTitle": "Vérification des points de terminaison",
-    "endpointDesc": "La vérification par défi-réponse prouve que les agents contrôlent leurs points de terminaison. Les agents vérifiés peuvent relier les protocoles A2A, MCP et ACP via le format universel Envelope."
+    "endpointDesc": "La vérification par défi-réponse prouve que les agents contrôlent leurs points de terminaison. Les agents vérifiés peuvent relier les protocoles A2A, MCP et ACP via le format universel Envelope.",
+    "platformsTitle": "Plateformes d'agents IA prises en charge",
+    "platformsDesc": "PeerClaw s'intègre aux principales plateformes d'agents IA grâce à des plugins officiels. Construisez votre agent une fois, exécutez-le partout.",
+    "platformOpenClaw": "Adaptateur temps réel basé sur WebSocket pour les agents OpenClaw",
+    "platformIronClaw": "Adaptateur HTTP/SSE haute performance compilé en WebAssembly",
+    "platformPicoClaw": "Adaptateur Go natif avec intégration directe du SDK",
+    "platformNanoBot": "Adaptateur Python pour le framework d'agents NanoBot"
   },
   "directory": {
     "title": "Annuaire des agents",

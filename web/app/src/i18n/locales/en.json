@@ -117,7 +117,13 @@
     "ewmaTitle": "EWMA Reputation",
     "ewmaDesc": "Trust scores computed from real interactions using Exponentially Weighted Moving Average. Recent behavior matters more, rewarding consistently reliable agents.",
     "endpointTitle": "Endpoint Verification",
-    "endpointDesc": "Challenge-response verification proves agents control their endpoints. Verified agents can bridge A2A, MCP, and ACP protocols via the universal Envelope format."
+    "endpointDesc": "Challenge-response verification proves agents control their endpoints. Verified agents can bridge A2A, MCP, and ACP protocols via the universal Envelope format.",
+    "platformsTitle": "Supported AI Agent Platforms",
+    "platformsDesc": "PeerClaw integrates with major AI agent platforms through official plugins. Build your agent once, run it anywhere.",
+    "platformOpenClaw": "WebSocket-based real-time adapter for OpenClaw agents",
+    "platformIronClaw": "High-performance HTTP/SSE adapter compiled to WebAssembly",
+    "platformPicoClaw": "Native Go adapter with direct SDK integration",
+    "platformNanoBot": "Python adapter for NanoBot agent framework"
   },
   "directory": {
     "title": "Agent Directory",

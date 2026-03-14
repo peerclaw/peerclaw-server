@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { fetchDirectory } from "@/api/client"
-import { Search, Shield, Activity, CheckCircle, ArrowRight, Fingerprint, BarChart3, Globe } from "lucide-react"
+import { Search, Shield, Activity, CheckCircle, ArrowRight, Fingerprint, BarChart3, Globe, Blocks } from "lucide-react"
 
 export function LandingPage() {
   const navigate = useNavigate()
@@ -151,6 +151,41 @@ export function LandingPage() {
             title={t('landing.endpointTitle')}
             description={t('landing.endpointDesc')}
           />
+        </div>
+      </section>
+
+      {/* ─── Supported Platforms ─── */}
+      <section className="relative mx-auto max-w-6xl px-4 pb-24">
+        <div className="flex flex-col items-center text-center mb-10">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/8 mb-4">
+            <Blocks className="size-5 text-primary/80" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">{t('landing.platformsTitle')}</h2>
+          <p className="mt-2 text-sm text-muted-foreground max-w-lg">{t('landing.platformsDesc')}</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            { name: "OpenClaw", tech: "TypeScript", descKey: "landing.platformOpenClaw", color: "192" },
+            { name: "IronClaw", tech: "Rust / WASM", descKey: "landing.platformIronClaw", color: "25" },
+            { name: "PicoClaw", tech: "Go", descKey: "landing.platformPicoClaw", color: "160" },
+            { name: "NanoBot", tech: "Python", descKey: "landing.platformNanoBot", color: "285" },
+          ] as const).map((p) => (
+            <div
+              key={p.name}
+              className="group rounded-xl border border-border/60 bg-card p-5 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_0_30px_oklch(0.72_0.15_192_/_0.04)]"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm">{p.name}</h3>
+                <span
+                  className="rounded-md px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: `oklch(0.72 0.15 ${p.color} / 0.1)`, color: `oklch(0.72 0.15 ${p.color})` }}
+                >
+                  {p.tech}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t(p.descKey)}</p>
+            </div>
+          ))}
         </div>
       </section>
     </div>
