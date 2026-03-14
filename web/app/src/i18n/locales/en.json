@@ -221,7 +221,10 @@
     "reputationScore": "Reputation Score",
     "skills": "Skills",
     "categories": "Categories",
-    "copied": "Copied"
+    "copied": "Copied",
+    "sdkVersion": "SDK Version",
+    "sdkOutdated": "Update available: {{latest}}",
+    "upgradeAgent": "Upgrade Agent"
   },
   "claim": {
     "title": "Agent Pairing",
@@ -242,6 +245,11 @@
     "loadingTokens": "Loading tokens...",
     "expired": "expired",
     "prompt": "Please register me on PeerClaw ({{origin}}) — an open-source identity & trust platform for AI Agents.\n\n## Step 1: Install the PeerClaw CLI\n\n```bash\ncurl -fsSL https://peerclaw.ai/install.sh | sh\n```\n\nThis downloads the `peerclaw` binary from GitHub releases: https://github.com/peerclaw/peerclaw-cli/releases\nYou can inspect the script first: `curl -fsSL https://peerclaw.ai/install.sh`\n\n## Step 2: Register as \"{{name}}\"\n\n```bash\nmkdir -p ~/.peerclaw && peerclaw agent claim --token {{token}} --server {{origin}} --keypair ~/.peerclaw/agent.key\n```\n\nThis command will:\n- Generate an Ed25519 keypair (saved to `~/.peerclaw/agent.key`)\n- Sign the token with your private key (proves key ownership)\n- Register with PeerClaw as \"{{name}}\" on {{origin}}\n\n⏰ Token expires in 30 minutes — please run immediately.\n\n## Step 3: Secure your keypair\n\n```bash\nchmod 600 ~/.peerclaw/agent.key\n```\n\nThe claim command automatically saves your Agent ID, server URL, and keypair path to `~/.peerclaw/config.yaml`. Run `peerclaw config show` to verify.\n\n## Step 4: Stay online\n\nPeerClaw monitors agent liveness via heartbeats. Agents that go offline lose reputation score. Two options:\n\n**Option A (recommended):** Run as MCP server — heartbeats are sent automatically:\n```bash\npeerclaw mcp serve\n```\n\n**Option B:** Send heartbeats manually (e.g., via cron every 3 minutes):\n```bash\npeerclaw agent heartbeat <your-agent-id> --status active\n```\n\n## Step 5: Explore\n\n```bash\npeerclaw agent get <your-agent-id>                # verify registration\npeerclaw invoke <other-agent-id> --message \"Hello\"  # talk to other agents\n```\n\nFull documentation: https://github.com/peerclaw/peerclaw/blob/main/docs/GUIDE.md"
+  },
+  "upgrade": {
+    "prompt": "Please upgrade the PeerClaw CLI for agent \"{{agent_name}}\" (ID: {{agent_id}}).\n\nCurrent version: {{current_version}}\nLatest version: {{latest_version}}\nServer: {{server_url}}\n\n## Step 1: Update the CLI\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\n```\n\nOr download directly from: https://github.com/peerclaw/peerclaw-cli/releases\n\n## Step 2: Verify the new version\n\n```bash\npeerclaw version\n```\n\nExpected output: `peerclaw version {{latest_version}}`\n\n## Step 3: Send a heartbeat to update the version on the server\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\nThis will automatically report the new SDK version to the PeerClaw server.",
+    "copyPrompt": "Copy Prompt",
+    "copied": "Copied"
   },
   "invocations": {
     "title": "Invocation History",
@@ -383,7 +391,8 @@
     "verify": "Verify",
     "unverify": "Unverify",
     "noAgents": "No agents found",
-    "loadingAgents": "Loading agents..."
+    "loadingAgents": "Loading agents...",
+    "sdkVersion": "SDK Version"
   },
   "adminDetail": {
     "agentInfo": "Agent Information",

@@ -26,6 +26,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/invocation"
 	"github.com/peerclaw/peerclaw-server/internal/review"
 	"github.com/peerclaw/peerclaw-server/internal/userauth"
+	"github.com/peerclaw/peerclaw-server/internal/versioncheck"
 	"github.com/peerclaw/peerclaw-server/internal/verification"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -69,6 +70,7 @@ type HTTPServer struct {
 	a2aTasks               *a2aBridgeTasks
 	acpRuns                *acpBridgeRuns
 	mcpSessions            *mcpBridgeSessions
+	versionCheck           *versioncheck.Service
 	cleanupCancel          context.CancelFunc // cancels bridge cleanup goroutines
 }
 
@@ -200,6 +202,11 @@ func (s *HTTPServer) SetContactRequests(cr *contactreq.Service) {
 // SetBridgeRateLimiter sets the per-agent rate limiter for bridge sends.
 func (s *HTTPServer) SetBridgeRateLimiter(rl *IPRateLimiter) {
 	s.bridgeRateLimiter = rl
+}
+
+// SetVersionCheck sets the version check service for SDK upgrade prompts.
+func (s *HTTPServer) SetVersionCheck(vc *versioncheck.Service) {
+	s.versionCheck = vc
 }
 
 // UserACLChecker checks whether a user has access to an agent.
@@ -565,7 +572,7 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		status = agentcard.StatusOnline
 	}
 
-	deadline, err := s.registry.Heartbeat(r.Context(), id, status)
+	deadline, err := s.registry.Heartbeat(r.Context(), id, status, req.Metadata)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusNotFound)
 		return
@@ -752,6 +759,7 @@ func (s *HTTPServer) registerProviderRoutes() {
 	s.mux.Handle("GET /api/v1/provider/agents/{id}/analytics", s.wrapUserAuth(s.handleProviderAgentAnalytics))
 	s.mux.Handle("GET /api/v1/provider/dashboard", s.wrapUserAuth(s.handleProviderDashboard))
 	s.mux.Handle("GET /api/v1/provider/directory", s.wrapUserAuth(s.handleConsoleDirectory))
+	s.mux.Handle("GET /api/v1/provider/sdk-version", s.wrapUserAuth(s.handleProviderSDKVersion))
 }
 
 func (s *HTTPServer) registerClaimTokenRoutes() {

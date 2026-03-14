@@ -24,6 +24,7 @@ type Config struct {
 	UserAuth      UserAuthConfig      `yaml:"user_auth"`
 	SMTP          SMTPConfig          `yaml:"smtp"`
 	Retention     RetentionConfig     `yaml:"retention"`
+	VersionCheck  VersionCheckConfig  `yaml:"version_check"`
 }
 
 // SMTPConfig holds SMTP email settings.
@@ -43,6 +44,13 @@ type RetentionConfig struct {
 	InvocationsDays      int    `yaml:"invocations_days"`
 	AbuseReportsDays     int    `yaml:"abuse_reports_days"`
 	CleanupInterval      string `yaml:"cleanup_interval"`
+}
+
+// VersionCheckConfig holds SDK version check settings.
+type VersionCheckConfig struct {
+	Enabled  bool   `yaml:"enabled"`  // default true
+	Repo     string `yaml:"repo"`     // default "peerclaw/peerclaw-cli"
+	Interval string `yaml:"interval"` // default "1h"
 }
 
 // AuthConfig holds authentication settings.
@@ -205,6 +213,11 @@ func DefaultConfig() *Config {
 			AccessTTL:  "15m",
 			RefreshTTL: "168h",
 			BcryptCost: 12,
+		},
+		VersionCheck: VersionCheckConfig{
+			Enabled:  true,
+			Repo:     "peerclaw/peerclaw-cli",
+			Interval: "1h",
 		},
 		Retention: RetentionConfig{
 			Enabled:              true,

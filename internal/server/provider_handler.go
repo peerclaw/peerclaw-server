@@ -188,6 +188,13 @@ func (s *HTTPServer) handleProviderGetAgent(w http.ResponseWriter, r *http.Reque
 		resp["visibility"] = flags.Visibility
 	}
 
+	// Expose sdk_version from metadata.
+	if card.Metadata != nil {
+		if v, ok := card.Metadata["sdk_version"]; ok {
+			resp["sdk_version"] = v
+		}
+	}
+
 	// Enrich with live reputation score and verified status.
 	if s.reputation != nil {
 		score, _ := s.reputation.GetScore(r.Context(), card.ID)
@@ -495,6 +502,19 @@ func (s *HTTPServer) handleProviderDashboard(w http.ResponseWriter, r *http.Requ
 		"success_rate":  successRate,
 		"avg_latency_ms": avgLatency,
 		"agents":        agents,
+	})
+}
+
+// handleProviderSDKVersion handles GET /api/v1/provider/sdk-version.
+func (s *HTTPServer) handleProviderSDKVersion(w http.ResponseWriter, r *http.Request) {
+	if s.versionCheck == nil {
+		s.jsonError(w, "version check not enabled", http.StatusNotImplemented)
+		return
+	}
+	latest, releaseURL := s.versionCheck.Latest()
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"latest":      latest,
+		"release_url": releaseURL,
 	})
 }
 

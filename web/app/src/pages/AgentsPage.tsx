@@ -145,6 +145,7 @@ export function AgentsPage() {
                     <TableHead>{t('adminAgents.status')}</TableHead>
                     <TableHead>{t('adminAgents.protocols')}</TableHead>
                     <TableHead>{t('adminAgents.verified')}</TableHead>
+                    <TableHead>{t('adminAgents.sdkVersion')}</TableHead>
                     <TableHead>{t('adminAgents.lastHeartbeat')}</TableHead>
                     <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
                   </TableRow>
@@ -188,6 +189,9 @@ export function AgentsPage() {
                             {(agent.peerclaw.reputation_score * 100).toFixed(0)}%
                           </span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground font-mono">
+                        {agent.metadata?.sdk_version || "-"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {agent.last_heartbeat
@@ -250,7 +254,7 @@ export function AgentsPage() {
                   ))}
                   {agents.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         {t('adminAgents.noAgents')}
                       </TableCell>
                     </TableRow>

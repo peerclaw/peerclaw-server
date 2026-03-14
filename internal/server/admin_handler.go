@@ -555,6 +555,22 @@ func (s *HTTPServer) registerAdminRoutes() {
 
 	// Invocation log.
 	s.mux.Handle("GET /api/v1/admin/invocations", wrapAdmin(s.handleAdminListInvocations))
+
+	// SDK version check.
+	s.mux.Handle("GET /api/v1/admin/sdk-version", wrapAdmin(s.handleAdminSDKVersion))
+}
+
+// handleAdminSDKVersion handles GET /api/v1/admin/sdk-version.
+func (s *HTTPServer) handleAdminSDKVersion(w http.ResponseWriter, r *http.Request) {
+	if s.versionCheck == nil {
+		s.jsonError(w, "version check not enabled", http.StatusNotImplemented)
+		return
+	}
+	latest, releaseURL := s.versionCheck.Latest()
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"latest":      latest,
+		"release_url": releaseURL,
+	})
 }
 
 // queryInt extracts an integer query parameter with a default value.

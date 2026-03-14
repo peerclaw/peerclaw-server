@@ -321,3 +321,19 @@ export function invokeAgentStream(
 
   return { cancel: () => controller.abort(), done }
 }
+
+// --- SDK Version ---
+
+export interface SDKVersionResponse {
+  latest: string
+  release_url: string
+}
+
+export function fetchSDKVersion(
+  accessToken: string
+): Promise<SDKVersionResponse> {
+  return fetchWithAuth<SDKVersionResponse>(
+    "/provider/sdk-version",
+    accessToken
+  )
+}

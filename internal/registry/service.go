@@ -108,14 +108,23 @@ func (s *Service) Deregister(ctx context.Context, agentID string) error {
 	return nil
 }
 
-// Heartbeat updates the agent's heartbeat timestamp.
-func (s *Service) Heartbeat(ctx context.Context, agentID string, status agentcard.AgentStatus) (time.Time, error) {
+// Heartbeat updates the agent's heartbeat timestamp and optionally merges metadata.
+func (s *Service) Heartbeat(ctx context.Context, agentID string, status agentcard.AgentStatus, metadata map[string]string) (time.Time, error) {
 	if status == "" {
 		status = agentcard.StatusOnline
 	}
 	if err := s.store.UpdateHeartbeat(ctx, agentID, status); err != nil {
 		return time.Time{}, fmt.Errorf("heartbeat: %w", err)
 	}
+
+	// Merge metadata if provided, but prevent overwriting ownership.
+	if len(metadata) > 0 {
+		delete(metadata, "owner_user_id")
+		if err := s.store.UpdateMetadata(ctx, agentID, metadata); err != nil {
+			s.logger.Warn("failed to update heartbeat metadata", "agent_id", agentID, "error", err)
+		}
+	}
+
 	// Next heartbeat expected within the configured interval.
 	interval := s.HeartbeatInterval
 	if interval <= 0 {

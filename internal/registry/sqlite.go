@@ -281,6 +281,26 @@ func (s *SQLiteStore) UpdateHeartbeat(ctx context.Context, id string, status age
 	return nil
 }
 
+func (s *SQLiteStore) UpdateMetadata(ctx context.Context, id string, metadata map[string]string) error {
+	if len(metadata) == 0 {
+		return nil
+	}
+	// Read existing metadata, merge, write back.
+	var existing string
+	err := s.db.QueryRowContext(ctx, "SELECT COALESCE(metadata, '{}') FROM agents WHERE id = ?", id).Scan(&existing)
+	if err != nil {
+		return fmt.Errorf("agent %s not found", id)
+	}
+	merged := map[string]string{}
+	_ = json.Unmarshal([]byte(existing), &merged)
+	for k, v := range metadata {
+		merged[k] = v
+	}
+	data, _ := json.Marshal(merged)
+	_, err = s.db.ExecContext(ctx, "UPDATE agents SET metadata = ? WHERE id = ?", string(data), id)
+	return err
+}
+
 func (s *SQLiteStore) FindByCapabilities(ctx context.Context, capabilities []string, proto string, maxResults int) ([]*agentcard.Card, error) {
 	var conditions []string
 	var args []any

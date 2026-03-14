@@ -33,6 +33,7 @@ import (
 	"github.com/peerclaw/peerclaw-server/internal/review"
 	"github.com/peerclaw/peerclaw-server/internal/useracl"
 	"github.com/peerclaw/peerclaw-server/internal/userauth"
+	"github.com/peerclaw/peerclaw-server/internal/versioncheck"
 	"github.com/peerclaw/peerclaw-server/internal/verification"
 	goredis "github.com/redis/go-redis/v9"
 )
@@ -395,6 +396,18 @@ func main() {
 			sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
 		}
 	}
+	// Initialize version check service.
+	if cfg.VersionCheck.Enabled {
+		vcInterval, err := time.ParseDuration(cfg.VersionCheck.Interval)
+		if err != nil {
+			vcInterval = time.Hour
+		}
+		vcService := versioncheck.New(cfg.VersionCheck.Repo, vcInterval, logger)
+		httpServer.SetVersionCheck(vcService)
+		go vcService.Start(ctx)
+		logger.Info("version check service started", "repo", cfg.VersionCheck.Repo, "interval", vcInterval)
+	}
+
 	// Register routes after all services are configured so that
 	// optional-service routes (claim tokens, contacts, etc.) are included.
 	httpServer.RegisterRoutes()

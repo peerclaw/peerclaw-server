@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { fetchWithAuth } from "@/api/client"
+import { fetchWithAuth, fetchSDKVersion, type SDKVersionResponse } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { generateClaimToken, listClaimTokens } from "@/api/claim"
 import type {
@@ -38,6 +38,7 @@ export interface ProviderAgent {
   registered_at?: string
   last_heartbeat?: string
   reputation_score?: number
+  sdk_version?: string
   review_summary?: {
     average_rating: number
     total_reviews: number
@@ -367,4 +368,25 @@ export function useAccessRequestMutations(agentId: string | undefined) {
   )
 
   return { approve, reject, revoke }
+}
+
+// ----- SDK Version -----
+
+export function useSDKVersion() {
+  const { accessToken } = useAuth()
+  const [data, setData] = useState<SDKVersionResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!accessToken) {
+      setLoading(false)
+      return
+    }
+    fetchSDKVersion(accessToken)
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [accessToken])
+
+  return { data, loading }
 }

@@ -7,6 +7,7 @@ import {
   useProviderMutations,
   useAgentAccessRequests,
   useAccessRequestMutations,
+  useSDKVersion,
 } from "@/hooks/use-provider"
 import { fetchReputationHistory } from "@/api/client"
 import type { ReputationEvent } from "@/api/types"
@@ -20,6 +21,7 @@ import { ReviewSection } from "@/components/public/ReviewSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { isOutdated } from "@/lib/semver"
 import {
   PhoneCall,
   CheckCircle,
@@ -33,6 +35,7 @@ import {
   RotateCcw,
   Key,
   Copy,
+  ArrowUpCircle,
 } from "lucide-react"
 
 export function ProviderAgentDetailPage() {
@@ -48,6 +51,9 @@ export function ProviderAgentDetailPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [repEvents, setRepEvents] = useState<ReputationEvent[]>([])
+  const { data: sdkVersionData } = useSDKVersion()
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
+  const [promptCopied, setPromptCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -210,6 +216,28 @@ export function ProviderAgentDetailPage() {
               <div className="mt-1 flex items-center gap-2">
                 <Badge variant={statusColor(agent.status)}>{agent.status}</Badge>
                 {agent.verified && <VerifiedBadge />}
+              </div>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-muted-foreground">{t('provider.sdkVersion')}</span>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="font-mono text-xs">{agent.sdk_version || "-"}</span>
+                {agent.sdk_version && sdkVersionData?.latest && isOutdated(agent.sdk_version, sdkVersionData.latest) && (
+                  <>
+                    <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs">
+                      {t('provider.sdkOutdated', { latest: sdkVersionData.latest })}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setShowUpgradePrompt(true)}
+                    >
+                      <ArrowUpCircle className="size-3 mr-1" />
+                      {t('provider.upgradeAgent')}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -454,6 +482,59 @@ export function ProviderAgentDetailPage() {
             <AnalyticsChart data={analytics.time_series} />
           )}
         </>
+      )}
+
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && sdkVersionData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-background border border-border rounded-lg shadow-lg max-w-lg w-full mx-4 max-h-[80vh] overflow-auto">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-sm font-medium">{t('provider.upgradeAgent')}</h3>
+              <button
+                onClick={() => { setShowUpgradePrompt(false); setPromptCopied(false) }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="p-4">
+              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto whitespace-pre-wrap font-mono">
+                {t('upgrade.prompt', {
+                  agent_id: agent.id,
+                  agent_name: agent.name,
+                  current_version: agent.sdk_version || 'unknown',
+                  latest_version: sdkVersionData.latest,
+                  server_url: window.location.origin,
+                })}
+              </pre>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      t('upgrade.prompt', {
+                        agent_id: agent.id,
+                        agent_name: agent.name,
+                        current_version: agent.sdk_version || 'unknown',
+                        latest_version: sdkVersionData.latest,
+                        server_url: window.location.origin,
+                      })
+                    )
+                    setPromptCopied(true)
+                    setTimeout(() => setPromptCopied(false), 2000)
+                  }}
+                >
+                  {promptCopied ? (
+                    <><Check className="size-3.5 mr-1" />{t('upgrade.copied')}</>
+                  ) : (
+                    <><Copy className="size-3.5 mr-1" />{t('upgrade.copyPrompt')}</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

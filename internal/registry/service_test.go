@@ -91,7 +91,7 @@ func TestService_Heartbeat(t *testing.T) {
 		Protocols: []protocol.Protocol{protocol.ProtocolA2A},
 	})
 
-	deadline, err := svc.Heartbeat(ctx, card.ID, agentcard.StatusOnline)
+	deadline, err := svc.Heartbeat(ctx, card.ID, agentcard.StatusOnline, nil)
 	if err != nil {
 		t.Fatalf("Heartbeat: %v", err)
 	}

@@ -55,6 +55,9 @@ type Store interface {
 	// UpdateHeartbeat updates the heartbeat timestamp and status of an agent.
 	UpdateHeartbeat(ctx context.Context, id string, status agentcard.AgentStatus) error
 
+	// UpdateMetadata merges the provided metadata keys into the agent's existing metadata.
+	UpdateMetadata(ctx context.Context, id string, metadata map[string]string) error
+
 	// FindByCapabilities returns agents that match any of the given capabilities.
 	FindByCapabilities(ctx context.Context, capabilities []string, protocol string, maxResults int) ([]*agentcard.Card, error)
 

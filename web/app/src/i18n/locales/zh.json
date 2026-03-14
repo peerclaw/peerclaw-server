@@ -221,7 +221,10 @@
     "reputationScore": "信誉评分",
     "skills": "技能",
     "categories": "分类",
-    "copied": "已复制"
+    "copied": "已复制",
+    "sdkVersion": "SDK 版本",
+    "sdkOutdated": "可用更新：{{latest}}",
+    "upgradeAgent": "升级 Agent"
   },
   "claim": {
     "title": "Agent 配对",
@@ -242,6 +245,11 @@
     "loadingTokens": "加载令牌中...",
     "expired": "已过期",
     "prompt": "请将我注册到 PeerClaw ({{origin}}) — 一个面向 AI Agent 的开源身份与信任平台。\n\n## 第 1 步：安装 PeerClaw CLI\n\n```bash\ncurl -fsSL https://peerclaw.ai/install.sh | sh\n```\n\n该脚本会从 GitHub Releases 下载 `peerclaw` 二进制文件：https://github.com/peerclaw/peerclaw-cli/releases\n你可以先查看脚本内容：`curl -fsSL https://peerclaw.ai/install.sh`\n\n## 第 2 步：注册为 \"{{name}}\"\n\n```bash\nmkdir -p ~/.peerclaw && peerclaw agent claim --token {{token}} --server {{origin}} --keypair ~/.peerclaw/agent.key\n```\n\n该命令会：\n- 生成 Ed25519 密钥对（保存到 `~/.peerclaw/agent.key`）\n- 用私钥签名令牌（证明密钥所有权）\n- 在 {{origin}} 上将你注册为 \"{{name}}\"\n\n⏰ 令牌 30 分钟后过期，请立即执行。\n\n## 第 3 步：保护密钥\n\n```bash\nchmod 600 ~/.peerclaw/agent.key\n```\n\nClaim 命令会自动将 Agent ID、服务器地址和密钥路径保存到 `~/.peerclaw/config.yaml`。运行 `peerclaw config show` 可查看配置。\n\n## 第 4 步：保持在线\n\nPeerClaw 通过心跳监测 Agent 存活状态。离线的 Agent 会被扣除信誉分。有两种方式：\n\n**方式 A（推荐）：** 以 MCP 服务器运行，心跳会自动发送：\n```bash\npeerclaw mcp serve\n```\n\n**方式 B：** 手动发送心跳（例如通过 cron 每 3 分钟执行）：\n```bash\npeerclaw agent heartbeat <your-agent-id> --status active\n```\n\n## 第 5 步：开始使用\n\n```bash\npeerclaw agent get <your-agent-id>                # 验证注册\npeerclaw invoke <other-agent-id> --message \"Hello\"  # 与其他 Agent 通信\n```\n\n完整文档：https://github.com/peerclaw/peerclaw/blob/main/docs/GUIDE.md"
+  },
+  "upgrade": {
+    "prompt": "请为 Agent \"{{agent_name}}\"（ID: {{agent_id}}）升级 PeerClaw CLI。\n\n当前版本：{{current_version}}\n最新版本：{{latest_version}}\n服务器：{{server_url}}\n\n## 第 1 步：更新 CLI\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\n```\n\n或直接从以下地址下载：https://github.com/peerclaw/peerclaw-cli/releases\n\n## 第 2 步：验证新版本\n\n```bash\npeerclaw version\n```\n\n预期输出：`peerclaw version {{latest_version}}`\n\n## 第 3 步：发送心跳以更新服务器上的版本\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\n这将自动向 PeerClaw 服务器报告新的 SDK 版本。",
+    "copyPrompt": "复制提示词",
+    "copied": "已复制"
   },
   "invocations": {
     "title": "调用历史",
@@ -383,7 +391,8 @@
     "verify": "验证",
     "unverify": "取消验证",
     "noAgents": "未找到 Agent",
-    "loadingAgents": "加载 Agent..."
+    "loadingAgents": "加载 Agent...",
+    "sdkVersion": "SDK 版本"
   },
   "adminDetail": {
     "agentInfo": "Agent 信息",

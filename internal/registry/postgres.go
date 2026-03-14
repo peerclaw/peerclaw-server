@@ -255,6 +255,25 @@ func (s *PostgresStore) UpdateHeartbeat(ctx context.Context, id string, status a
 	return nil
 }
 
+func (s *PostgresStore) UpdateMetadata(ctx context.Context, id string, metadata map[string]string) error {
+	if len(metadata) == 0 {
+		return nil
+	}
+	patch, _ := json.Marshal(metadata)
+	res, err := s.db.ExecContext(ctx,
+		"UPDATE agents SET metadata = COALESCE(metadata::jsonb, '{}'::jsonb) || $1::jsonb WHERE id = $2",
+		string(patch), id,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("agent %s not found", id)
+	}
+	return nil
+}
+
 func (s *PostgresStore) FindByCapabilities(ctx context.Context, capabilities []string, proto string, maxResults int) ([]*agentcard.Card, error) {
 	var conditions []string
 	var args []any
