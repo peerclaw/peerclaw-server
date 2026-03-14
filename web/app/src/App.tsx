@@ -25,6 +25,7 @@ import { AgentEditPage } from "@/pages/AgentEditPage"
 import { InvocationHistoryPage } from "@/pages/InvocationHistoryPage"
 import { AccessRequestsPage } from "@/pages/AccessRequestsPage"
 import { APIKeysPage } from "@/pages/APIKeysPage"
+import { NotificationsPage } from "@/pages/NotificationsPage"
 import { ProfilePage } from "@/pages/ProfilePage"
 import { UsersPage } from "@/pages/admin/UsersPage"
 import { ReportsPage } from "@/pages/admin/ReportsPage"
@@ -69,6 +70,7 @@ export function App() {
             <Route path="invocations" element={<InvocationHistoryPage />} />
             <Route path="access-requests" element={<AccessRequestsPage />} />
             <Route path="api-keys" element={<APIKeysPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
 

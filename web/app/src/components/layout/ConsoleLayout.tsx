@@ -12,7 +12,9 @@ import {
   Github,
   Lock,
   Home,
+  Bell,
 } from "lucide-react"
+import { NotificationBell } from "@/components/layout/NotificationBell"
 
 export function ConsoleLayout() {
   const { user, logout } = useAuth()
@@ -26,6 +28,7 @@ export function ConsoleLayout() {
     { to: "/console/invocations", label: t('nav.invocations'), icon: Activity, end: false },
     { to: "/console/access-requests", label: t('nav.accessRequests'), icon: Lock, end: false },
     { to: "/console/api-keys", label: t('nav.apiKeys'), icon: KeyRound, end: false },
+    { to: "/console/notifications", label: t('nav.notifications'), icon: Bell, end: false },
   ]
 
   const handleLogout = async () => {
@@ -100,8 +103,13 @@ export function ConsoleLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto p-6">
-        <Outlet />
+      <main className="flex-1 overflow-y-auto">
+        <div className="flex h-12 items-center justify-end border-b border-border px-6">
+          <NotificationBell />
+        </div>
+        <div className="p-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

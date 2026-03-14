@@ -56,7 +56,8 @@
     "logout": "Déconnexion",
     "github": "GitHub",
     "about": "À propos",
-    "profile": "Profil"
+    "profile": "Profil",
+    "notifications": "Notifications"
   },
   "auth": {
     "email": "E-mail",
@@ -631,5 +632,24 @@
     "passwordChanged": "Mot de passe modifié avec succès",
     "passwordMismatch": "Les nouveaux mots de passe ne correspondent pas",
     "passwordMinLength": "Le mot de passe doit comporter au moins 8 caractères"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification",
+    "markRead": "Marquer comme lu",
+    "markAllRead": "Tout marquer comme lu",
+    "unread": "Non lues",
+    "all": "Toutes",
+    "viewAll": "Voir toutes les notifications",
+    "types": {
+      "access_request_received": "Demande d'accès reçue",
+      "access_request_approved": "Demande d'accès approuvée",
+      "access_request_rejected": "Demande d'accès refusée",
+      "contact_request_received": "Demande de contact reçue",
+      "contact_added": "Contact ajouté",
+      "agent_offline": "Agent hors ligne",
+      "agent_degraded": "Agent dégradé",
+      "sdk_outdated": "SDK obsolète"
+    }
   }
 }

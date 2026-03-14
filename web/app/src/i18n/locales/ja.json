@@ -56,7 +56,8 @@
     "logout": "ログアウト",
     "github": "GitHub",
     "about": "概要",
-    "profile": "プロフィール"
+    "profile": "プロフィール",
+    "notifications": "通知"
   },
   "auth": {
     "email": "メールアドレス",
@@ -631,5 +632,24 @@
     "passwordChanged": "パスワードが正常に変更されました",
     "passwordMismatch": "新しいパスワードが一致しません",
     "passwordMinLength": "パスワードは8文字以上にしてください"
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "通知はありません",
+    "markRead": "既読にする",
+    "markAllRead": "すべて既読にする",
+    "unread": "未読",
+    "all": "すべて",
+    "viewAll": "すべての通知を表示",
+    "types": {
+      "access_request_received": "アクセスリクエスト受信",
+      "access_request_approved": "アクセスリクエスト承認",
+      "access_request_rejected": "アクセスリクエスト拒否",
+      "contact_request_received": "コンタクトリクエスト受信",
+      "contact_added": "コンタクト追加",
+      "agent_offline": "エージェントオフライン",
+      "agent_degraded": "エージェント性能低下",
+      "sdk_outdated": "SDKが古いバージョン"
+    }
   }
 }

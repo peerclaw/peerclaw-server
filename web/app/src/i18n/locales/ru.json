@@ -56,7 +56,8 @@
     "logout": "Выйти",
     "github": "GitHub",
     "about": "О проекте",
-    "profile": "Профиль"
+    "profile": "Профиль",
+    "notifications": "Уведомления"
   },
   "auth": {
     "email": "Электронная почта",
@@ -631,5 +632,24 @@
     "passwordChanged": "Пароль успешно изменён",
     "passwordMismatch": "Новые пароли не совпадают",
     "passwordMinLength": "Пароль должен содержать не менее 8 символов"
+  },
+  "notifications": {
+    "title": "Уведомления",
+    "empty": "Нет уведомлений",
+    "markRead": "Отметить как прочитанное",
+    "markAllRead": "Отметить все как прочитанные",
+    "unread": "Непрочитанные",
+    "all": "Все",
+    "viewAll": "Просмотреть все уведомления",
+    "types": {
+      "access_request_received": "Запрос на доступ получен",
+      "access_request_approved": "Запрос на доступ одобрен",
+      "access_request_rejected": "Запрос на доступ отклонён",
+      "contact_request_received": "Запрос на контакт получен",
+      "contact_added": "Контакт добавлен",
+      "agent_offline": "Агент оффлайн",
+      "agent_degraded": "Агент деградирован",
+      "sdk_outdated": "SDK устарел"
+    }
   }
 }

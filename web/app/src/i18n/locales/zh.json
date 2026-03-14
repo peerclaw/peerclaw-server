@@ -56,7 +56,8 @@
     "logout": "退出登录",
     "github": "GitHub",
     "about": "关于",
-    "profile": "个人资料"
+    "profile": "个人资料",
+    "notifications": "通知"
   },
   "auth": {
     "email": "邮箱",
@@ -631,5 +632,24 @@
     "passwordChanged": "密码修改成功",
     "passwordMismatch": "两次输入的密码不一致",
     "passwordMinLength": "密码至少需要 8 个字符"
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "暂无通知",
+    "markRead": "标记已读",
+    "markAllRead": "全部标为已读",
+    "unread": "未读",
+    "all": "全部",
+    "viewAll": "查看所有通知",
+    "types": {
+      "access_request_received": "收到访问请求",
+      "access_request_approved": "访问请求已批准",
+      "access_request_rejected": "访问请求已拒绝",
+      "contact_request_received": "收到联系人请求",
+      "contact_added": "联系人已添加",
+      "agent_offline": "Agent 离线",
+      "agent_degraded": "Agent 性能下降",
+      "sdk_outdated": "SDK 版本过旧"
+    }
   }
 }

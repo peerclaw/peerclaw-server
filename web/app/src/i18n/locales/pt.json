@@ -56,7 +56,8 @@
     "logout": "Sair",
     "github": "GitHub",
     "about": "Sobre",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "notifications": "Notificações"
   },
   "auth": {
     "email": "E-mail",
@@ -631,5 +632,24 @@
     "passwordChanged": "Senha alterada com sucesso",
     "passwordMismatch": "As novas senhas não coincidem",
     "passwordMinLength": "A senha deve ter pelo menos 8 caracteres"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "empty": "Sem notificações",
+    "markRead": "Marcar como lida",
+    "markAllRead": "Marcar todas como lidas",
+    "unread": "Não lidas",
+    "all": "Todas",
+    "viewAll": "Ver todas as notificações",
+    "types": {
+      "access_request_received": "Solicitação de acesso recebida",
+      "access_request_approved": "Solicitação de acesso aprovada",
+      "access_request_rejected": "Solicitação de acesso rejeitada",
+      "contact_request_received": "Solicitação de contato recebida",
+      "contact_added": "Contato adicionado",
+      "agent_offline": "Agente offline",
+      "agent_degraded": "Agente degradado",
+      "sdk_outdated": "SDK desatualizado"
+    }
   }
 }
