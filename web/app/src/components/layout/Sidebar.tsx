@@ -9,6 +9,7 @@ import {
   Activity,
   Github,
   ArrowLeft,
+  Home,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
@@ -70,15 +71,13 @@ export function Sidebar() {
           <ArrowLeft className="size-3.5" />
           {t('nav.backToConsole')}
         </NavLink>
-        {user && (
-          <UserMenu user={user} onLogout={handleLogout} />
-        )}
         <div className="flex items-center justify-between px-3 py-1">
           <NavLink
             to="/"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            {t('nav.backToPublicSite')}
+            <Home className="size-3.5" />
+            {t('nav.backToHome')}
           </NavLink>
           <div className="flex items-center gap-1.5">
             <a
@@ -93,6 +92,12 @@ export function Sidebar() {
             <LanguageSwitcher />
           </div>
         </div>
+        {user && (
+          <UserMenu
+            user={user}
+            onLogout={handleLogout}
+          />
+        )}
       </div>
     </aside>
   )
