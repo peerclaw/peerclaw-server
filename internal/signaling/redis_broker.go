@@ -67,7 +67,7 @@ func (b *RedisBroker) Subscribe(ctx context.Context) (<-chan signaling.SignalMes
 		return nil, fmt.Errorf("redis subscribe: %w", err)
 	}
 
-	ch := make(chan signaling.SignalMessage, 256)
+	ch := make(chan signaling.SignalMessage, 4096)
 	go func() {
 		defer close(ch)
 		defer pubsub.Close()

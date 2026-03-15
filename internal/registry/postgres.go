@@ -28,6 +28,11 @@ func NewPostgresStore(dsn string) (*PostgresStore, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
+	// Configure connection pool for production workloads.
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
 	s := &PostgresStore{db: db}
 	if err := s.migrate(); err != nil {
 		_ = db.Close()

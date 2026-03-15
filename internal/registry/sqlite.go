@@ -30,6 +30,11 @@ func NewSQLiteStore(dsn string) (*SQLiteStore, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("set WAL mode: %w", err)
 	}
+	// Configure connection pool for production workloads.
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
 	s := &SQLiteStore{db: db}
 	if err := s.migrate(); err != nil {
 		_ = db.Close()

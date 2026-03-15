@@ -295,9 +295,9 @@ func (h *Hub) authenticateConn(ctx context.Context, conn *websocket.Conn, expect
 		return "", fmt.Errorf("agent_id mismatch: query=%s, frame=%s", expectedAgentID, frame.AgentID)
 	}
 
-	// Verify timestamp is within 30 seconds to prevent replay.
+	// Verify timestamp is within 5 seconds to prevent replay.
 	now := time.Now().Unix()
-	if abs64(now-frame.Timestamp) > 30 {
+	if abs64(now-frame.Timestamp) > 5 {
 		return "", fmt.Errorf("auth frame timestamp too old")
 	}
 

@@ -132,6 +132,10 @@ func main() {
 
 		jwtSecret := cfg.UserAuth.JWTSecret
 		if jwtSecret == "" {
+			if cfg.Auth.Required {
+				logger.Error("user_auth.jwt_secret must be set when auth.required=true")
+				os.Exit(1)
+			}
 			jwtSecret = "peerclaw-dev-secret-change-me"
 			logger.Warn("using default JWT secret — set user_auth.jwt_secret in config for production")
 		}
