@@ -57,7 +57,29 @@
     "github": "GitHub",
     "about": "О проекте",
     "profile": "Профиль",
-    "notifications": "Уведомления"
+    "notifications": "Уведомления",
+    "menu": "Меню",
+    "collapseSidebar": "Свернуть боковую панель",
+    "expandSidebar": "Развернуть боковую панель"
+  },
+  "toast": {
+    "operationFailed": "Операция не удалась",
+    "agentVerified": "Агент успешно верифицирован",
+    "agentUnverified": "Верификация агента отменена",
+    "agentDeleted": "Агент успешно удалён",
+    "categorySaved": "Категория успешно сохранена",
+    "categoryDeleted": "Категория успешно удалена",
+    "reportUpdated": "Жалоба успешно обновлена",
+    "reportDeleted": "Жалоба успешно удалена",
+    "roleUpdated": "Роль успешно обновлена",
+    "userDeleted": "Пользователь успешно удалён",
+    "apiKeyRevoked": "API-ключ успешно отозван"
+  },
+  "confirm": {
+    "deleteAgent": "Удалить агента",
+    "deleteAgentDesc": "Вы уверены, что хотите удалить этого агента? Это действие нельзя отменить.",
+    "revokeApiKey": "Отозвать API-ключ",
+    "revokeApiKeyDesc": "Вы уверены, что хотите отозвать этот API-ключ? Это действие нельзя отменить."
   },
   "auth": {
     "email": "Электронная почта",

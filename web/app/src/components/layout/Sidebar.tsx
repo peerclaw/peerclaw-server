@@ -15,8 +15,13 @@ import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { UserMenu } from "@/components/layout/UserMenu"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed?: boolean
+}
+
+export function Sidebar({ collapsed = false }: SidebarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -37,49 +42,61 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-56 flex-col border-r border-border bg-card">
+    <aside className={`flex h-screen flex-col border-r border-border bg-card transition-all duration-200 ${collapsed ? "w-14" : "w-56"}`}>
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
         <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-md object-cover" />
-        <span className="font-semibold text-sm">{t('nav.peerclawAdmin')}</span>
+        {!collapsed && <span className="font-semibold text-sm">{t('nav.peerclawAdmin')}</span>}
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
-        {links.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/admin"}
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                isActive
-                  ? "bg-accent text-accent-foreground font-medium"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              }`
-            }
-          >
-            <Icon className="size-4" />
-            {label}
-          </NavLink>
-        ))}
+        {links.map(({ to, label, icon: Icon }) => {
+          const link = (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === "/admin"}
+              className={({ isActive }) =>
+                `flex items-center ${collapsed ? "justify-center" : "gap-2.5"} rounded-md px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? "bg-accent text-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                }`
+              }
+            >
+              <Icon className="size-4 shrink-0" />
+              {!collapsed && label}
+            </NavLink>
+          )
+
+          if (collapsed) {
+            return (
+              <Tooltip key={to}>
+                <TooltipTrigger asChild>{link}</TooltipTrigger>
+                <TooltipContent side="right">{label}</TooltipContent>
+              </Tooltip>
+            )
+          }
+          return link
+        })}
       </nav>
 
       <div className="border-t border-border p-3 space-y-2">
-        <NavLink
-          to="/console"
-          className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-3.5" />
-          {t('nav.backToConsole')}
-        </NavLink>
-        <div className="flex items-center justify-between px-3 py-1">
-          <NavLink
-            to="/"
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Home className="size-3.5" />
-            {t('nav.backToHome')}
-          </NavLink>
-          <div className="flex items-center gap-1.5">
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-2">
+            <NavLink
+              to="/console"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title={t('nav.backToConsole')}
+            >
+              <ArrowLeft className="size-3.5" />
+            </NavLink>
+            <NavLink
+              to="/"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title={t('nav.backToHome')}
+            >
+              <Home className="size-3.5" />
+            </NavLink>
             <a
               href="https://github.com/peerclaw/peerclaw"
               target="_blank"
@@ -89,14 +106,44 @@ export function Sidebar() {
             >
               <Github className="size-3.5" />
             </a>
-            <LanguageSwitcher />
           </div>
-        </div>
-        {user && (
-          <UserMenu
-            user={user}
-            onLogout={handleLogout}
-          />
+        ) : (
+          <>
+            <NavLink
+              to="/console"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="size-3.5" />
+              {t('nav.backToConsole')}
+            </NavLink>
+            <div className="flex items-center justify-between px-3 py-1">
+              <NavLink
+                to="/"
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Home className="size-3.5" />
+                {t('nav.backToHome')}
+              </NavLink>
+              <div className="flex items-center gap-1.5">
+                <a
+                  href="https://github.com/peerclaw/peerclaw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title={t('nav.github')}
+                >
+                  <Github className="size-3.5" />
+                </a>
+                <LanguageSwitcher />
+              </div>
+            </div>
+            {user && (
+              <UserMenu
+                user={user}
+                onLogout={handleLogout}
+              />
+            )}
+          </>
         )}
       </div>
     </aside>

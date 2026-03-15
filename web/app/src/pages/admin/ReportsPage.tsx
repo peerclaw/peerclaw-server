@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useAdminReports, useAdminMutations } from "@/hooks/use-admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -43,9 +44,10 @@ export function ReportsPage() {
     async (id: string, newStatus: string) => {
       try {
         await updateReport(id, newStatus)
+        toast.success(t('toast.reportUpdated'))
         refetch()
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to update report")
+        toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
     [updateReport, refetch]
@@ -56,9 +58,10 @@ export function ReportsPage() {
       try {
         await deleteReport(id)
         setConfirmDelete(null)
+        toast.success(t('toast.reportDeleted'))
         refetch()
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to delete report")
+        toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
     [deleteReport, refetch]

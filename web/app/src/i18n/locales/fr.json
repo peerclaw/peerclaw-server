@@ -57,7 +57,29 @@
     "github": "GitHub",
     "about": "À propos",
     "profile": "Profil",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "menu": "Menu",
+    "collapseSidebar": "Réduire la barre latérale",
+    "expandSidebar": "Développer la barre latérale"
+  },
+  "toast": {
+    "operationFailed": "L'opération a échoué",
+    "agentVerified": "Agent vérifié avec succès",
+    "agentUnverified": "Vérification de l'agent retirée avec succès",
+    "agentDeleted": "Agent supprimé avec succès",
+    "categorySaved": "Catégorie enregistrée avec succès",
+    "categoryDeleted": "Catégorie supprimée avec succès",
+    "reportUpdated": "Signalement mis à jour avec succès",
+    "reportDeleted": "Signalement supprimé avec succès",
+    "roleUpdated": "Rôle mis à jour avec succès",
+    "userDeleted": "Utilisateur supprimé avec succès",
+    "apiKeyRevoked": "Clé API révoquée avec succès"
+  },
+  "confirm": {
+    "deleteAgent": "Supprimer l'agent",
+    "deleteAgentDesc": "Êtes-vous sûr de vouloir supprimer cet agent ? Cette action est irréversible.",
+    "revokeApiKey": "Révoquer la clé API",
+    "revokeApiKeyDesc": "Êtes-vous sûr de vouloir révoquer cette clé API ? Cette action est irréversible."
   },
   "auth": {
     "email": "E-mail",

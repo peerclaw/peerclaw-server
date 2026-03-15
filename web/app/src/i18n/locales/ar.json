@@ -57,7 +57,29 @@
     "github": "GitHub",
     "about": "حول",
     "profile": "الملف الشخصي",
-    "notifications": "الإشعارات"
+    "notifications": "الإشعارات",
+    "menu": "القائمة",
+    "collapseSidebar": "طي الشريط الجانبي",
+    "expandSidebar": "توسيع الشريط الجانبي"
+  },
+  "toast": {
+    "operationFailed": "فشلت العملية",
+    "agentVerified": "تم توثيق الوكيل بنجاح",
+    "agentUnverified": "تم إلغاء توثيق الوكيل بنجاح",
+    "agentDeleted": "تم حذف الوكيل بنجاح",
+    "categorySaved": "تم حفظ الفئة بنجاح",
+    "categoryDeleted": "تم حذف الفئة بنجاح",
+    "reportUpdated": "تم تحديث البلاغ بنجاح",
+    "reportDeleted": "تم حذف البلاغ بنجاح",
+    "roleUpdated": "تم تحديث الدور بنجاح",
+    "userDeleted": "تم حذف المستخدم بنجاح",
+    "apiKeyRevoked": "تم إلغاء مفتاح API بنجاح"
+  },
+  "confirm": {
+    "deleteAgent": "حذف الوكيل",
+    "deleteAgentDesc": "هل أنت متأكد أنك تريد حذف هذا الوكيل؟ لا يمكن التراجع عن هذا الإجراء.",
+    "revokeApiKey": "إلغاء مفتاح API",
+    "revokeApiKeyDesc": "هل أنت متأكد أنك تريد إلغاء مفتاح API هذا؟ لا يمكن التراجع عن هذا الإجراء."
   },
   "auth": {
     "email": "البريد الإلكتروني",

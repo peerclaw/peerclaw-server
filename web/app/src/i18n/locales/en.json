@@ -57,7 +57,29 @@
     "github": "GitHub",
     "about": "About",
     "profile": "Profile",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "menu": "Menu",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
+  },
+  "toast": {
+    "operationFailed": "Operation failed",
+    "agentVerified": "Agent verified successfully",
+    "agentUnverified": "Agent unverified successfully",
+    "agentDeleted": "Agent deleted successfully",
+    "categorySaved": "Category saved successfully",
+    "categoryDeleted": "Category deleted successfully",
+    "reportUpdated": "Report updated successfully",
+    "reportDeleted": "Report deleted successfully",
+    "roleUpdated": "Role updated successfully",
+    "userDeleted": "User deleted successfully",
+    "apiKeyRevoked": "API key revoked successfully"
+  },
+  "confirm": {
+    "deleteAgent": "Delete Agent",
+    "deleteAgentDesc": "Are you sure you want to delete this agent? This action cannot be undone.",
+    "revokeApiKey": "Revoke API Key",
+    "revokeApiKeyDesc": "Are you sure you want to revoke this API key? This action cannot be undone."
   },
   "auth": {
     "email": "Email",

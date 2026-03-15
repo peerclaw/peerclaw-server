@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom"
+import { Toaster } from "sonner"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { ConsoleLayout } from "@/components/layout/ConsoleLayout"
 import { PublicLayout } from "@/components/public/PublicLayout"
@@ -96,6 +97,17 @@ export function App() {
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          toastOptions={{
+            classNames: {
+              toast: "bg-card border-border text-foreground",
+              error: "bg-destructive/10 border-destructive/30 text-destructive",
+              success: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+            },
+          }}
+        />
       </AuthProvider>
     </div>
   )

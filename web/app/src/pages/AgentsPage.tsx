@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useAdminAgents, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -43,9 +44,10 @@ export function AgentsPage() {
       try {
         await deleteAgent(id)
         setConfirmDelete(null)
+        toast.success(t('toast.agentDeleted'))
         refetch()
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to delete agent")
+        toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
     [deleteAgent, refetch]

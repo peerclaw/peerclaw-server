@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams, useNavigate } from "react-router-dom"
 import { MessageSquare, Trash2, Zap } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { usePlayground } from "@/hooks/use-playground"
 import { AgentSelector } from "@/components/playground/AgentSelector"
 import { ChatMessage } from "@/components/playground/ChatMessage"
@@ -12,6 +13,7 @@ export function PlaygroundPage() {
   const { t } = useTranslation()
   const { agentId: paramAgentId } = useParams<{ agentId?: string }>()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(
     paramAgentId ?? null
@@ -51,6 +53,112 @@ export function PlaygroundPage() {
     setShowRaw(false)
   }
 
+  if (isMobile) {
+    return (
+      <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+        {/* Compact top bar */}
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+          <div className="flex-1 min-w-0">
+            <AgentSelector
+              selectedId={selectedAgentId}
+              onSelect={handleSelectAgent}
+            />
+          </div>
+          <label className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={streamEnabled}
+              onClick={() => setStreamEnabled((s) => !s)}
+              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+                streamEnabled ? "bg-primary" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`inline-block size-3 rounded-full bg-white shadow-sm transition-transform ${
+                  streamEnabled ? "translate-x-[14px]" : "translate-x-[2px]"
+                }`}
+              />
+            </button>
+            <Zap className="size-3" />
+          </label>
+          <button
+            onClick={handleClear}
+            disabled={messages.length === 0}
+            className="rounded-md p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-3">
+          {messages.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+              <MessageSquare className="mb-3 size-8 opacity-30" />
+              <p className="text-sm font-medium">{t('playground.noMessages')}</p>
+              <p className="mt-1 text-xs text-center">
+                {selectedAgentId
+                  ? t('playground.sendToStart')
+                  : t('playground.selectAgentFirst')}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {messages.map((msg) => (
+                <ChatMessage
+                  key={msg.id}
+                  role={msg.role}
+                  content={msg.content}
+                  timestamp={msg.timestamp}
+                />
+              ))}
+              {loading && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex gap-1">
+                    <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
+                  </div>
+                  {t('playground.thinking')}
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* Error bar */}
+        {error && (
+          <div className="border-t border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {error}
+          </div>
+        )}
+
+        {/* Raw toggle */}
+        <RawToggle
+          data={lastRaw}
+          show={showRaw}
+          onToggle={() => setShowRaw((s) => !s)}
+        />
+
+        {/* Input */}
+        <div className="border-t border-border p-3">
+          <ChatInput
+            onSend={handleSend}
+            disabled={!selectedAgentId || loading}
+            placeholder={
+              selectedAgentId
+                ? t('playground.typeMessage')
+                : t('playground.selectFirst')
+            }
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // Desktop layout — unchanged two-panel
   return (
     <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-6xl">
       {/* Left panel - Agent selector & settings */}

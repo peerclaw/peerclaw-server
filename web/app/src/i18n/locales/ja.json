@@ -57,7 +57,29 @@
     "github": "GitHub",
     "about": "概要",
     "profile": "プロフィール",
-    "notifications": "通知"
+    "notifications": "通知",
+    "menu": "メニュー",
+    "collapseSidebar": "サイドバーを閉じる",
+    "expandSidebar": "サイドバーを開く"
+  },
+  "toast": {
+    "operationFailed": "操作に失敗しました",
+    "agentVerified": "Agent の検証に成功しました",
+    "agentUnverified": "Agent の検証を取り消しました",
+    "agentDeleted": "Agent を削除しました",
+    "categorySaved": "カテゴリを保存しました",
+    "categoryDeleted": "カテゴリを削除しました",
+    "reportUpdated": "報告を更新しました",
+    "reportDeleted": "報告を削除しました",
+    "roleUpdated": "ロールを更新しました",
+    "userDeleted": "ユーザーを削除しました",
+    "apiKeyRevoked": "API キーを失効させました"
+  },
+  "confirm": {
+    "deleteAgent": "Agent を削除",
+    "deleteAgentDesc": "この Agent を削除してもよろしいですか？この操作は取り消せません。",
+    "revokeApiKey": "API キーを失効",
+    "revokeApiKeyDesc": "この API キーを失効させてもよろしいですか？この操作は取り消せません。"
   },
   "auth": {
     "email": "メールアドレス",

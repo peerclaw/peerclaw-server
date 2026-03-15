@@ -57,7 +57,29 @@
     "github": "GitHub",
     "about": "关于",
     "profile": "个人资料",
-    "notifications": "通知"
+    "notifications": "通知",
+    "menu": "菜单",
+    "collapseSidebar": "收起侧边栏",
+    "expandSidebar": "展开侧边栏"
+  },
+  "toast": {
+    "operationFailed": "操作失败",
+    "agentVerified": "Agent 验证成功",
+    "agentUnverified": "Agent 已取消验证",
+    "agentDeleted": "Agent 删除成功",
+    "categorySaved": "分类保存成功",
+    "categoryDeleted": "分类删除成功",
+    "reportUpdated": "举报更新成功",
+    "reportDeleted": "举报删除成功",
+    "roleUpdated": "角色更新成功",
+    "userDeleted": "用户删除成功",
+    "apiKeyRevoked": "API 密钥吊销成功"
+  },
+  "confirm": {
+    "deleteAgent": "删除 Agent",
+    "deleteAgentDesc": "确定要删除此 Agent 吗？此操作不可撤销。",
+    "revokeApiKey": "吊销 API 密钥",
+    "revokeApiKeyDesc": "确定要吊销此 API 密钥吗？此操作不可撤销。"
   },
   "auth": {
     "email": "邮箱",

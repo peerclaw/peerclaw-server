@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { createAPIKey, listAPIKeys, revokeAPIKey } from "@/api/auth"
 import type { APIKey } from "@/api/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -32,6 +34,7 @@ export function APIKeysPage() {
   const [copied, setCopied] = useState(false)
 
   // Revoke state
+  const [revokeKeyId, setRevokeKeyId] = useState<string | null>(null)
   const [revokingId, setRevokingId] = useState<string | null>(null)
 
   const loadKeys = useCallback(async () => {
@@ -71,20 +74,16 @@ export function APIKeysPage() {
 
   const handleRevoke = async (keyId: string) => {
     if (!accessToken) return
-    const confirmed = window.confirm(
-      t('apiKeys.revokeConfirm')
-    )
-    if (!confirmed) return
-
     setRevokingId(keyId)
-    setError(null)
     try {
       await revokeAPIKey(accessToken, keyId)
+      toast.success(t('toast.apiKeyRevoked'))
       await loadKeys()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to revoke API key")
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     } finally {
       setRevokingId(null)
+      setRevokeKeyId(null)
     }
   }
 
@@ -251,7 +250,7 @@ export function APIKeysPage() {
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      onClick={() => handleRevoke(key.id)}
+                      onClick={() => setRevokeKeyId(key.id)}
                       disabled={revokingId === key.id}
                       title="Revoke key"
                     >
@@ -299,6 +298,18 @@ export function APIKeysPage() {
           </Table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={revokeKeyId !== null}
+        onOpenChange={(open) => { if (!open) setRevokeKeyId(null) }}
+        title={t('confirm.revokeApiKey')}
+        description={t('confirm.revokeApiKeyDesc')}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        variant="destructive"
+        onConfirm={() => revokeKeyId && handleRevoke(revokeKeyId)}
+        loading={revokingId !== null}
+      />
     </div>
   )
 }

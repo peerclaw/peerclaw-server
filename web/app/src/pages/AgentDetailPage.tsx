@@ -1,9 +1,11 @@
-import { useCallback } from "react"
+import { useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useAdminAgent, useAdminMutations } from "@/hooks/use-admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   Card,
   CardContent,
@@ -25,36 +27,40 @@ export function AgentDetailPage() {
   const navigate = useNavigate()
   const { data, loading, error, refetch } = useAdminAgent(id)
   const { verifyAgent, unverifyAgent, deleteAgent } = useAdminMutations()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleVerify = useCallback(async () => {
     if (!id) return
     try {
       await verifyAgent(id)
+      toast.success(t('toast.agentVerified'))
       refetch()
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed")
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     }
-  }, [id, verifyAgent, refetch])
+  }, [id, verifyAgent, refetch, t])
 
   const handleUnverify = useCallback(async () => {
     if (!id) return
     try {
       await unverifyAgent(id)
+      toast.success(t('toast.agentUnverified'))
       refetch()
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed")
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     }
-  }, [id, unverifyAgent, refetch])
+  }, [id, unverifyAgent, refetch, t])
 
   const handleDelete = useCallback(async () => {
-    if (!id || !confirm("Are you sure you want to delete this agent?")) return
+    if (!id) return
     try {
       await deleteAgent(id)
+      toast.success(t('toast.agentDeleted'))
       navigate("/admin/agents")
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed")
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     }
-  }, [id, deleteAgent, navigate])
+  }, [id, deleteAgent, navigate, t])
 
   if (loading) {
     return (
@@ -91,11 +97,22 @@ export function AgentDetailPage() {
           <Button size="sm" variant="outline" onClick={handleUnverify}>
             {t('adminAgents.unverify')}
           </Button>
-          <Button size="sm" variant="destructive" onClick={handleDelete}>
+          <Button size="sm" variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
             {t('common.delete')}
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title={t('confirm.deleteAgent')}
+        description={t('confirm.deleteAgentDesc')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

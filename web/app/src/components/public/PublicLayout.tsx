@@ -1,4 +1,5 @@
-import { Outlet, Link, NavLink, useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
@@ -10,18 +11,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Github, User, Shield, LogOut, ChevronDown } from "lucide-react"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { Github, User, Shield, LogOut, ChevronDown, Menu } from "lucide-react"
 import { Footer } from "./Footer"
 
 export function PublicLayout() {
   const { user, logout } = useAuth()
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Close on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
 
   const handleLogout = async () => {
     await logout()
     navigate("/login")
   }
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `rounded-md px-3 py-1.5 text-sm transition-all ${
+      isActive
+        ? "text-foreground font-medium bg-secondary/60"
+        : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+    }`
+
+  const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `block rounded-md px-3 py-2.5 text-sm transition-all ${
+      isActive
+        ? "text-foreground font-medium bg-secondary/60"
+        : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+    }`
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -32,55 +55,20 @@ export function PublicLayout() {
             <span className="font-semibold text-sm tracking-tight">PeerClaw</span>
           </Link>
 
-          <nav className="flex items-center gap-1">
-            <NavLink
-              to="/directory"
-              className={({ isActive }) =>
-                `rounded-md px-3 py-1.5 text-sm transition-all ${
-                  isActive
-                    ? "text-foreground font-medium bg-secondary/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                }`
-              }
-            >
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-1">
+            <NavLink to="/directory" className={navLinkClass}>
               {t('nav.directory')}
             </NavLink>
-            <NavLink
-              to="/playground"
-              className={({ isActive }) =>
-                `rounded-md px-3 py-1.5 text-sm transition-all ${
-                  isActive
-                    ? "text-foreground font-medium bg-secondary/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                }`
-              }
-            >
+            <NavLink to="/playground" className={navLinkClass}>
               {t('nav.playground')}
             </NavLink>
-            <NavLink
-              to="/about"
-              className={({ isActive }) =>
-                `rounded-md px-3 py-1.5 text-sm transition-all ${
-                  isActive
-                    ? "text-foreground font-medium bg-secondary/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                }`
-              }
-            >
+            <NavLink to="/about" className={navLinkClass}>
               {t('nav.about')}
             </NavLink>
             {user ? (
               <>
-                <NavLink
-                  to="/console"
-                  className={({ isActive }) =>
-                    `rounded-md px-3 py-1.5 text-sm transition-all ${
-                      isActive
-                        ? "text-foreground font-medium bg-secondary/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                    }`
-                  }
-                >
+                <NavLink to="/console" className={navLinkClass}>
                   {t('nav.console')}
                 </NavLink>
                 <DropdownMenu>
@@ -138,6 +126,83 @@ export function PublicLayout() {
             </a>
             <LanguageSwitcher />
           </nav>
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all"
+            onClick={() => setMobileOpen(true)}
+            aria-label={t('nav.menu')}
+          >
+            <Menu className="size-5" />
+          </button>
+
+          {/* Mobile sheet */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetContent side="right" className="w-64 p-0">
+              <SheetTitle className="sr-only">{t('nav.menu')}</SheetTitle>
+              <div className="flex flex-col h-full">
+                <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border">
+                  <img src="/logo.jpg" alt="PeerClaw" className="size-7 rounded-lg object-cover" />
+                  <span className="font-semibold text-sm">PeerClaw</span>
+                </div>
+                <nav className="flex-1 p-3 space-y-1">
+                  <NavLink to="/directory" className={mobileNavLinkClass}>
+                    {t('nav.directory')}
+                  </NavLink>
+                  <NavLink to="/playground" className={mobileNavLinkClass}>
+                    {t('nav.playground')}
+                  </NavLink>
+                  <NavLink to="/about" className={mobileNavLinkClass}>
+                    {t('nav.about')}
+                  </NavLink>
+                  {user && (
+                    <>
+                      <NavLink to="/console" className={mobileNavLinkClass}>
+                        {t('nav.console')}
+                      </NavLink>
+                      <NavLink to="/console/profile" className={mobileNavLinkClass}>
+                        {t('nav.profile')}
+                      </NavLink>
+                      {user.role === "admin" && (
+                        <NavLink to="/admin" className={mobileNavLinkClass}>
+                          {t('nav.adminPanel')}
+                        </NavLink>
+                      )}
+                    </>
+                  )}
+                </nav>
+                <div className="border-t border-border p-3 space-y-3">
+                  <div className="flex items-center justify-between px-3">
+                    <a
+                      href="https://github.com/peerclaw/peerclaw"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Github className="size-4" />
+                    </a>
+                    <LanguageSwitcher />
+                  </div>
+                  {user ? (
+                    <button
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
+                    >
+                      <LogOut className="size-4" />
+                      {t('nav.signOut')}
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="block rounded-lg border border-primary/30 bg-primary/5 px-3.5 py-2 text-center text-xs font-medium text-primary transition-all hover:bg-primary/10"
+                    >
+                      {t('nav.signIn')}
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 

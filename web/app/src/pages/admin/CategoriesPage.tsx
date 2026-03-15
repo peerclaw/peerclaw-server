@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useAdminCategories, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -54,9 +55,10 @@ export function CategoriesPage() {
       setShowForm(false)
       setEditingId(null)
       setForm(emptyForm)
+      toast.success(t('toast.categorySaved'))
       refetch()
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to save category")
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     }
   }, [editingId, form, createCategory, updateCategory, refetch])
 
@@ -77,9 +79,10 @@ export function CategoriesPage() {
       try {
         await deleteCategory(id)
         setConfirmDelete(null)
+        toast.success(t('toast.categoryDeleted'))
         refetch()
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to delete category")
+        toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
     [deleteCategory, refetch]

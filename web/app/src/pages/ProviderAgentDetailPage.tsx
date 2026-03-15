@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import {
   useProviderAgent,
   useAgentAnalytics,
@@ -20,6 +21,7 @@ import { VerifiedBadge } from "@/components/public/VerifiedBadge"
 import { ReviewSection } from "@/components/public/ReviewSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { isOutdated } from "@/lib/semver"
 import {
@@ -48,7 +50,7 @@ export function ProviderAgentDetailPage() {
   const { approve, reject, revoke } = useAccessRequestMutations(id)
   const { deleteAgent } = useProviderMutations()
   const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [repEvents, setRepEvents] = useState<ReputationEvent[]>([])
   const { data: sdkVersionData } = useSDKVersion()
@@ -66,20 +68,16 @@ export function ProviderAgentDetailPage() {
 
   const handleDelete = async () => {
     if (!id) return
-    const confirmed = window.confirm(
-      t('provider.deleteConfirm')
-    )
-    if (!confirmed) return
-
     setDeleting(true)
-    setDeleteError(null)
     try {
       await deleteAgent(id)
+      toast.success(t('toast.agentDeleted'))
       navigate("/console/agents")
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete agent")
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     } finally {
       setDeleting(false)
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -152,7 +150,7 @@ export function ProviderAgentDetailPage() {
           <Button
             variant="destructive"
             size="sm"
-            onClick={handleDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             disabled={deleting}
           >
             <Trash2 className="size-4" />
@@ -161,9 +159,17 @@ export function ProviderAgentDetailPage() {
         </div>
       </div>
 
-      {deleteError && (
-        <p className="text-sm text-destructive">{deleteError}</p>
-      )}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title={t('confirm.deleteAgent')}
+        description={t('confirm.deleteAgentDesc')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        variant="destructive"
+        onConfirm={handleDelete}
+        loading={deleting}
+      />
 
       {/* Identity & Trust */}
       <Card>

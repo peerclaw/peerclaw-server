@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useAdminUsers, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -40,9 +41,10 @@ export function UsersPage() {
       try {
         await updateUserRole(id, role)
         setEditingUser(null)
+        toast.success(t('toast.roleUpdated'))
         refetch()
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to update role")
+        toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
     [updateUserRole, refetch]
@@ -53,9 +55,10 @@ export function UsersPage() {
       try {
         await deleteUser(id)
         setConfirmDelete(null)
+        toast.success(t('toast.userDeleted'))
         refetch()
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to delete user")
+        toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
     [deleteUser, refetch]
