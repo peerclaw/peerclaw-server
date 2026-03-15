@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react"
 import { fetchWithAuth } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -55,53 +55,102 @@ export function useNotifications(limit = 20) {
   return { notifications, total, unreadCount, loading, error, reload: load }
 }
 
+// --- Shared singleton store for unread count ---
+// All components using useUnreadCount() share the same state.
+let _count = 0
+let _listeners: Array<() => void> = []
+
+function _getSnapshot() {
+  return _count
+}
+
+function _subscribe(listener: () => void) {
+  _listeners.push(listener)
+  return () => {
+    _listeners = _listeners.filter((l) => l !== listener)
+  }
+}
+
+function _setCount(value: number | ((prev: number) => number)) {
+  const next = typeof value === "function" ? value(_count) : value
+  if (next !== _count) {
+    _count = next
+    _listeners.forEach((l) => l())
+  }
+}
+
+// Track whether the WebSocket is already connected (singleton).
+let _wsConnected = false
+let _ws: WebSocket | null = null
+let _wsToken: string | null = null
+
 export function useUnreadCount() {
   const { accessToken } = useAuth()
-  const [count, setCount] = useState(0)
-  const wsRef = useRef<WebSocket | null>(null)
+  const count = useSyncExternalStore(_subscribe, _getSnapshot)
 
-  // Initial fetch.
+  // Initial fetch (only once per token change).
   useEffect(() => {
     if (!accessToken) return
     fetchWithAuth<{ unread_count: number }>(
       "/provider/notifications/count",
       accessToken
-    ).then((data) => setCount(data.unread_count))
+    ).then((data) => _setCount(data.unread_count))
      .catch(() => {})
   }, [accessToken])
 
-  // WebSocket for real-time updates.
+  // WebSocket for real-time updates (singleton — only one connection).
   useEffect(() => {
     if (!accessToken) return
+    // If a WebSocket is already running for this token, skip.
+    if (_wsConnected && _wsToken === accessToken) return
+
+    // Close previous if token changed.
+    if (_ws) {
+      _ws.close()
+      _ws = null
+    }
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
     const wsUrl = `${protocol}//${window.location.host}/api/v1/provider/notifications/ws?token=${encodeURIComponent(accessToken)}`
 
     const ws = new WebSocket(wsUrl)
-    wsRef.current = ws
+    _ws = ws
+    _wsToken = accessToken
+    _wsConnected = true
 
     ws.onmessage = () => {
-      setCount((prev) => prev + 1)
+      _setCount((prev) => prev + 1)
     }
 
     ws.onerror = () => {}
-    ws.onclose = () => {}
+    ws.onclose = () => {
+      if (_ws === ws) {
+        _wsConnected = false
+        _ws = null
+        _wsToken = null
+      }
+    }
 
     return () => {
-      ws.close()
-      wsRef.current = null
+      // Only close if this effect owns the current WebSocket.
+      if (_ws === ws) {
+        ws.close()
+        _wsConnected = false
+        _ws = null
+        _wsToken = null
+      }
     }
   }, [accessToken])
 
   const decrement = useCallback((n = 1) => {
-    setCount((prev) => Math.max(0, prev - n))
+    _setCount((prev) => Math.max(0, prev - n))
   }, [])
 
   const reset = useCallback(() => {
-    setCount(0)
+    _setCount(0)
   }, [])
 
-  return { count, setCount, decrement, reset }
+  return { count, decrement, reset }
 }
 
 export function useNotificationMutations() {

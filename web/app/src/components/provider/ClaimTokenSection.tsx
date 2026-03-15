@@ -20,7 +20,7 @@ export function ClaimTokenSection() {
   const { generate } = useGenerateClaimToken()
 
   const [agentName, setAgentName] = useState("")
-  const [platform, setPlatform] = useState("cli")
+  const [platform, setPlatform] = useState("openclaw")
   const [generatedCode, setGeneratedCode] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [remaining, setRemaining] = useState<number>(0)
