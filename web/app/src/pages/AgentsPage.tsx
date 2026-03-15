@@ -36,7 +36,7 @@ export function AgentsPage() {
     PAGE_SIZE,
     page * PAGE_SIZE
   )
-  const { deleteAgent, verifyAgent, unverifyAgent } = useAdminMutations()
+  const { deleteAgent } = useAdminMutations()
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -51,29 +51,6 @@ export function AgentsPage() {
     [deleteAgent, refetch]
   )
 
-  const handleVerify = useCallback(
-    async (id: string) => {
-      try {
-        await verifyAgent(id)
-        refetch()
-      } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to verify agent")
-      }
-    },
-    [verifyAgent, refetch]
-  )
-
-  const handleUnverify = useCallback(
-    async (id: string) => {
-      try {
-        await unverifyAgent(id)
-        refetch()
-      } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed to unverify agent")
-      }
-    },
-    [unverifyAgent, refetch]
-  )
 
   const agents = data?.agents ?? []
   const total = data?.total_count ?? 0
@@ -144,7 +121,6 @@ export function AgentsPage() {
                     <TableHead>{t('adminAgents.name')}</TableHead>
                     <TableHead>{t('adminAgents.status')}</TableHead>
                     <TableHead>{t('adminAgents.protocols')}</TableHead>
-                    <TableHead>{t('adminAgents.verified')}</TableHead>
                     <TableHead>{t('adminAgents.sdkVersion')}</TableHead>
                     <TableHead>{t('adminAgents.lastHeartbeat')}</TableHead>
                     <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
@@ -152,7 +128,11 @@ export function AgentsPage() {
                 </TableHeader>
                 <TableBody>
                   {agents.map((agent) => (
-                    <TableRow key={agent.id}>
+                    <TableRow
+                      key={agent.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/admin/agents/${agent.id}`)}
+                    >
                       <TableCell>
                         <div>
                           <p className="font-medium">{agent.name}</p>
@@ -183,13 +163,6 @@ export function AgentsPage() {
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {agent.peerclaw?.reputation_score !== undefined && (
-                          <span className="text-xs text-muted-foreground">
-                            {(agent.peerclaw.reputation_score * 100).toFixed(0)}%
-                          </span>
-                        )}
-                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground font-mono">
                         {agent.metadata?.sdk_version || "-"}
                       </TableCell>
@@ -198,7 +171,7 @@ export function AgentsPage() {
                           ? new Date(agent.last_heartbeat).toLocaleString()
                           : "Never"}
                       </TableCell>
-                      <TableCell className="text-right space-x-1">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         {confirmDelete === agent.id ? (
                           <span className="inline-flex gap-1">
                             <Button
@@ -217,44 +190,21 @@ export function AgentsPage() {
                             </Button>
                           </span>
                         ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/agents/${agent.id}`)}
-                            >
-                              {t('common.view')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleVerify(agent.id)}
-                            >
-                              {t('adminAgents.verify')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleUnverify(agent.id)}
-                            >
-                              {t('adminAgents.unverify')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive"
-                              onClick={() => setConfirmDelete(agent.id)}
-                            >
-                              {t('common.delete')}
-                            </Button>
-                          </>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => setConfirmDelete(agent.id)}
+                          >
+                            {t('common.delete')}
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                   {agents.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         {t('adminAgents.noAgents')}
                       </TableCell>
                     </TableRow>
