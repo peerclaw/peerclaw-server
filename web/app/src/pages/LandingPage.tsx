@@ -163,12 +163,13 @@ export function LandingPage() {
           <h2 className="text-2xl font-bold tracking-tight">{t('landing.platformsTitle')}</h2>
           <p className="mt-2 text-sm text-muted-foreground max-w-lg">{t('landing.platformsDesc')}</p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {([
             { name: "OpenClaw", tech: "TypeScript", descKey: "landing.platformOpenClaw", color: "192" },
             { name: "IronClaw", tech: "Rust / WASM", descKey: "landing.platformIronClaw", color: "25" },
             { name: "PicoClaw", tech: "Go", descKey: "landing.platformPicoClaw", color: "160" },
             { name: "NanoBot", tech: "Python", descKey: "landing.platformNanoBot", color: "285" },
+            { name: "ZeroClaw", tech: "Rust", descKey: "landing.platformZeroClaw", color: "45" },
           ] as const).map((p) => (
             <div
               key={p.name}

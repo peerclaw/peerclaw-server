@@ -170,7 +170,7 @@ export function ClaimTokenSection() {
             onChange={(e) => setPlatform(e.target.value)}
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            {(["cli", "openclaw", "ironclaw", "picoclaw", "nanobot"] as const).map((p) => (
+            {(["cli", "openclaw", "ironclaw", "picoclaw", "nanobot", "zeroclaw"] as const).map((p) => (
               <option key={p} value={p}>
                 {t(`claim.platformOptions.${p}`)}
               </option>
