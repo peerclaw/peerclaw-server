@@ -1,14 +1,19 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
+	pcerrors "github.com/peerclaw/peerclaw-core/errors"
+	coreidentity "github.com/peerclaw/peerclaw-core/identity"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
@@ -453,8 +458,15 @@ type peerclawReq struct {
 }
 
 func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
+	// Buffer body for PoP signature verification.
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.jsonError(w, "failed to read request body", http.StatusBadRequest)
+		return
+	}
+
 	var req registerRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&req); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -462,6 +474,30 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if err := validateRegisterRequest(&req); err != nil {
 		s.jsonError(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	// Proof-of-Possession: if public_key is provided, require matching signature.
+	if req.PublicKey != "" {
+		sigHeader := r.Header.Get("X-PeerClaw-Signature")
+		pubKeyHeader := r.Header.Get("X-PeerClaw-PublicKey")
+		if sigHeader == "" || pubKeyHeader == "" {
+			s.jsonError(w, "proof-of-possession required: sign the request body with your Ed25519 key", http.StatusBadRequest)
+			return
+		}
+		if pubKeyHeader != req.PublicKey {
+			s.jsonError(w, "X-PeerClaw-PublicKey must match public_key in request body", http.StatusBadRequest)
+			return
+		}
+		// Verify signature over the raw request body.
+		pubKey, parseErr := coreidentity.ParsePublicKey(pubKeyHeader)
+		if parseErr != nil {
+			s.jsonError(w, "invalid public key: "+parseErr.Error(), http.StatusBadRequest)
+			return
+		}
+		if verifyErr := coreidentity.Verify(pubKey, bodyBytes, sigHeader); verifyErr != nil {
+			s.jsonError(w, "proof-of-possession signature verification failed", http.StatusBadRequest)
+			return
+		}
 	}
 
 	protocols := make([]protocol.Protocol, len(req.Protocols))
@@ -522,11 +558,24 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) handleListAgents(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
 	filter := registry.ListFilter{
-		Protocol:   r.URL.Query().Get("protocol"),
-		Capability: r.URL.Query().Get("capability"),
-		Status:     agentcard.AgentStatus(r.URL.Query().Get("status")),
-		PageToken:  r.URL.Query().Get("page_token"),
+		Protocol:   q.Get("protocol"),
+		Capability: q.Get("capability"),
+		Status:     agentcard.AgentStatus(q.Get("status")),
+		PageToken:  q.Get("page_token"),
+		SortBy:     q.Get("sort"),
+		Search:     q.Get("search"),
+	}
+	if ms := q.Get("min_score"); ms != "" {
+		if score, err := strconv.ParseFloat(ms, 64); err == nil {
+			filter.MinScore = score
+		}
+	}
+	if ps := q.Get("page_size"); ps != "" {
+		if size, err := strconv.Atoi(ps); err == nil {
+			filter.PageSize = size
+		}
 	}
 	result, err := s.registry.ListAgents(r.Context(), filter)
 	if err != nil {
@@ -931,5 +980,26 @@ func (s *HTTPServer) jsonResponse(w http.ResponseWriter, status int, data any) {
 }
 
 func (s *HTTPServer) jsonError(w http.ResponseWriter, message string, status int) {
-	s.jsonResponse(w, status, map[string]string{"error": message})
+	code := statusToErrorCode(status)
+	s.jsonResponse(w, status, pcerrors.Error{Code: code, Message: message})
+}
+
+// statusToErrorCode maps HTTP status codes to structured error codes.
+func statusToErrorCode(status int) pcerrors.Code {
+	switch status {
+	case http.StatusNotFound:
+		return pcerrors.CodeNotFound
+	case http.StatusBadRequest:
+		return pcerrors.CodeValidation
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return pcerrors.CodeAuth
+	case http.StatusConflict:
+		return pcerrors.CodeConflict
+	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
+		return pcerrors.CodeTimeout
+	case http.StatusTooManyRequests:
+		return pcerrors.CodeRateLimited
+	default:
+		return pcerrors.CodeInternal
+	}
 }
