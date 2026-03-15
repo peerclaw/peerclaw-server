@@ -134,6 +134,11 @@ func (s *Service) Heartbeat(ctx context.Context, agentID string, status agentcar
 	return deadline, nil
 }
 
+// SetStatus updates only the agent's status without touching last_heartbeat.
+func (s *Service) SetStatus(ctx context.Context, agentID string, status agentcard.AgentStatus) error {
+	return s.store.UpdateStatus(ctx, agentID, status)
+}
+
 // GetAgent retrieves a single agent by ID.
 func (s *Service) GetAgent(ctx context.Context, agentID string) (*agentcard.Card, error) {
 	card, err := s.store.Get(ctx, agentID)

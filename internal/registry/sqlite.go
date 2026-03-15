@@ -281,6 +281,21 @@ func (s *SQLiteStore) UpdateHeartbeat(ctx context.Context, id string, status age
 	return nil
 }
 
+func (s *SQLiteStore) UpdateStatus(ctx context.Context, id string, status agentcard.AgentStatus) error {
+	res, err := s.db.ExecContext(ctx,
+		"UPDATE agents SET status = ? WHERE id = ?",
+		string(status), id,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("agent %s not found", id)
+	}
+	return nil
+}
+
 func (s *SQLiteStore) UpdateMetadata(ctx context.Context, id string, metadata map[string]string) error {
 	if len(metadata) == 0 {
 		return nil

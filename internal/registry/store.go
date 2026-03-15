@@ -55,6 +55,9 @@ type Store interface {
 	// UpdateHeartbeat updates the heartbeat timestamp and status of an agent.
 	UpdateHeartbeat(ctx context.Context, id string, status agentcard.AgentStatus) error
 
+	// UpdateStatus updates only the status of an agent without touching last_heartbeat.
+	UpdateStatus(ctx context.Context, id string, status agentcard.AgentStatus) error
+
 	// UpdateMetadata merges the provided metadata keys into the agent's existing metadata.
 	UpdateMetadata(ctx context.Context, id string, metadata map[string]string) error
 

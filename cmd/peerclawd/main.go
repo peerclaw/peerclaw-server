@@ -480,7 +480,8 @@ func main() {
 					}
 					for _, agentID := range staleAgents {
 						// Mark offline first so next tick won't pick it up again.
-						_, _ = regService.Heartbeat(ctx, agentID, agentcard.StatusOffline, nil)
+					// Use SetStatus (not Heartbeat) to preserve the real last_heartbeat timestamp.
+					_ = regService.SetStatus(ctx, agentID, agentcard.StatusOffline)
 
 						_ = repEngine.RecordEvent(ctx, agentID, "heartbeat_miss", "")
 						logger.Info("agent marked offline due to heartbeat timeout", "agent_id", agentID)
