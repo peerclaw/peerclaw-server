@@ -665,5 +665,16 @@
       "agent_degraded": "أداء الوكيل منخفض",
       "sdk_outdated": "إصدار SDK قديم"
     }
+  },
+  "reinstall": {
+    "title": "إعادة تثبيت Agent SDK",
+    "button": "إعادة تثبيت Agent",
+    "prompt": "أحتاج إلى إعادة تثبيت PeerClaw Agent SDK لـ \"{{agent_name}}\" (المعرف: {{agent_id}}).\nالخادم: {{server_url}}\n\n⚠️ مهم: احمِ زوج المفاتيح الخاص بك — هذه هويتك المشفرة.\n\n## الخطوة 1: نسخ احتياطي لزوج المفاتيح\n\n```bash\ncp ~/.peerclaw/agent.key ~/.peerclaw/agent.key.bak\nls -la ~/.peerclaw/agent.key.bak  # التحقق من وجود النسخة الاحتياطية\n```\n\n## الخطوة 2: إعادة تثبيت PeerClaw CLI\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\npeerclaw version  # التحقق من التثبيت\n```\n\n## الخطوة 3: التحقق من الإعدادات\n\n```bash\npeerclaw config show\n```\n\nتأكد أن `keypair_path` يشير إلى ملف المفتاح الموجود (`~/.peerclaw/agent.key`).\nإذا كانت الإعدادات مفقودة، استعدها:\n\n```bash\nmkdir -p ~/.peerclaw\ncat > ~/.peerclaw/config.yaml << 'CONF'\nagent_id: {{agent_id}}\nserver: {{server_url}}\nkeypair_path: ~/.peerclaw/agent.key\nCONF\n```\n\n## الخطوة 4: استعادة زوج المفاتيح إذا لزم الأمر\n\nإذا تم حذف `~/.peerclaw/agent.key` أثناء إعادة التثبيت:\n\n```bash\ncp ~/.peerclaw/agent.key.bak ~/.peerclaw/agent.key\nchmod 600 ~/.peerclaw/agent.key\n```\n\n## الخطوة 5: إرسال heartbeat لتأكيد الاسترداد\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\nيجب أن ترى: `Heartbeat sent for agent {{agent_id}}`",
+    "prompt_openclaw": "\n\n## الخطوة 6: إعادة تثبيت إضافة OpenClaw\n\n```bash\nnpm install @peerclaw/openclaw-plugin@latest\n```\n\nأعد تشغيل OpenClaw لتفعيل الإضافة المحدثة.",
+    "prompt_ironclaw": "\n\n## الخطوة 6: إعادة تثبيت إضافة IronClaw\n\n```bash\ncurl -fsSL -o peerclaw.wasm https://github.com/peerclaw/ironclaw-plugin/releases/latest/download/peerclaw_ironclaw_plugin.wasm\nironclaw extension install ./peerclaw.wasm\n```\n\nأعد تشغيل IronClaw لتفعيل الإضافة المحدثة.",
+    "prompt_picoclaw": "\n\n## الخطوة 6: إعادة تثبيت إضافة PicoClaw\n\n```bash\ngo get github.com/peerclaw/picoclaw-plugin@latest\n```\n\nأعد بناء وكيل PicoClaw لتضمين الإضافة المحدثة.",
+    "prompt_nanobot": "\n\n## الخطوة 6: إعادة تثبيت إضافة nanobot\n\n```bash\npip install --upgrade git+https://github.com/peerclaw/nanobot-plugin.git\n```\n\nأعد تشغيل nanobot لتفعيل الإضافة المحدثة.",
+    "copyPrompt": "نسخ النص",
+    "copied": "تم النسخ"
   }
 }

@@ -418,6 +418,24 @@ func (h *Hub) DeliverEnvelope(ctx context.Context, agentID string, envPayload js
 	return nil
 }
 
+// BroadcastNotification sends a notification to all connected agents.
+func (h *Hub) BroadcastNotification(ctx context.Context, payload json.RawMessage) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	for agentID, conn := range h.conns {
+		msg := signaling.SignalMessage{
+			Type:    signaling.MessageTypeNotification,
+			From:    "server",
+			To:      agentID,
+			Payload: payload,
+		}
+		data, _ := json.Marshal(msg)
+		if err := conn.Write(ctx, websocket.MessageText, data); err != nil {
+			h.logger.Debug("broadcast failed", "agent_id", agentID, "error", err)
+		}
+	}
+}
+
 // ConnectedAgents returns the number of currently connected agents.
 func (h *Hub) ConnectedAgents() int {
 	h.mu.RLock()

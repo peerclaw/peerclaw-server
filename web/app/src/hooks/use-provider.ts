@@ -39,6 +39,7 @@ export interface ProviderAgent {
   last_heartbeat?: string
   reputation_score?: number
   sdk_version?: string
+  metadata?: Record<string, string>
   review_summary?: {
     average_rating: number
     total_reviews: number

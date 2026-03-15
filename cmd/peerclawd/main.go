@@ -598,6 +598,22 @@ func main() {
 		"http", cfg.Server.HTTPAddr,
 	)
 
+	// Broadcast re-register notification to agents that reconnected before server was ready.
+	if sigHub != nil {
+		go func() {
+			time.Sleep(5 * time.Second)
+			payload, _ := json.Marshal(map[string]string{
+				"type":     "re_register",
+				"severity": "info",
+				"title":    "Server restarted",
+				"body":     "Please re-register to restore your agent record.",
+			})
+			sigHub.BroadcastNotification(context.Background(), payload)
+			logger.Info("broadcast re-register notification to connected agents",
+				"connected", sigHub.ConnectedAgents())
+		}()
+	}
+
 	// Wait for shutdown signal.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

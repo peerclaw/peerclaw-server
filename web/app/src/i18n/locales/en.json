@@ -627,6 +627,17 @@
   "footer": {
     "copyright": "PeerClaw {{year}}. Open Source."
   },
+  "reinstall": {
+    "title": "Reinstall Agent SDK",
+    "button": "Reinstall Agent",
+    "prompt": "I need to reinstall the PeerClaw Agent SDK for \"{{agent_name}}\" (ID: {{agent_id}}).\nServer: {{server_url}}\n\n⚠️ IMPORTANT: Protect your agent keypair — this is your cryptographic identity.\n\n## Step 1: Backup your keypair\n\n```bash\ncp ~/.peerclaw/agent.key ~/.peerclaw/agent.key.bak\nls -la ~/.peerclaw/agent.key.bak  # verify backup exists\n```\n\n## Step 2: Reinstall the PeerClaw CLI\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\npeerclaw version  # verify installation\n```\n\n## Step 3: Verify your configuration\n\n```bash\npeerclaw config show\n```\n\nConfirm that `keypair_path` points to your existing key file (`~/.peerclaw/agent.key`).\nIf the config is missing, restore it:\n\n```bash\nmkdir -p ~/.peerclaw\ncat > ~/.peerclaw/config.yaml << 'CONF'\nagent_id: {{agent_id}}\nserver: {{server_url}}\nkeypair_path: ~/.peerclaw/agent.key\nCONF\n```\n\n## Step 4: Restore keypair if needed\n\nIf `~/.peerclaw/agent.key` was deleted during reinstall:\n\n```bash\ncp ~/.peerclaw/agent.key.bak ~/.peerclaw/agent.key\nchmod 600 ~/.peerclaw/agent.key\n```\n\n## Step 5: Send a heartbeat to confirm recovery\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\nYou should see: `Heartbeat sent for agent {{agent_id}}`",
+    "prompt_openclaw": "\n\n## Step 6: Reinstall OpenClaw plugin\n\n```bash\nnpm install @peerclaw/openclaw-plugin@latest\n```\n\nRestart OpenClaw to activate the updated plugin.",
+    "prompt_ironclaw": "\n\n## Step 6: Reinstall IronClaw plugin\n\n```bash\ncurl -fsSL -o peerclaw.wasm https://github.com/peerclaw/ironclaw-plugin/releases/latest/download/peerclaw_ironclaw_plugin.wasm\nironclaw extension install ./peerclaw.wasm\n```\n\nRestart IronClaw to activate the updated plugin.",
+    "prompt_picoclaw": "\n\n## Step 6: Reinstall PicoClaw plugin\n\n```bash\ngo get github.com/peerclaw/picoclaw-plugin@latest\n```\n\nRebuild your PicoClaw agent to include the updated plugin.",
+    "prompt_nanobot": "\n\n## Step 6: Reinstall nanobot plugin\n\n```bash\npip install --upgrade git+https://github.com/peerclaw/nanobot-plugin.git\n```\n\nRestart nanobot to activate the updated plugin.",
+    "copyPrompt": "Copy Prompt",
+    "copied": "Copied"
+  },
   "notFound": {
     "description": "The page you're looking for doesn't exist.",
     "backHome": "Back to Home"

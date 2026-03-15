@@ -54,6 +54,8 @@ export function ProviderAgentDetailPage() {
   const { data: sdkVersionData } = useSDKVersion()
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
   const [promptCopied, setPromptCopied] = useState(false)
+  const [showReinstallPrompt, setShowReinstallPrompt] = useState(false)
+  const [reinstallCopied, setReinstallCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -135,6 +137,10 @@ export function ProviderAgentDetailPage() {
           <p className="text-sm text-muted-foreground mt-1">{agent.description}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowReinstallPrompt(true)}>
+            <RotateCcw className="size-4" />
+            {t('reinstall.button')}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -482,6 +488,55 @@ export function ProviderAgentDetailPage() {
             <AnalyticsChart data={analytics.time_series} />
           )}
         </>
+      )}
+
+      {/* Reinstall Prompt Modal */}
+      {showReinstallPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-background border border-border rounded-lg shadow-lg max-w-lg w-full mx-4 max-h-[80vh] overflow-auto">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-sm font-medium">{t('reinstall.title')}</h3>
+              <button
+                onClick={() => { setShowReinstallPrompt(false); setReinstallCopied(false) }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="p-4">
+              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto whitespace-pre-wrap font-mono">
+                {t('reinstall.prompt', {
+                  agent_id: agent.id,
+                  agent_name: agent.name,
+                  server_url: window.location.origin,
+                })}
+                {agent.metadata?.platform_name && t(`reinstall.prompt_${agent.metadata.platform_name}`, { defaultValue: '' })}
+              </pre>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const prompt = t('reinstall.prompt', {
+                      agent_id: agent.id,
+                      agent_name: agent.name,
+                      server_url: window.location.origin,
+                    }) + (agent.metadata?.platform_name ? t(`reinstall.prompt_${agent.metadata.platform_name}`, { defaultValue: '' }) : '')
+                    navigator.clipboard.writeText(prompt)
+                    setReinstallCopied(true)
+                    setTimeout(() => setReinstallCopied(false), 2000)
+                  }}
+                >
+                  {reinstallCopied ? (
+                    <><Check className="size-3.5 mr-1" />{t('reinstall.copied')}</>
+                  ) : (
+                    <><Copy className="size-3.5 mr-1" />{t('reinstall.copyPrompt')}</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Upgrade Prompt Modal */}

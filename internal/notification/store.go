@@ -18,6 +18,7 @@ const (
 	TypeAgentOffline           NotificationType = "agent_offline"
 	TypeAgentDegraded          NotificationType = "agent_degraded"
 	TypeSDKOutdated            NotificationType = "sdk_outdated"
+	TypeReRegister             NotificationType = "re_register"
 )
 
 // Severity represents the severity level of a notification.

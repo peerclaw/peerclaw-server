@@ -665,5 +665,16 @@
       "agent_degraded": "Агент деградирован",
       "sdk_outdated": "SDK устарел"
     }
+  },
+  "reinstall": {
+    "title": "Переустановить Agent SDK",
+    "button": "Переустановить Agent",
+    "prompt": "Мне нужно переустановить PeerClaw Agent SDK для \"{{agent_name}}\" (ID: {{agent_id}}).\nСервер: {{server_url}}\n\n⚠️ ВАЖНО: Защитите свою пару ключей — это ваша криптографическая идентификация.\n\n## Шаг 1: Резервное копирование пары ключей\n\n```bash\ncp ~/.peerclaw/agent.key ~/.peerclaw/agent.key.bak\nls -la ~/.peerclaw/agent.key.bak  # убедитесь, что резервная копия существует\n```\n\n## Шаг 2: Переустановить PeerClaw CLI\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\npeerclaw version  # проверить установку\n```\n\n## Шаг 3: Проверить конфигурацию\n\n```bash\npeerclaw config show\n```\n\nУбедитесь, что `keypair_path` указывает на существующий файл ключей (`~/.peerclaw/agent.key`).\nЕсли конфигурация отсутствует, восстановите её:\n\n```bash\nmkdir -p ~/.peerclaw\ncat > ~/.peerclaw/config.yaml << 'CONF'\nagent_id: {{agent_id}}\nserver: {{server_url}}\nkeypair_path: ~/.peerclaw/agent.key\nCONF\n```\n\n## Шаг 4: Восстановить пару ключей при необходимости\n\nЕсли `~/.peerclaw/agent.key` был удалён при переустановке:\n\n```bash\ncp ~/.peerclaw/agent.key.bak ~/.peerclaw/agent.key\nchmod 600 ~/.peerclaw/agent.key\n```\n\n## Шаг 5: Отправить heartbeat для подтверждения восстановления\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\nВы должны увидеть: `Heartbeat sent for agent {{agent_id}}`",
+    "prompt_openclaw": "\n\n## Шаг 6: Переустановить плагин OpenClaw\n\n```bash\nnpm install @peerclaw/openclaw-plugin@latest\n```\n\nПерезапустите OpenClaw для активации обновлённого плагина.",
+    "prompt_ironclaw": "\n\n## Шаг 6: Переустановить плагин IronClaw\n\n```bash\ncurl -fsSL -o peerclaw.wasm https://github.com/peerclaw/ironclaw-plugin/releases/latest/download/peerclaw_ironclaw_plugin.wasm\nironclaw extension install ./peerclaw.wasm\n```\n\nПерезапустите IronClaw для активации обновлённого плагина.",
+    "prompt_picoclaw": "\n\n## Шаг 6: Переустановить плагин PicoClaw\n\n```bash\ngo get github.com/peerclaw/picoclaw-plugin@latest\n```\n\nПересоберите вашего агента PicoClaw для включения обновлённого плагина.",
+    "prompt_nanobot": "\n\n## Шаг 6: Переустановить плагин nanobot\n\n```bash\npip install --upgrade git+https://github.com/peerclaw/nanobot-plugin.git\n```\n\nПерезапустите nanobot для активации обновлённого плагина.",
+    "copyPrompt": "Копировать Prompt",
+    "copied": "Скопировано"
   }
 }

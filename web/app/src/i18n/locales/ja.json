@@ -665,5 +665,16 @@
       "agent_degraded": "エージェント性能低下",
       "sdk_outdated": "SDKが古いバージョン"
     }
+  },
+  "reinstall": {
+    "title": "Agent SDK の再インストール",
+    "button": "Agent を再インストール",
+    "prompt": "「{{agent_name}}」（ID: {{agent_id}}）の PeerClaw Agent SDK を再インストールする必要があります。\nサーバー: {{server_url}}\n\n⚠️ 重要：キーペアを保護してください——これはあなたの暗号化 ID です。\n\n## ステップ 1：キーペアのバックアップ\n\n```bash\ncp ~/.peerclaw/agent.key ~/.peerclaw/agent.key.bak\nls -la ~/.peerclaw/agent.key.bak  # バックアップの存在を確認\n```\n\n## ステップ 2：PeerClaw CLI の再インストール\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\npeerclaw version  # インストールを確認\n```\n\n## ステップ 3：設定の確認\n\n```bash\npeerclaw config show\n```\n\n`keypair_path` が既存のキーファイル（`~/.peerclaw/agent.key`）を指していることを確認してください。\n設定がない場合は復元します：\n\n```bash\nmkdir -p ~/.peerclaw\ncat > ~/.peerclaw/config.yaml << 'CONF'\nagent_id: {{agent_id}}\nserver: {{server_url}}\nkeypair_path: ~/.peerclaw/agent.key\nCONF\n```\n\n## ステップ 4：キーペアの復元（必要な場合）\n\n再インストール中に `~/.peerclaw/agent.key` が削除された場合：\n\n```bash\ncp ~/.peerclaw/agent.key.bak ~/.peerclaw/agent.key\nchmod 600 ~/.peerclaw/agent.key\n```\n\n## ステップ 5：ハートビートを送信して回復を確認\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\n次のように表示されるはずです：`Heartbeat sent for agent {{agent_id}}`",
+    "prompt_openclaw": "\n\n## ステップ 6：OpenClaw プラグインの再インストール\n\n```bash\nnpm install @peerclaw/openclaw-plugin@latest\n```\n\nOpenClaw を再起動してプラグインを有効化してください。",
+    "prompt_ironclaw": "\n\n## ステップ 6：IronClaw プラグインの再インストール\n\n```bash\ncurl -fsSL -o peerclaw.wasm https://github.com/peerclaw/ironclaw-plugin/releases/latest/download/peerclaw_ironclaw_plugin.wasm\nironclaw extension install ./peerclaw.wasm\n```\n\nIronClaw を再起動してプラグインを有効化してください。",
+    "prompt_picoclaw": "\n\n## ステップ 6：PicoClaw プラグインの再インストール\n\n```bash\ngo get github.com/peerclaw/picoclaw-plugin@latest\n```\n\nPicoClaw エージェントを再ビルドしてプラグインを含めてください。",
+    "prompt_nanobot": "\n\n## ステップ 6：nanobot プラグインの再インストール\n\n```bash\npip install --upgrade git+https://github.com/peerclaw/nanobot-plugin.git\n```\n\nnanobot を再起動してプラグインを有効化してください。",
+    "copyPrompt": "プロンプトをコピー",
+    "copied": "コピー済み"
   }
 }

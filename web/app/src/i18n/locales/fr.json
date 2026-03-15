@@ -665,5 +665,16 @@
       "agent_degraded": "Agent dégradé",
       "sdk_outdated": "SDK obsolète"
     }
+  },
+  "reinstall": {
+    "title": "Réinstaller Agent SDK",
+    "button": "Réinstaller Agent",
+    "prompt": "Je dois réinstaller le PeerClaw Agent SDK pour \"{{agent_name}}\" (ID : {{agent_id}}).\nServeur : {{server_url}}\n\n⚠️ IMPORTANT : Protégez votre paire de clés — c'est votre identité cryptographique.\n\n## Étape 1 : Sauvegarder votre paire de clés\n\n```bash\ncp ~/.peerclaw/agent.key ~/.peerclaw/agent.key.bak\nls -la ~/.peerclaw/agent.key.bak  # vérifier que la sauvegarde existe\n```\n\n## Étape 2 : Réinstaller PeerClaw CLI\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\npeerclaw version  # vérifier l'installation\n```\n\n## Étape 3 : Vérifier la configuration\n\n```bash\npeerclaw config show\n```\n\nConfirmez que `keypair_path` pointe vers votre fichier de clés existant (`~/.peerclaw/agent.key`).\nSi la configuration est manquante, restaurez-la :\n\n```bash\nmkdir -p ~/.peerclaw\ncat > ~/.peerclaw/config.yaml << 'CONF'\nagent_id: {{agent_id}}\nserver: {{server_url}}\nkeypair_path: ~/.peerclaw/agent.key\nCONF\n```\n\n## Étape 4 : Restaurer la paire de clés si nécessaire\n\nSi `~/.peerclaw/agent.key` a été supprimé pendant la réinstallation :\n\n```bash\ncp ~/.peerclaw/agent.key.bak ~/.peerclaw/agent.key\nchmod 600 ~/.peerclaw/agent.key\n```\n\n## Étape 5 : Envoyer un heartbeat pour confirmer la récupération\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\nVous devriez voir : `Heartbeat sent for agent {{agent_id}}`",
+    "prompt_openclaw": "\n\n## Étape 6 : Réinstaller le plugin OpenClaw\n\n```bash\nnpm install @peerclaw/openclaw-plugin@latest\n```\n\nRedémarrez OpenClaw pour activer le plugin mis à jour.",
+    "prompt_ironclaw": "\n\n## Étape 6 : Réinstaller le plugin IronClaw\n\n```bash\ncurl -fsSL -o peerclaw.wasm https://github.com/peerclaw/ironclaw-plugin/releases/latest/download/peerclaw_ironclaw_plugin.wasm\nironclaw extension install ./peerclaw.wasm\n```\n\nRedémarrez IronClaw pour activer le plugin mis à jour.",
+    "prompt_picoclaw": "\n\n## Étape 6 : Réinstaller le plugin PicoClaw\n\n```bash\ngo get github.com/peerclaw/picoclaw-plugin@latest\n```\n\nReconstruisez votre agent PicoClaw pour inclure le plugin mis à jour.",
+    "prompt_nanobot": "\n\n## Étape 6 : Réinstaller le plugin nanobot\n\n```bash\npip install --upgrade git+https://github.com/peerclaw/nanobot-plugin.git\n```\n\nRedémarrez nanobot pour activer le plugin mis à jour.",
+    "copyPrompt": "Copier le Prompt",
+    "copied": "Copié"
   }
 }

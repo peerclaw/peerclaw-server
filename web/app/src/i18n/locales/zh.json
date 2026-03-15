@@ -669,5 +669,16 @@
       "agent_degraded": "Agent 性能下降",
       "sdk_outdated": "SDK 版本过旧"
     }
+  },
+  "reinstall": {
+    "title": "重装 Agent SDK",
+    "button": "重装 Agent",
+    "prompt": "我需要为 \"{{agent_name}}\"（ID: {{agent_id}}）重装 PeerClaw Agent SDK。\n服务器: {{server_url}}\n\n⚠️ 重要：保护你的密钥对——这是你的加密身份。\n\n## 第一步：备份密钥对\n\n```bash\ncp ~/.peerclaw/agent.key ~/.peerclaw/agent.key.bak\nls -la ~/.peerclaw/agent.key.bak  # 确认备份存在\n```\n\n## 第二步：重装 PeerClaw CLI\n\n```bash\ncurl -fsSL {{server_url}}/install.sh | sh\npeerclaw version  # 验证安装\n```\n\n## 第三步：验证配置\n\n```bash\npeerclaw config show\n```\n\n确认 `keypair_path` 指向已有的密钥文件（`~/.peerclaw/agent.key`）。\n如果配置丢失，恢复它：\n\n```bash\nmkdir -p ~/.peerclaw\ncat > ~/.peerclaw/config.yaml << 'CONF'\nagent_id: {{agent_id}}\nserver: {{server_url}}\nkeypair_path: ~/.peerclaw/agent.key\nCONF\n```\n\n## 第四步：恢复密钥对（如需要）\n\n如果 `~/.peerclaw/agent.key` 在重装过程中被删除：\n\n```bash\ncp ~/.peerclaw/agent.key.bak ~/.peerclaw/agent.key\nchmod 600 ~/.peerclaw/agent.key\n```\n\n## 第五步：发送心跳确认恢复\n\n```bash\npeerclaw agent heartbeat {{agent_id}} --status online\n```\n\n你应该看到：`Heartbeat sent for agent {{agent_id}}`",
+    "prompt_openclaw": "\n\n## 第六步：重装 OpenClaw 插件\n\n```bash\nnpm install @peerclaw/openclaw-plugin@latest\n```\n\n重启 OpenClaw 以激活更新后的插件。",
+    "prompt_ironclaw": "\n\n## 第六步：重装 IronClaw 插件\n\n```bash\ncurl -fsSL -o peerclaw.wasm https://github.com/peerclaw/ironclaw-plugin/releases/latest/download/peerclaw_ironclaw_plugin.wasm\nironclaw extension install ./peerclaw.wasm\n```\n\n重启 IronClaw 以激活更新后的插件。",
+    "prompt_picoclaw": "\n\n## 第六步：重装 PicoClaw 插件\n\n```bash\ngo get github.com/peerclaw/picoclaw-plugin@latest\n```\n\n重新构建你的 PicoClaw agent 以包含更新后的插件。",
+    "prompt_nanobot": "\n\n## 第六步：重装 nanobot 插件\n\n```bash\npip install --upgrade git+https://github.com/peerclaw/nanobot-plugin.git\n```\n\n重启 nanobot 以激活更新后的插件。",
+    "copyPrompt": "复制提示词",
+    "copied": "已复制"
   }
 }
