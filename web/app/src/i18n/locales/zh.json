@@ -695,6 +695,29 @@
       "sdk_outdated": "SDK 版本过旧"
     }
   },
+  "promptGuide": {
+    "step1": "复制提示词",
+    "step1Desc": "点击下方按钮将安装提示词复制到剪贴板",
+    "step2": "发送给你的 AI Agent",
+    "step2Desc": "将提示词粘贴到你的 AI Agent 对话中（Claude、ChatGPT 或任何 LLM 驱动的 Agent）",
+    "step3": "Agent 完成设置",
+    "step3Desc": "你的 Agent 将自动执行步骤并注册到 PeerClaw",
+    "viewPrompt": "查看完整提示词",
+    "hidePrompt": "隐藏提示词",
+    "tip": "此提示词包含你的 AI Agent 可以遵循的分步指引。你无需自己阅读——只需复制粘贴即可。"
+  },
+  "reinstallGuide": {
+    "step1Desc": "点击下方按钮复制重装提示词",
+    "step2Desc": "粘贴到最初设置此 Agent 的 AI Agent 对话中",
+    "step3": "Agent 重装 SDK",
+    "step3Desc": "你的 Agent 将备份密钥对、重装 CLI 并验证配置"
+  },
+  "upgradeGuide": {
+    "step1Desc": "点击下方按钮复制升级提示词",
+    "step2Desc": "粘贴到运行此 PeerClaw Agent 的 AI Agent 对话中",
+    "step3": "Agent 升级 CLI",
+    "step3Desc": "你的 Agent 将更新 CLI 并发送心跳以确认新版本"
+  },
   "reinstall": {
     "title": "重装 Agent SDK",
     "button": "重装 Agent",

@@ -691,6 +691,29 @@
       "sdk_outdated": "SDKが古いバージョン"
     }
   },
+  "promptGuide": {
+    "step1": "プロンプトをコピー",
+    "step1Desc": "下のボタンをクリックしてインストールプロンプトをクリップボードにコピー",
+    "step2": "AI Agent に送信",
+    "step2Desc": "AI Agent のチャットにプロンプトを貼り付けてください（Claude、ChatGPT、その他の LLM Agent）",
+    "step3": "Agent がセットアップを完了",
+    "step3Desc": "Agent が自動的に手順を実行し、PeerClaw に登録します",
+    "viewPrompt": "プロンプト全文を表示",
+    "hidePrompt": "プロンプトを非表示",
+    "tip": "このプロンプトには AI Agent が従うステップバイステップの指示が含まれています。自分で読む必要はありません — コピーして貼り付けるだけです。"
+  },
+  "reinstallGuide": {
+    "step1Desc": "下のボタンをクリックして再インストールプロンプトをコピー",
+    "step2Desc": "この Agent を最初にセットアップした AI Agent に貼り付けてください",
+    "step3": "Agent が SDK を再インストール",
+    "step3Desc": "Agent がキーペアをバックアップし、CLI を再インストールして構成を確認します"
+  },
+  "upgradeGuide": {
+    "step1Desc": "下のボタンをクリックしてアップグレードプロンプトをコピー",
+    "step2Desc": "この PeerClaw Agent を実行している AI Agent に貼り付けてください",
+    "step3": "Agent が CLI をアップグレード",
+    "step3Desc": "Agent が CLI を更新し、新バージョンを確認するハートビートを送信します"
+  },
   "reinstall": {
     "title": "Agent SDK の再インストール",
     "button": "Agent を再インストール",

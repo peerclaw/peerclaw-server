@@ -691,6 +691,29 @@
       "sdk_outdated": "SDK obsolète"
     }
   },
+  "promptGuide": {
+    "step1": "Copiez le prompt",
+    "step1Desc": "Cliquez sur le bouton ci-dessous pour copier le prompt d'installation dans le presse-papiers",
+    "step2": "Envoyez à votre AI Agent",
+    "step2Desc": "Collez le prompt dans le chat de votre agent IA (Claude, ChatGPT ou tout agent LLM)",
+    "step3": "L'Agent termine la configuration",
+    "step3Desc": "Votre Agent exécutera automatiquement les étapes et s'inscrira sur PeerClaw",
+    "viewPrompt": "Voir le prompt complet",
+    "hidePrompt": "Masquer le prompt",
+    "tip": "Ce prompt contient des instructions étape par étape que votre agent IA peut suivre. Vous n'avez pas besoin de le lire — copiez et collez simplement."
+  },
+  "reinstallGuide": {
+    "step1Desc": "Cliquez sur le bouton ci-dessous pour copier le prompt de réinstallation",
+    "step2Desc": "Collez-le dans l'agent IA qui a initialement configuré cet Agent",
+    "step3": "L'Agent réinstalle le SDK",
+    "step3Desc": "Votre Agent sauvegardera la paire de clés, réinstallera le CLI et vérifiera la configuration"
+  },
+  "upgradeGuide": {
+    "step1Desc": "Cliquez sur le bouton ci-dessous pour copier le prompt de mise à jour",
+    "step2Desc": "Collez-le dans l'agent IA qui exécute cet Agent PeerClaw",
+    "step3": "L'Agent met à jour le CLI",
+    "step3Desc": "Votre Agent mettra à jour le CLI et enverra un heartbeat pour confirmer la nouvelle version"
+  },
   "reinstall": {
     "title": "Réinstaller Agent SDK",
     "button": "Réinstaller Agent",

@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Copy, Check, Key, Loader2, RefreshCw, Eye } from "lucide-react"
+import { Copy, Check, Key, Loader2, RefreshCw, Eye, Info } from "lucide-react"
 import { useClaimTokens, useGenerateClaimToken } from "@/hooks/use-provider"
 
 export function ClaimTokenSection() {
@@ -184,7 +184,7 @@ export function ClaimTokenSection() {
 
         {/* Generated prompt display */}
         {generatedCode && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">
                 {t('claim.sendPrompt')}
@@ -192,6 +192,35 @@ export function ClaimTokenSection() {
               <span className="text-sm text-muted-foreground tabular-nums">
                 {formatTime(remaining)}
               </span>
+            </div>
+            {/* Step guidance */}
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-3">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">1</span>
+                <div>
+                  <p className="text-sm font-medium">{t('promptGuide.step1')}</p>
+                  <p className="text-xs text-muted-foreground">{t('promptGuide.step1Desc')}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">2</span>
+                <div>
+                  <p className="text-sm font-medium">{t('promptGuide.step2')}</p>
+                  <p className="text-xs text-muted-foreground">{t('promptGuide.step2Desc')}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">3</span>
+                <div>
+                  <p className="text-sm font-medium">{t('promptGuide.step3')}</p>
+                  <p className="text-xs text-muted-foreground">{t('promptGuide.step3Desc')}</p>
+                </div>
+              </div>
+            </div>
+            {/* Tip */}
+            <div className="flex items-start gap-2 rounded-md bg-background/60 p-2.5">
+              <Info className="size-3.5 shrink-0 text-muted-foreground mt-0.5" />
+              <p className="text-xs text-muted-foreground">{t('promptGuide.tip')}</p>
             </div>
             <pre className="text-sm font-mono bg-background rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all border max-h-64 overflow-y-auto">
               {prompt}
@@ -213,7 +242,7 @@ export function ClaimTokenSection() {
 
         {/* View prompt panel (from token history) */}
         {viewingToken && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">
                 {t('claim.sendPrompt')}
@@ -225,6 +254,30 @@ export function ClaimTokenSection() {
               >
                 {t('common.close')}
               </Button>
+            </div>
+            {/* Step guidance */}
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-3">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">1</span>
+                <div>
+                  <p className="text-sm font-medium">{t('promptGuide.step1')}</p>
+                  <p className="text-xs text-muted-foreground">{t('promptGuide.step1Desc')}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">2</span>
+                <div>
+                  <p className="text-sm font-medium">{t('promptGuide.step2')}</p>
+                  <p className="text-xs text-muted-foreground">{t('promptGuide.step2Desc')}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">3</span>
+                <div>
+                  <p className="text-sm font-medium">{t('promptGuide.step3')}</p>
+                  <p className="text-xs text-muted-foreground">{t('promptGuide.step3Desc')}</p>
+                </div>
+              </div>
             </div>
             <pre className="text-sm font-mono bg-background rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all border max-h-64 overflow-y-auto">
               {viewPrompt}

@@ -38,6 +38,9 @@ import {
   Key,
   Copy,
   ArrowUpCircle,
+  ChevronDown,
+  ChevronUp,
+  Info,
 } from "lucide-react"
 
 export function ProviderAgentDetailPage() {
@@ -58,6 +61,8 @@ export function ProviderAgentDetailPage() {
   const [promptCopied, setPromptCopied] = useState(false)
   const [showReinstallPrompt, setShowReinstallPrompt] = useState(false)
   const [reinstallCopied, setReinstallCopied] = useState(false)
+  const [reinstallPromptExpanded, setReinstallPromptExpanded] = useState(false)
+  const [upgradePromptExpanded, setUpgradePromptExpanded] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -501,47 +506,97 @@ export function ProviderAgentDetailPage() {
       {/* Reinstall Prompt Modal */}
       {showReinstallPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-background border border-border rounded-lg shadow-lg max-w-lg w-full mx-4 max-h-[80vh] overflow-auto">
-            <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="bg-background border border-border rounded-lg shadow-lg max-w-lg w-full mx-4 flex flex-col max-h-[80vh]">
+            {/* Fixed header */}
+            <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
               <h3 className="text-sm font-medium">{t('reinstall.title')}</h3>
               <button
-                onClick={() => { setShowReinstallPrompt(false); setReinstallCopied(false) }}
+                onClick={() => { setShowReinstallPrompt(false); setReinstallCopied(false); setReinstallPromptExpanded(false) }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X className="size-4" />
               </button>
             </div>
-            <div className="p-4">
-              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto whitespace-pre-wrap font-mono">
-                {t('reinstall.prompt', {
-                  agent_id: agent.id,
-                  agent_name: agent.name,
-                  server_url: window.location.origin,
-                })}
-                {agent.metadata?.platform_name && t(`reinstall.prompt_${agent.metadata.platform_name}`, { defaultValue: '' })}
-              </pre>
-              <div className="mt-3 flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const prompt = t('reinstall.prompt', {
+            {/* Scrollable middle */}
+            <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4">
+              {/* Step guidance */}
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">1</span>
+                  <div>
+                    <p className="text-sm font-medium">{t('promptGuide.step1')}</p>
+                    <p className="text-xs text-muted-foreground">{t('reinstallGuide.step1Desc')}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">2</span>
+                  <div>
+                    <p className="text-sm font-medium">{t('promptGuide.step2')}</p>
+                    <p className="text-xs text-muted-foreground">{t('reinstallGuide.step2Desc')}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">3</span>
+                  <div>
+                    <p className="text-sm font-medium">{t('reinstallGuide.step3')}</p>
+                    <p className="text-xs text-muted-foreground">{t('reinstallGuide.step3Desc')}</p>
+                  </div>
+                </div>
+              </div>
+              {/* Tip */}
+              <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3">
+                <Info className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+                <p className="text-xs text-muted-foreground">{t('promptGuide.tip')}</p>
+              </div>
+              {/* Collapsible prompt */}
+              <div>
+                <button
+                  onClick={() => setReinstallPromptExpanded(!reinstallPromptExpanded)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {reinstallPromptExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                  {reinstallPromptExpanded ? t('promptGuide.hidePrompt') : t('promptGuide.viewPrompt')}
+                </button>
+                {reinstallPromptExpanded && (
+                  <pre className="mt-2 text-xs bg-muted p-3 rounded-md whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
+                    {t('reinstall.prompt', {
                       agent_id: agent.id,
                       agent_name: agent.name,
                       server_url: window.location.origin,
-                    }) + (agent.metadata?.platform_name ? t(`reinstall.prompt_${agent.metadata.platform_name}`, { defaultValue: '' }) : '')
-                    navigator.clipboard.writeText(prompt)
-                    setReinstallCopied(true)
-                    setTimeout(() => setReinstallCopied(false), 2000)
-                  }}
-                >
-                  {reinstallCopied ? (
-                    <><Check className="size-3.5 mr-1" />{t('reinstall.copied')}</>
-                  ) : (
-                    <><Copy className="size-3.5 mr-1" />{t('reinstall.copyPrompt')}</>
-                  )}
-                </Button>
+                    })}
+                    {agent.metadata?.platform_name && t(`reinstall.prompt_${agent.metadata.platform_name}`, { defaultValue: '' })}
+                  </pre>
+                )}
               </div>
+            </div>
+            {/* Fixed footer */}
+            <div className="shrink-0 p-4 border-t border-border flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setShowReinstallPrompt(false); setReinstallCopied(false); setReinstallPromptExpanded(false) }}
+              >
+                {t('common.close')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const prompt = t('reinstall.prompt', {
+                    agent_id: agent.id,
+                    agent_name: agent.name,
+                    server_url: window.location.origin,
+                  }) + (agent.metadata?.platform_name ? t(`reinstall.prompt_${agent.metadata.platform_name}`, { defaultValue: '' }) : '')
+                  navigator.clipboard.writeText(prompt)
+                  setReinstallCopied(true)
+                  setTimeout(() => setReinstallCopied(false), 2000)
+                }}
+              >
+                {reinstallCopied ? (
+                  <><Check className="size-3.5 mr-1" />{t('reinstall.copied')}</>
+                ) : (
+                  <><Copy className="size-3.5 mr-1" />{t('reinstall.copyPrompt')}</>
+                )}
+              </Button>
             </div>
           </div>
         </div>
@@ -550,51 +605,101 @@ export function ProviderAgentDetailPage() {
       {/* Upgrade Prompt Modal */}
       {showUpgradePrompt && sdkVersionData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-background border border-border rounded-lg shadow-lg max-w-lg w-full mx-4 max-h-[80vh] overflow-auto">
-            <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="bg-background border border-border rounded-lg shadow-lg max-w-lg w-full mx-4 flex flex-col max-h-[80vh]">
+            {/* Fixed header */}
+            <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
               <h3 className="text-sm font-medium">{t('provider.upgradeAgent')}</h3>
               <button
-                onClick={() => { setShowUpgradePrompt(false); setPromptCopied(false) }}
+                onClick={() => { setShowUpgradePrompt(false); setPromptCopied(false); setUpgradePromptExpanded(false) }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X className="size-4" />
               </button>
             </div>
-            <div className="p-4">
-              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto whitespace-pre-wrap font-mono">
-                {t('upgrade.prompt', {
-                  agent_id: agent.id,
-                  agent_name: agent.name,
-                  current_version: agent.sdk_version || 'unknown',
-                  latest_version: sdkVersionData.latest,
-                  server_url: window.location.origin,
-                })}
-              </pre>
-              <div className="mt-3 flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      t('upgrade.prompt', {
-                        agent_id: agent.id,
-                        agent_name: agent.name,
-                        current_version: agent.sdk_version || 'unknown',
-                        latest_version: sdkVersionData.latest,
-                        server_url: window.location.origin,
-                      })
-                    )
-                    setPromptCopied(true)
-                    setTimeout(() => setPromptCopied(false), 2000)
-                  }}
-                >
-                  {promptCopied ? (
-                    <><Check className="size-3.5 mr-1" />{t('upgrade.copied')}</>
-                  ) : (
-                    <><Copy className="size-3.5 mr-1" />{t('upgrade.copyPrompt')}</>
-                  )}
-                </Button>
+            {/* Scrollable middle */}
+            <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4">
+              {/* Step guidance */}
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">1</span>
+                  <div>
+                    <p className="text-sm font-medium">{t('promptGuide.step1')}</p>
+                    <p className="text-xs text-muted-foreground">{t('upgradeGuide.step1Desc')}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">2</span>
+                  <div>
+                    <p className="text-sm font-medium">{t('promptGuide.step2')}</p>
+                    <p className="text-xs text-muted-foreground">{t('upgradeGuide.step2Desc')}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">3</span>
+                  <div>
+                    <p className="text-sm font-medium">{t('upgradeGuide.step3')}</p>
+                    <p className="text-xs text-muted-foreground">{t('upgradeGuide.step3Desc')}</p>
+                  </div>
+                </div>
               </div>
+              {/* Tip */}
+              <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3">
+                <Info className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+                <p className="text-xs text-muted-foreground">{t('promptGuide.tip')}</p>
+              </div>
+              {/* Collapsible prompt */}
+              <div>
+                <button
+                  onClick={() => setUpgradePromptExpanded(!upgradePromptExpanded)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {upgradePromptExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                  {upgradePromptExpanded ? t('promptGuide.hidePrompt') : t('promptGuide.viewPrompt')}
+                </button>
+                {upgradePromptExpanded && (
+                  <pre className="mt-2 text-xs bg-muted p-3 rounded-md whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
+                    {t('upgrade.prompt', {
+                      agent_id: agent.id,
+                      agent_name: agent.name,
+                      current_version: agent.sdk_version || 'unknown',
+                      latest_version: sdkVersionData.latest,
+                      server_url: window.location.origin,
+                    })}
+                  </pre>
+                )}
+              </div>
+            </div>
+            {/* Fixed footer */}
+            <div className="shrink-0 p-4 border-t border-border flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setShowUpgradePrompt(false); setPromptCopied(false); setUpgradePromptExpanded(false) }}
+              >
+                {t('common.close')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    t('upgrade.prompt', {
+                      agent_id: agent.id,
+                      agent_name: agent.name,
+                      current_version: agent.sdk_version || 'unknown',
+                      latest_version: sdkVersionData.latest,
+                      server_url: window.location.origin,
+                    })
+                  )
+                  setPromptCopied(true)
+                  setTimeout(() => setPromptCopied(false), 2000)
+                }}
+              >
+                {promptCopied ? (
+                  <><Check className="size-3.5 mr-1" />{t('upgrade.copied')}</>
+                ) : (
+                  <><Copy className="size-3.5 mr-1" />{t('upgrade.copyPrompt')}</>
+                )}
+              </Button>
             </div>
           </div>
         </div>

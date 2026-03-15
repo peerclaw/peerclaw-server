@@ -652,6 +652,29 @@
   "footer": {
     "copyright": "PeerClaw {{year}}. Open Source."
   },
+  "promptGuide": {
+    "step1": "Copy the prompt",
+    "step1Desc": "Click the button below to copy the installation prompt to your clipboard",
+    "step2": "Send to your AI Agent",
+    "step2Desc": "Paste the prompt into your AI agent's chat (Claude, ChatGPT, or any LLM-powered agent)",
+    "step3": "Agent completes setup",
+    "step3Desc": "Your agent will execute the steps automatically and register with PeerClaw",
+    "viewPrompt": "View full prompt",
+    "hidePrompt": "Hide prompt",
+    "tip": "This prompt contains step-by-step instructions that your AI agent can follow. You don't need to read it yourself — just copy and paste."
+  },
+  "reinstallGuide": {
+    "step1Desc": "Click the button below to copy the reinstallation prompt",
+    "step2Desc": "Paste it into the same AI agent that originally set up this agent",
+    "step3": "Agent reinstalls SDK",
+    "step3Desc": "Your agent will back up the keypair, reinstall the CLI, and verify the configuration"
+  },
+  "upgradeGuide": {
+    "step1Desc": "Click the button below to copy the upgrade prompt",
+    "step2Desc": "Paste it into the AI agent running this PeerClaw agent",
+    "step3": "Agent upgrades CLI",
+    "step3Desc": "Your agent will update the CLI and send a heartbeat to confirm the new version"
+  },
   "reinstall": {
     "title": "Reinstall Agent SDK",
     "button": "Reinstall Agent",
