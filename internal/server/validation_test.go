@@ -98,6 +98,7 @@ func TestValidateHeartbeatStatus(t *testing.T) {
 		{"online", false},
 		{"busy", false},
 		{"offline", false},
+		{"degraded", false},
 		{"invalid", true},
 	}
 	for _, tt := range tests {

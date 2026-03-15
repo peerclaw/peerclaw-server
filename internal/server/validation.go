@@ -20,9 +20,10 @@ var knownProtocols = map[string]bool{
 
 // validStatuses are the valid heartbeat status values.
 var validStatuses = map[string]bool{
-	"online":  true,
-	"busy":    true,
-	"offline": true,
+	"online":   true,
+	"busy":     true,
+	"degraded": true,
+	"offline":  true,
 }
 
 func validateRegisterRequest(req *registerRequest) error {
@@ -102,7 +103,7 @@ func validateHeartbeatStatus(status string) error {
 		return nil // Empty means default to "online"
 	}
 	if !validStatuses[status] {
-		return fmt.Errorf("invalid status %q: must be one of online, busy, offline", status)
+		return fmt.Errorf("invalid status %q: must be one of online, busy, degraded, offline", status)
 	}
 	return nil
 }
