@@ -13,6 +13,7 @@ import (
 
 	"database/sql"
 
+	"github.com/peerclaw/peerclaw-core/agentcard"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
@@ -478,8 +479,11 @@ func main() {
 						continue
 					}
 					for _, agentID := range staleAgents {
+						// Mark offline first so next tick won't pick it up again.
+						_, _ = regService.Heartbeat(ctx, agentID, agentcard.StatusOffline, nil)
+
 						_ = repEngine.RecordEvent(ctx, agentID, "heartbeat_miss", "")
-						logger.Debug("heartbeat miss recorded", "agent_id", agentID)
+						logger.Info("agent marked offline due to heartbeat timeout", "agent_id", agentID)
 
 						// Emit agent offline notification to owner.
 						if notificationSvc != nil {
