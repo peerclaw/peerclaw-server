@@ -105,7 +105,10 @@ func TestAuthMiddleware_ValidSignature(t *testing.T) {
 	}))
 
 	body := `{"test":"data"}`
-	sig := identity.Sign(kp.PrivateKey, []byte(body))
+	sig, err := identity.Sign(kp.PrivateKey, []byte(body))
+	if err != nil {
+		t.Fatalf("Sign failed: %v", err)
+	}
 	pubKeyStr := kp.PublicKeyString()
 
 	req := httptest.NewRequest("POST", "/test", strings.NewReader(body))
@@ -137,7 +140,10 @@ func TestAuthMiddleware_InvalidSignature(t *testing.T) {
 	}))
 
 	body := `{"test":"data"}`
-	sig := identity.Sign(kp.PrivateKey, []byte("different data"))
+	sig, err := identity.Sign(kp.PrivateKey, []byte("different data"))
+	if err != nil {
+		t.Fatalf("Sign failed: %v", err)
+	}
 	pubKeyStr := kp.PublicKeyString()
 
 	req := httptest.NewRequest("POST", "/test", strings.NewReader(body))

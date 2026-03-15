@@ -76,7 +76,10 @@ func TestVerifySignature_Valid(t *testing.T) {
 	}
 
 	data := []byte("hello, peerclaw!")
-	sig := pcidentity.Sign(kp.PrivateKey, data)
+	sig, err := pcidentity.Sign(kp.PrivateKey, data)
+	if err != nil {
+		t.Fatalf("Sign failed: %v", err)
+	}
 
 	v := NewVerifier()
 	pubKeyStr := kp.PublicKeyString()
@@ -94,7 +97,10 @@ func TestVerifySignature_InvalidSignature(t *testing.T) {
 
 	data := []byte("hello, peerclaw!")
 	// Sign with the correct key but verify against different data.
-	sig := pcidentity.Sign(kp.PrivateKey, data)
+	sig, err := pcidentity.Sign(kp.PrivateKey, data)
+	if err != nil {
+		t.Fatalf("Sign failed: %v", err)
+	}
 
 	v := NewVerifier()
 	pubKeyStr := kp.PublicKeyString()
@@ -117,7 +123,10 @@ func TestVerifySignature_WrongKey(t *testing.T) {
 	}
 
 	data := []byte("hello, peerclaw!")
-	sig := pcidentity.Sign(kp1.PrivateKey, data)
+	sig, err := pcidentity.Sign(kp1.PrivateKey, data)
+	if err != nil {
+		t.Fatalf("Sign failed: %v", err)
+	}
 
 	v := NewVerifier()
 	// Verify with a different public key.
