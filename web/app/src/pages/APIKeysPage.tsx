@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
@@ -87,15 +87,18 @@ export function APIKeysPage() {
     }
   }
 
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
     } catch {
       // Fallback: select text
     }
   }
+  useEffect(() => () => clearTimeout(copyTimerRef.current), [])
 
   const activeKeys = keys.filter((k) => !k.revoked)
   const revokedKeys = keys.filter((k) => k.revoked)

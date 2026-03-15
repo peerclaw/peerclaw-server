@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useAdminReports, useAdminMutations } from "@/hooks/use-admin"
@@ -69,6 +69,11 @@ export function ReportsPage() {
 
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  // Reset page if current exceeds total after deletion.
+  useEffect(() => {
+    if (totalPages > 0 && page >= totalPages) setPage(totalPages - 1)
+  }, [totalPages, page])
 
   const statusBadgeVariant = (status: string) => {
     switch (status) {

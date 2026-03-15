@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -57,6 +57,11 @@ export function AgentsPage() {
   const agents = data?.agents ?? []
   const total = data?.total_count ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  // Reset page if current exceeds total after deletion.
+  useEffect(() => {
+    if (totalPages > 0 && page >= totalPages) setPage(totalPages - 1)
+  }, [totalPages, page])
 
   return (
     <div className="space-y-6">

@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -30,8 +31,22 @@ export function ConfirmDialog({
   onConfirm,
   loading,
 }: ConfirmDialogProps) {
+  const submittedRef = useRef(false)
+
+  const handleConfirm = () => {
+    if (submittedRef.current) return
+    submittedRef.current = true
+    onConfirm()
+  }
+
+  // Reset guard when dialog opens/closes.
+  const handleOpenChange = (next: boolean) => {
+    if (!next) submittedRef.current = false
+    onOpenChange(next)
+  }
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>{description}</AlertDialogDescription>
@@ -40,7 +55,7 @@ export function ConfirmDialog({
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={handleConfirm}
             disabled={loading}
             className={
               variant === "destructive"

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Bell } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { useNotifications, useUnreadCount, useNotificationMutations } from "@/hooks/use-notifications"
 import {
   DropdownMenu,
@@ -46,15 +47,23 @@ export function NotificationBell() {
   }
 
   const handleMarkRead = async (id: string) => {
-    await markRead(id)
-    decrement(1)
-    reload()
+    try {
+      await markRead(id)
+      decrement(1)
+      reload()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
+    }
   }
 
   const handleMarkAllRead = async () => {
-    await markAllRead()
-    reset()
-    reload()
+    try {
+      await markAllRead()
+      reset()
+      reload()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
+    }
   }
 
   return (

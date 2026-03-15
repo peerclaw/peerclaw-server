@@ -69,6 +69,7 @@ export function PlaygroundPage() {
               type="button"
               role="switch"
               aria-checked={streamEnabled}
+              aria-label={t('playground.stream')}
               onClick={() => setStreamEnabled((s) => !s)}
               className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
                 streamEnabled ? "bg-primary" : "bg-muted"
@@ -186,6 +187,7 @@ export function PlaygroundPage() {
               type="button"
               role="switch"
               aria-checked={streamEnabled}
+              aria-label={t('playground.stream')}
               onClick={() => setStreamEnabled((s) => !s)}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
                 streamEnabled ? "bg-primary" : "bg-muted"

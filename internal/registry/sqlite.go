@@ -225,6 +225,8 @@ func (s *SQLiteStore) List(ctx context.Context, filter ListFilter) (*ListResult,
 		_, _ = fmt.Sscanf(filter.PageToken, "%d", &offset)
 	}
 
+	// SECURITY: orderBy is safe — values come only from the whitelist below,
+	// never from user input. Do NOT add cases that interpolate raw strings.
 	orderBy := "registered_at DESC"
 	switch filter.SortBy {
 	case "reputation":

@@ -61,9 +61,11 @@ export function ProviderAgentDetailPage() {
 
   useEffect(() => {
     if (!id) return
+    let cancelled = false
     fetchReputationHistory(id, 100)
-      .then((res) => setRepEvents(res.events ?? []))
+      .then((res) => { if (!cancelled) setRepEvents(res.events ?? []) })
       .catch(() => {})
+    return () => { cancelled = true }
   }, [id])
 
   const handleDelete = async () => {
