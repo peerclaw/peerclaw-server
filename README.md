@@ -130,6 +130,11 @@ Open `http://localhost:8080` in your browser to access the web dashboard.
 | **Observability** | `internal/observability/` | OpenTelemetry provider setup |
 | **Audit** | `internal/audit/` | Security event logging |
 | **Identity** | `internal/identity/` | Verifier for API keys, Ed25519 signatures, user context |
+| **Contact Requests** | `internal/contacts/` | Contact request send/approve/reject with status tracking |
+| **Claim Tokens** | `internal/claimtoken/` | Token-based agent pairing for one-prompt registration |
+| **Notifications** | `internal/notification/` | Real-time WebSocket + email notification system |
+| **Access Control** | `internal/useracl/` | User access request workflow for private agents |
+| **Version Check** | `internal/versioncheck/` | SDK upgrade notification service |
 
 ## Configuration
 
@@ -226,6 +231,7 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 | `GET` | `/api/v1/agents/{id}` | Get agent details |
 | `DELETE` | `/api/v1/agents/{id}` | Deregister an agent (owner only) |
 | `POST` | `/api/v1/agents/{id}/heartbeat` | Report heartbeat (owner only) |
+| `POST` | `/api/v1/agents/{id}/verify` | Initiate endpoint verification (owner only) |
 
 ### Public Directory (no auth required)
 
@@ -252,6 +258,14 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 | `GET` | `/api/v1/auth/api-keys` | JWT | List API keys |
 | `DELETE` | `/api/v1/auth/api-keys/{key_id}` | JWT | Revoke API key |
 
+### Claim Tokens
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/v1/claim-tokens` | JWT | Generate a new claim token |
+| `GET` | `/api/v1/claim-tokens` | JWT | List generated claim tokens |
+| `POST` | `/api/v1/agents/claim` | Public | Claim an agent with a token |
+
 ### Agent Invocation
 
 | Method | Path | Auth | Description |
@@ -271,6 +285,26 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 | `DELETE` | `/api/v1/provider/agents/{id}` | JWT | Delete my agent |
 | `GET` | `/api/v1/provider/agents/{id}/analytics` | JWT | Agent invocation analytics |
 | `GET` | `/api/v1/provider/dashboard` | JWT | Provider overview dashboard |
+
+### Access Control
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/v1/agents/{id}/access-requests` | JWT | Submit access request |
+| `GET` | `/api/v1/agents/{id}/access-requests/me` | JWT | Check own request status |
+| `GET` | `/api/v1/user/access-requests` | JWT | List user's access requests |
+| `GET` | `/api/v1/provider/agents/{id}/access-requests` | JWT | List requests for agent (provider) |
+| `PUT` | `/api/v1/provider/agents/{id}/access-requests/{request_id}` | JWT | Approve/deny request (provider) |
+
+### Notifications
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/api/v1/provider/notifications` | JWT | List notifications |
+| `GET` | `/api/v1/provider/notifications/count` | JWT | Unread count |
+| `PUT` | `/api/v1/provider/notifications/{id}/read` | JWT | Mark as read |
+| `PUT` | `/api/v1/provider/notifications/read-all` | JWT | Mark all as read |
+| `GET` | `/api/v1/provider/notifications/ws` | JWT | WebSocket for real-time notifications |
 
 ### Reviews & Reports
 
@@ -317,6 +351,18 @@ Applies to: `redis.password`, `database.dsn`, `signaling.turn.credential`, `fede
 | `POST` | `/api/v1/discover` | Discover agents by capability or protocol |
 | `GET` | `/api/v1/routes` | View routing table |
 | `GET` | `/api/v1/routes/resolve` | Resolve a route (`target_id`, `protocol`) |
+
+### Contacts & Contact Requests
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/agents/{id}/contacts` | Add a contact (owner only) |
+| `GET` | `/api/v1/agents/{id}/contacts` | List contacts (owner only) |
+| `DELETE` | `/api/v1/agents/{id}/contacts/{contact_id}` | Remove a contact (owner only) |
+| `POST` | `/api/v1/agents/{id}/contact-requests` | Send contact request (owner only) |
+| `GET` | `/api/v1/agents/{id}/contact-requests/incoming` | List incoming requests (owner only) |
+| `GET` | `/api/v1/agents/{id}/contact-requests/sent` | List sent requests (owner only) |
+| `PUT` | `/api/v1/agents/{id}/contact-requests/{request_id}` | Accept/reject request (owner only) |
 
 ### Bridge & Health
 
@@ -366,6 +412,13 @@ The server also exposes standard protocol endpoints, so external agents can inte
 | `GET` | `/acp/runs/{run_id}` | Run status |
 | `POST` | `/acp/runs/{run_id}/cancel` | Cancel a run |
 | `GET` | `/acp/ping` | Health check |
+
+### Universal Gateway
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/agent/{agent_id}` | Auto-detect protocol and invoke agent |
+| `GET` | `/agent/{agent_id}` | Auto-detect protocol and discover agent |
 
 ## WebSocket Signaling
 
