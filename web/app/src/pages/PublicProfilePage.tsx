@@ -11,6 +11,7 @@ import { ReputationChart } from "@/components/public/ReputationChart"
 import { ReviewSection } from "@/components/public/ReviewSection"
 import { ReportDialog } from "@/components/public/ReportDialog"
 import { AccessRequestDialog } from "@/components/public/AccessRequestDialog"
+import { CopyButton } from "@/components/ui/copy-button"
 import { ArrowLeft, ExternalLink, Key, Play, Clock, Star } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -227,9 +228,10 @@ export function PublicProfilePage() {
           {agent.public_key && (
             <div className="mt-5 flex items-center gap-2.5 rounded-xl bg-secondary/50 px-4 py-2.5 border border-border/40">
               <Key className="size-3.5 shrink-0 text-primary/60" />
-              <code className="text-xs text-muted-foreground break-all font-mono leading-relaxed">
+              <code className="text-xs text-muted-foreground break-all font-mono leading-relaxed flex-1">
                 {agent.public_key}
               </code>
+              <CopyButton value={agent.public_key} />
             </div>
           )}
 
@@ -241,10 +243,11 @@ export function PublicProfilePage() {
                 href={agent.endpoint_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline break-all font-mono text-xs"
+                className="text-primary hover:underline break-all font-mono text-xs flex-1"
               >
                 {agent.endpoint_url}
               </a>
+              <CopyButton value={agent.endpoint_url} />
             </div>
           )}
 

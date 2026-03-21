@@ -34,7 +34,8 @@
     "exportCSV": "تصدير CSV",
     "exportJSON": "تصدير JSON",
     "skipToContent": "تخطي إلى المحتوى",
-    "github": "GitHub"
+    "github": "GitHub",
+    "copyToClipboard": "نسخ إلى الحافظة"
   },
   "nav": {
     "directory": "الدليل",

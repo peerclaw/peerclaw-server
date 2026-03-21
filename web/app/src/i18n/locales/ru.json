@@ -34,7 +34,8 @@
     "exportCSV": "Экспорт CSV",
     "exportJSON": "Экспорт JSON",
     "skipToContent": "Перейти к содержимому",
-    "github": "GitHub"
+    "github": "GitHub",
+    "copyToClipboard": "Скопировать в буфер обмена"
   },
   "nav": {
     "directory": "Каталог",

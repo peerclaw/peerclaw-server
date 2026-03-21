@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
@@ -17,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Copy, Check, Trash2, KeyRound, AlertTriangle } from "lucide-react"
+import { CopyButton } from "@/components/ui/copy-button"
+import { Plus, Trash2, KeyRound, AlertTriangle } from "lucide-react"
 
 export function APIKeysPage() {
   const { t } = useTranslation()
@@ -31,8 +32,6 @@ export function APIKeysPage() {
   const [newKeyName, setNewKeyName] = useState("")
   const [creating, setCreating] = useState(false)
   const [newKeySecret, setNewKeySecret] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-
   // Revoke state
   const [revokeKeyId, setRevokeKeyId] = useState<string | null>(null)
   const [revokingId, setRevokingId] = useState<string | null>(null)
@@ -87,19 +86,6 @@ export function APIKeysPage() {
     }
   }
 
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const handleCopy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Fallback: select text
-    }
-  }
-  useEffect(() => () => clearTimeout(copyTimerRef.current), [])
-
   const activeKeys = keys.filter((k) => !k.revoked)
   const revokedKeys = keys.filter((k) => k.revoked)
 
@@ -141,17 +127,7 @@ export function APIKeysPage() {
                   <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
                     {newKeySecret}
                   </code>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleCopy(newKeySecret)}
-                  >
-                    {copied ? (
-                      <Check className="size-4 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-4" />
-                    )}
-                  </Button>
+                  <CopyButton value={newKeySecret} variant="outline" size="icon" />
                 </div>
                 <Button
                   variant="outline"

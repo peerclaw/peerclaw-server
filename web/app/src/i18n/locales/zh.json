@@ -34,7 +34,8 @@
     "exportCSV": "导出 CSV",
     "exportJSON": "导出 JSON",
     "skipToContent": "跳至内容",
-    "github": "GitHub"
+    "github": "GitHub",
+    "copyToClipboard": "复制到剪贴板"
   },
   "nav": {
     "directory": "目录",

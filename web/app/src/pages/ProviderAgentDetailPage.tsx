@@ -21,6 +21,7 @@ import { VerifiedBadge } from "@/components/public/VerifiedBadge"
 import { ReviewSection } from "@/components/public/ReviewSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { CopyButton } from "@/components/ui/copy-button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CardSkeleton } from "@/components/ui/card-skeleton"
@@ -56,7 +57,6 @@ export function ProviderAgentDetailPage() {
   const { deleteAgent } = useProviderMutations()
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
   const [repEvents, setRepEvents] = useState<ReputationEvent[]>([])
   const { data: sdkVersionData } = useSDKVersion()
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
@@ -88,12 +88,6 @@ export function ProviderAgentDetailPage() {
       setDeleting(false)
       setShowDeleteConfirm(false)
     }
-  }
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedField(field)
-    setTimeout(() => setCopiedField(null), 2000)
   }
 
   if (loading) {
@@ -217,16 +211,7 @@ export function ProviderAgentDetailPage() {
               <span className="text-muted-foreground">{t('provider.agentId')}</span>
               <div className="mt-1 flex items-center gap-2">
                 <span className="font-mono text-xs truncate">{agent.id}</span>
-                <button
-                  onClick={() => copyToClipboard(agent.id, "id")}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {copiedField === "id" ? (
-                    <Check className="size-3.5 text-emerald-400" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                </button>
+                <CopyButton value={agent.id} />
               </div>
             </div>
             {agent.public_key && (
@@ -234,16 +219,7 @@ export function ProviderAgentDetailPage() {
                 <span className="text-muted-foreground">{t('provider.publicKey')}</span>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="font-mono text-xs truncate">{agent.public_key}</span>
-                  <button
-                    onClick={() => copyToClipboard(agent.public_key!, "pk")}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {copiedField === "pk" ? (
-                      <Check className="size-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="size-3.5" />
-                    )}
-                  </button>
+                  <CopyButton value={agent.public_key!} />
                 </div>
               </div>
             )}

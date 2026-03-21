@@ -34,7 +34,8 @@
     "exportCSV": "CSV エクスポート",
     "exportJSON": "JSON エクスポート",
     "skipToContent": "コンテンツへスキップ",
-    "github": "GitHub"
+    "github": "GitHub",
+    "copyToClipboard": "クリップボードにコピー"
   },
   "nav": {
     "directory": "ディレクトリ",

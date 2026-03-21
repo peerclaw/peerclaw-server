@@ -34,7 +34,8 @@
     "exportCSV": "Exportar CSV",
     "exportJSON": "Exportar JSON",
     "skipToContent": "Saltar al contenido",
-    "github": "GitHub"
+    "github": "GitHub",
+    "copyToClipboard": "Copiar al portapapeles"
   },
   "nav": {
     "directory": "Directorio",
