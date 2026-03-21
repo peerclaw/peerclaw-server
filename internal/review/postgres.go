@@ -252,7 +252,7 @@ func (s *PostgresStore) SetAgentCategories(ctx context.Context, agentID string, 
 	return tx.Commit()
 }
 
-func (s *PostgresStore) ListReports(ctx context.Context, status, sortBy string, limit, offset int) ([]AbuseReport, int, error) {
+func (s *PostgresStore) ListReports(ctx context.Context, status, search, sortBy string, limit, offset int) ([]AbuseReport, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -264,6 +264,12 @@ func (s *PostgresStore) ListReports(ctx context.Context, status, sortBy string, 
 		where += fmt.Sprintf(" AND status = $%d", argN)
 		args = append(args, status)
 		argN++
+	}
+	if search != "" {
+		where += fmt.Sprintf(" AND (reason LIKE $%d OR target_id LIKE $%d OR reporter_id LIKE $%d)", argN, argN+1, argN+2)
+		searchPattern := "%" + search + "%"
+		args = append(args, searchPattern, searchPattern, searchPattern)
+		argN += 3
 	}
 
 	var total int

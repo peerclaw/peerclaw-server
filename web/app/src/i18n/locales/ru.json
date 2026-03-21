@@ -35,7 +35,10 @@
     "exportJSON": "Экспорт JSON",
     "skipToContent": "Перейти к содержимому",
     "github": "GitHub",
-    "copyToClipboard": "Скопировать в буфер обмена"
+    "copyToClipboard": "Скопировать в буфер обмена",
+    "copied": "Скопировано!",
+    "confirmDelete": "Подтвердить удаление",
+    "deleteConfirmation": "Вы уверены, что хотите удалить этот элемент? Это действие нельзя отменить."
   },
   "nav": {
     "directory": "Каталог",
@@ -313,7 +316,13 @@
     "time": "Время",
     "error": "Ошибка",
     "noInvocations": "Вызовов пока нет.",
-    "loadingInvocations": "Загрузка вызовов..."
+    "loadingInvocations": "Загрузка вызовов...",
+    "today": "Сегодня",
+    "last7d": "7d",
+    "last30d": "30d",
+    "allTime": "Все",
+    "statusSummary": "{{total}} всего · {{success}} успешно · {{errors}} ошибок · сред {{avg}}мс",
+    "ipAddress": "IP-адрес"
   },
   "apiKeys": {
     "title": "API-ключи",
@@ -508,7 +517,8 @@
     "dismiss": "Отклонить",
     "action": "Принять меры",
     "noReports": "Жалобы не найдены",
-    "loadingReports": "Загрузка жалоб..."
+    "loadingReports": "Загрузка жалоб...",
+    "searchPlaceholder": "Поиск жалоб..."
   },
   "adminCategories": {
     "title": "Категории",
@@ -562,7 +572,8 @@
     "error": "Ошибка",
     "createdAt": "Дата создания",
     "noInvocations": "Вызовы не найдены",
-    "loadingInvocations": "Загрузка вызовов..."
+    "loadingInvocations": "Загрузка вызовов...",
+    "detail": "Детали вызова"
   },
   "playground": {
     "title": "Песочница",

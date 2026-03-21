@@ -35,7 +35,10 @@
     "exportJSON": "Exportar JSON",
     "skipToContent": "Pular para o conteúdo",
     "github": "GitHub",
-    "copyToClipboard": "Copiar para a área de transferência"
+    "copyToClipboard": "Copiar para a área de transferência",
+    "copied": "Copiado!",
+    "confirmDelete": "Confirmar exclusão",
+    "deleteConfirmation": "Tem certeza de que deseja excluir este item? Esta ação não pode ser desfeita."
   },
   "nav": {
     "directory": "Diretório",
@@ -313,7 +316,13 @@
     "time": "Horário",
     "error": "Erro",
     "noInvocations": "Nenhuma invocação ainda.",
-    "loadingInvocations": "Carregando invocações..."
+    "loadingInvocations": "Carregando invocações...",
+    "today": "Hoje",
+    "last7d": "7d",
+    "last30d": "30d",
+    "allTime": "Tudo",
+    "statusSummary": "{{total}} total · {{success}} sucesso · {{errors}} erros · média {{avg}}ms",
+    "ipAddress": "Endereço IP"
   },
   "apiKeys": {
     "title": "Chaves de API",
@@ -508,7 +517,8 @@
     "dismiss": "Descartar",
     "action": "Ação",
     "noReports": "Nenhuma denúncia encontrada",
-    "loadingReports": "Carregando denúncias..."
+    "loadingReports": "Carregando denúncias...",
+    "searchPlaceholder": "Pesquisar denúncias..."
   },
   "adminCategories": {
     "title": "Categorias",
@@ -562,7 +572,8 @@
     "error": "Erro",
     "createdAt": "Criado em",
     "noInvocations": "Nenhuma invocação encontrada",
-    "loadingInvocations": "Carregando invocações..."
+    "loadingInvocations": "Carregando invocações...",
+    "detail": "Detalhe da invocação"
   },
   "playground": {
     "title": "Playground",

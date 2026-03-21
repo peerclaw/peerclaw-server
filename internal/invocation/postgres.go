@@ -197,7 +197,7 @@ func (s *PostgresStore) ProviderDashboardStats(ctx context.Context, ownerUserID 
 	return &stats, nil
 }
 
-func (s *PostgresStore) ListAll(ctx context.Context, agentID, userID, sortBy string, limit, offset int) ([]InvocationRecord, int, error) {
+func (s *PostgresStore) ListAll(ctx context.Context, agentID, userID, sortBy string, since time.Time, limit, offset int) ([]InvocationRecord, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -213,6 +213,11 @@ func (s *PostgresStore) ListAll(ctx context.Context, agentID, userID, sortBy str
 	if userID != "" {
 		where += fmt.Sprintf(" AND user_id = $%d", argN)
 		args = append(args, userID)
+		argN++
+	}
+	if !since.IsZero() {
+		where += fmt.Sprintf(" AND created_at >= $%d", argN)
+		args = append(args, since.UTC())
 		argN++
 	}
 

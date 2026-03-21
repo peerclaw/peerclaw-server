@@ -305,11 +305,12 @@ func (s *HTTPServer) handleAdminListReports(w http.ResponseWriter, r *http.Reque
 	}
 
 	status := r.URL.Query().Get("status")
+	search := r.URL.Query().Get("search")
 	sortBy := r.URL.Query().Get("sort")
 	limit := queryInt(r, "limit", 50)
 	offset := queryInt(r, "offset", 0)
 
-	reports, total, err := s.reviewService.ListReports(r.Context(), status, sortBy, limit, offset)
+	reports, total, err := s.reviewService.ListReports(r.Context(), status, search, sortBy, limit, offset)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -499,7 +500,14 @@ func (s *HTTPServer) handleAdminListInvocations(w http.ResponseWriter, r *http.R
 	limit := queryInt(r, "limit", 50)
 	offset := queryInt(r, "offset", 0)
 
-	records, total, err := s.invocation.ListAll(r.Context(), agentID, userID, sortBy, limit, offset)
+	var since time.Time
+	if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
+		if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+			since = t
+		}
+	}
+
+	records, total, err := s.invocation.ListAll(r.Context(), agentID, userID, sortBy, since, limit, offset)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -509,6 +517,23 @@ func (s *HTTPServer) handleAdminListInvocations(w http.ResponseWriter, r *http.R
 		"invocations": records,
 		"total":       total,
 	})
+}
+
+// handleAdminGetInvocation handles GET /api/v1/admin/invocations/{id}.
+func (s *HTTPServer) handleAdminGetInvocation(w http.ResponseWriter, r *http.Request) {
+	if s.invocation == nil {
+		s.jsonError(w, "invocation tracking not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	id := r.PathValue("id")
+	record, err := s.invocation.GetByID(r.Context(), id)
+	if err != nil {
+		s.jsonError(w, "invocation not found", http.StatusNotFound)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, record)
 }
 
 // --- Route Registration ---
@@ -559,6 +584,7 @@ func (s *HTTPServer) registerAdminRoutes() {
 
 	// Invocation log.
 	s.mux.Handle("GET /api/v1/admin/invocations", wrapAdmin(s.handleAdminListInvocations))
+	s.mux.Handle("GET /api/v1/admin/invocations/{id}", wrapAdmin(s.handleAdminGetInvocation))
 
 	// SDK version check.
 	s.mux.Handle("GET /api/v1/admin/sdk-version", wrapAdmin(s.handleAdminSDKVersion))

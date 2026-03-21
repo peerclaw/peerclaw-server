@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useProviderInvocations } from "@/hooks/use-provider"
 import { Badge } from "@/components/ui/badge"
@@ -16,10 +16,34 @@ import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 const PAGE_SIZE = 20
 
+type TimeRange = "today" | "7d" | "30d" | "all"
+
+function getSinceCutoff(range: TimeRange): Date | null {
+  if (range === "all") return null
+  const now = new Date()
+  switch (range) {
+    case "today":
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    case "7d":
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    case "30d":
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  }
+}
+
 export function InvocationHistoryPage() {
   const { t } = useTranslation()
   const [page, setPage] = useState(1)
+  const [timeRange, setTimeRange] = useState<TimeRange>("all")
   const { data, loading, error, refetch } = useProviderInvocations(page, PAGE_SIZE)
+
+  const cutoff = useMemo(() => getSinceCutoff(timeRange), [timeRange])
+
+  const filteredInvocations = useMemo(() => {
+    const all = data?.invocations ?? []
+    if (!cutoff) return all
+    return all.filter(inv => new Date(inv.created_at) >= cutoff)
+  }, [data?.invocations, cutoff])
 
   const statusLabel = (code: number): string => {
     if (code >= 200 && code < 300) return "success"
@@ -47,6 +71,13 @@ export function InvocationHistoryPage() {
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0
 
+  const timeRanges: { key: TimeRange; label: string }[] = [
+    { key: "today", label: t('invocations.today') },
+    { key: "7d", label: t('invocations.last7d') },
+    { key: "30d", label: t('invocations.last30d') },
+    { key: "all", label: t('invocations.allTime') },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -62,6 +93,20 @@ export function InvocationHistoryPage() {
         </Button>
       </div>
 
+      {/* Date range selector */}
+      <div className="flex items-center gap-2">
+        {timeRanges.map(({ key, label }) => (
+          <Button
+            key={key}
+            size="sm"
+            variant={timeRange === key ? "default" : "outline"}
+            onClick={() => { setTimeRange(key); setPage(1) }}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
       {loading && !data && (
         <TableSkeleton rows={8} cols={5} />
       )}
@@ -74,7 +119,7 @@ export function InvocationHistoryPage() {
 
       {data && (
         <>
-          {(data.invocations ?? []).length === 0 ? (
+          {filteredInvocations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">
               <p className="text-sm text-muted-foreground">{t('invocations.noInvocations')}</p>
             </div>
@@ -90,7 +135,7 @@ export function InvocationHistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(data.invocations ?? []).map((inv) => (
+                {filteredInvocations.map((inv) => (
                   <TableRow key={inv.id}>
                     <TableCell>
                       <span className="font-medium font-mono text-xs">{inv.agent_id}</span>

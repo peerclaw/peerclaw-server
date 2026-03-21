@@ -9,6 +9,7 @@ import type {
   Category,
   GlobalAnalytics,
   AdminInvocationListResponse,
+  InvocationRecord,
   AgentListResponse,
 } from "./types"
 
@@ -90,10 +91,11 @@ export function unverifyAdminAgent(token: string, id: string): Promise<{ status:
 // Report Moderation
 export function fetchAdminReports(
   token: string,
-  params?: { status?: string; sort?: string; limit?: number; offset?: number }
+  params?: { status?: string; search?: string; sort?: string; limit?: number; offset?: number }
 ): Promise<AdminReportListResponse> {
   const query = new URLSearchParams()
   if (params?.status) query.set("status", params.status)
+  if (params?.search) query.set("search", params.search)
   if (params?.sort) query.set("sort", params.sort)
   if (params?.limit) query.set("limit", String(params.limit))
   if (params?.offset) query.set("offset", String(params.offset))
@@ -161,12 +163,13 @@ export function fetchAdminAnalytics(
 // Invocation Log
 export function fetchAdminInvocations(
   token: string,
-  params?: { agent_id?: string; user_id?: string; sort?: string; limit?: number; offset?: number }
+  params?: { agent_id?: string; user_id?: string; sort?: string; since?: string; limit?: number; offset?: number }
 ): Promise<AdminInvocationListResponse> {
   const query = new URLSearchParams()
   if (params?.agent_id) query.set("agent_id", params.agent_id)
   if (params?.user_id) query.set("user_id", params.user_id)
   if (params?.sort) query.set("sort", params.sort)
+  if (params?.since) query.set("since", params.since)
   if (params?.limit) query.set("limit", String(params.limit))
   if (params?.offset) query.set("offset", String(params.offset))
   const qs = query.toString()
@@ -174,4 +177,11 @@ export function fetchAdminInvocations(
     `/admin/invocations${qs ? `?${qs}` : ""}`,
     token
   )
+}
+
+export function fetchAdminInvocation(
+  token: string,
+  id: string
+): Promise<InvocationRecord> {
+  return fetchWithAuth<InvocationRecord>(`/admin/invocations/${id}`, token)
 }

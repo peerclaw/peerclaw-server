@@ -35,7 +35,10 @@
     "exportJSON": "Exportar JSON",
     "skipToContent": "Saltar al contenido",
     "github": "GitHub",
-    "copyToClipboard": "Copiar al portapapeles"
+    "copyToClipboard": "Copiar al portapapeles",
+    "copied": "¡Copiado!",
+    "confirmDelete": "Confirmar eliminación",
+    "deleteConfirmation": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer."
   },
   "nav": {
     "directory": "Directorio",
@@ -313,7 +316,13 @@
     "time": "Hora",
     "error": "Error",
     "noInvocations": "Aún no hay invocaciones.",
-    "loadingInvocations": "Cargando invocaciones..."
+    "loadingInvocations": "Cargando invocaciones...",
+    "today": "Hoy",
+    "last7d": "7d",
+    "last30d": "30d",
+    "allTime": "Todo",
+    "statusSummary": "{{total}} total · {{success}} éxitos · {{errors}} errores · prom {{avg}}ms",
+    "ipAddress": "Dirección IP"
   },
   "apiKeys": {
     "title": "Claves API",
@@ -508,7 +517,8 @@
     "dismiss": "Descartar",
     "action": "Acción",
     "noReports": "No se encontraron reportes",
-    "loadingReports": "Cargando reportes..."
+    "loadingReports": "Cargando reportes...",
+    "searchPlaceholder": "Buscar reportes..."
   },
   "adminCategories": {
     "title": "Categorías",
@@ -562,7 +572,8 @@
     "error": "Error",
     "createdAt": "Creado el",
     "noInvocations": "No se encontraron invocaciones",
-    "loadingInvocations": "Cargando invocaciones..."
+    "loadingInvocations": "Cargando invocaciones...",
+    "detail": "Detalle de invocación"
   },
   "playground": {
     "title": "Playground",

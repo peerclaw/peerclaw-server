@@ -35,7 +35,10 @@
     "exportJSON": "Export JSON",
     "skipToContent": "Skip to content",
     "github": "GitHub",
-    "copyToClipboard": "Copy to clipboard"
+    "copyToClipboard": "Copy to clipboard",
+    "copied": "Copied!",
+    "confirmDelete": "Confirm Delete",
+    "deleteConfirmation": "Are you sure you want to delete this item? This action cannot be undone."
   },
   "nav": {
     "directory": "Directory",
@@ -317,7 +320,13 @@
     "time": "Time",
     "error": "Error",
     "noInvocations": "No invocations yet.",
-    "loadingInvocations": "Loading invocations..."
+    "loadingInvocations": "Loading invocations...",
+    "today": "Today",
+    "last7d": "7d",
+    "last30d": "30d",
+    "allTime": "All",
+    "statusSummary": "{{total}} total · {{success}} success · {{errors}} errors · avg {{avg}}ms",
+    "ipAddress": "IP Address"
   },
   "apiKeys": {
     "title": "API Keys",
@@ -512,7 +521,8 @@
     "dismiss": "Dismiss",
     "action": "Action",
     "noReports": "No reports found",
-    "loadingReports": "Loading reports..."
+    "loadingReports": "Loading reports...",
+    "searchPlaceholder": "Search reports..."
   },
   "adminCategories": {
     "title": "Categories",
@@ -566,7 +576,8 @@
     "error": "Error",
     "createdAt": "Created At",
     "noInvocations": "No invocations found",
-    "loadingInvocations": "Loading invocations..."
+    "loadingInvocations": "Loading invocations...",
+    "detail": "Invocation Detail"
   },
   "playground": {
     "title": "Playground",

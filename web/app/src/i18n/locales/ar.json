@@ -35,7 +35,10 @@
     "exportJSON": "تصدير JSON",
     "skipToContent": "تخطي إلى المحتوى",
     "github": "GitHub",
-    "copyToClipboard": "نسخ إلى الحافظة"
+    "copyToClipboard": "نسخ إلى الحافظة",
+    "copied": "!تم النسخ",
+    "confirmDelete": "تأكيد الحذف",
+    "deleteConfirmation": "هل أنت متأكد من أنك تريد حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء."
   },
   "nav": {
     "directory": "الدليل",
@@ -313,7 +316,13 @@
     "time": "الوقت",
     "error": "خطأ",
     "noInvocations": "لا توجد استدعاءات بعد.",
-    "loadingInvocations": "جارٍ تحميل الاستدعاءات..."
+    "loadingInvocations": "جارٍ تحميل الاستدعاءات...",
+    "today": "اليوم",
+    "last7d": "7d",
+    "last30d": "30d",
+    "allTime": "الكل",
+    "statusSummary": "{{total}} إجمالي · {{success}} نجاح · {{errors}} أخطاء · متوسط {{avg}}مللي ثانية",
+    "ipAddress": "عنوان IP"
   },
   "apiKeys": {
     "title": "مفاتيح API",
@@ -508,7 +517,8 @@
     "dismiss": "رفض",
     "action": "إجراء",
     "noReports": "لم يتم العثور على بلاغات",
-    "loadingReports": "جارٍ تحميل البلاغات..."
+    "loadingReports": "جارٍ تحميل البلاغات...",
+    "searchPlaceholder": "البحث في البلاغات..."
   },
   "adminCategories": {
     "title": "الفئات",
@@ -562,7 +572,8 @@
     "error": "خطأ",
     "createdAt": "تاريخ الإنشاء",
     "noInvocations": "لم يتم العثور على استدعاءات",
-    "loadingInvocations": "جارٍ تحميل الاستدعاءات..."
+    "loadingInvocations": "جارٍ تحميل الاستدعاءات...",
+    "detail": "تفاصيل الاستدعاء"
   },
   "playground": {
     "title": "ساحة التجربة",

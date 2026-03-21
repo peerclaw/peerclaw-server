@@ -72,7 +72,7 @@ type Store interface {
 	ProviderDashboardStats(ctx context.Context, ownerUserID string) (*AgentInvocationStats, error)
 
 	// ListAll returns all invocations with optional agent/user filters.
-	ListAll(ctx context.Context, agentID, userID, sortBy string, limit, offset int) ([]InvocationRecord, int, error)
+	ListAll(ctx context.Context, agentID, userID, sortBy string, since time.Time, limit, offset int) ([]InvocationRecord, int, error)
 
 	// GlobalStats returns aggregated stats across all agents since the given time.
 	GlobalStats(ctx context.Context, since time.Time) (*AgentInvocationStats, error)

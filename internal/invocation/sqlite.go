@@ -207,7 +207,7 @@ func (s *SQLiteStore) ProviderDashboardStats(ctx context.Context, ownerUserID st
 	return &stats, nil
 }
 
-func (s *SQLiteStore) ListAll(ctx context.Context, agentID, userID, sortBy string, limit, offset int) ([]InvocationRecord, int, error) {
+func (s *SQLiteStore) ListAll(ctx context.Context, agentID, userID, sortBy string, since time.Time, limit, offset int) ([]InvocationRecord, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -221,6 +221,10 @@ func (s *SQLiteStore) ListAll(ctx context.Context, agentID, userID, sortBy strin
 	if userID != "" {
 		where += " AND user_id = ?"
 		args = append(args, userID)
+	}
+	if !since.IsZero() {
+		where += " AND created_at >= ?"
+		args = append(args, since.UTC().Format(time.RFC3339))
 	}
 
 	var total int

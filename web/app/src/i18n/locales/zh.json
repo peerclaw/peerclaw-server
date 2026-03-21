@@ -35,7 +35,10 @@
     "exportJSON": "导出 JSON",
     "skipToContent": "跳至内容",
     "github": "GitHub",
-    "copyToClipboard": "复制到剪贴板"
+    "copyToClipboard": "复制到剪贴板",
+    "copied": "已复制！",
+    "confirmDelete": "确认删除",
+    "deleteConfirmation": "确定要删除此项吗？此操作无法撤销。"
   },
   "nav": {
     "directory": "目录",
@@ -317,7 +320,13 @@
     "time": "时间",
     "error": "错误",
     "noInvocations": "暂无调用记录。",
-    "loadingInvocations": "加载调用记录..."
+    "loadingInvocations": "加载调用记录...",
+    "today": "今天",
+    "last7d": "7d",
+    "last30d": "30d",
+    "allTime": "全部",
+    "statusSummary": "{{total}} 总计 · {{success}} 成功 · {{errors}} 错误 · 平均 {{avg}}ms",
+    "ipAddress": "IP 地址"
   },
   "apiKeys": {
     "title": "API 密钥",
@@ -512,7 +521,8 @@
     "dismiss": "驳回",
     "action": "处理",
     "noReports": "未找到举报",
-    "loadingReports": "加载举报..."
+    "loadingReports": "加载举报...",
+    "searchPlaceholder": "搜索举报..."
   },
   "adminCategories": {
     "title": "分类",
@@ -566,7 +576,8 @@
     "error": "错误",
     "createdAt": "创建时间",
     "noInvocations": "未找到调用记录",
-    "loadingInvocations": "加载调用记录..."
+    "loadingInvocations": "加载调用记录...",
+    "detail": "调用详情"
   },
   "playground": {
     "title": "体验场",

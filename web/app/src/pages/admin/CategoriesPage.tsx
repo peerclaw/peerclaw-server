@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import type { Category } from "@/api/types"
 
 interface CategoryFormData {
@@ -43,7 +44,7 @@ export function CategoriesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CategoryFormData>(emptyForm)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -75,17 +76,18 @@ export function CategoriesPage() {
   }, [])
 
   const handleDelete = useCallback(
-    async (id: string) => {
+    async () => {
+      if (!deleteTarget) return
       try {
-        await deleteCategory(id)
-        setConfirmDelete(null)
+        await deleteCategory(deleteTarget)
+        setDeleteTarget(null)
         toast.success(t('toast.categoryDeleted'))
         refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [deleteCategory, refetch]
+    [deleteTarget, deleteCategory, refetch]
   )
 
   const categories = data?.categories ?? []
@@ -214,42 +216,21 @@ export function CategoriesPage() {
                     <TableCell>{cat.icon}</TableCell>
                     <TableCell>{cat.sort_order}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      {confirmDelete === cat.id ? (
-                        <span className="inline-flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(cat.id)}
-                          >
-                            {t('common.confirm')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setConfirmDelete(null)}
-                          >
-                            {t('common.cancel')}
-                          </Button>
-                        </span>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(cat)}
-                          >
-                            {t('common.edit')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={() => setConfirmDelete(cat.id)}
-                          >
-                            {t('common.delete')}
-                          </Button>
-                        </>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(cat)}
+                      >
+                        {t('common.edit')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => setDeleteTarget(cat.id)}
+                      >
+                        {t('common.delete')}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -265,6 +246,16 @@ export function CategoriesPage() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        title={t('common.confirmDelete')}
+        description={t('common.deleteConfirmation')}
+        confirmLabel={t('common.delete')}
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

@@ -35,7 +35,10 @@
     "exportJSON": "JSON エクスポート",
     "skipToContent": "コンテンツへスキップ",
     "github": "GitHub",
-    "copyToClipboard": "クリップボードにコピー"
+    "copyToClipboard": "クリップボードにコピー",
+    "copied": "コピーしました！",
+    "confirmDelete": "削除の確認",
+    "deleteConfirmation": "このアイテムを削除してもよろしいですか？この操作は元に戻せません。"
   },
   "nav": {
     "directory": "ディレクトリ",
@@ -313,7 +316,13 @@
     "time": "時刻",
     "error": "エラー",
     "noInvocations": "呼び出し履歴はまだありません。",
-    "loadingInvocations": "呼び出し履歴を読み込み中..."
+    "loadingInvocations": "呼び出し履歴を読み込み中...",
+    "today": "今日",
+    "last7d": "7d",
+    "last30d": "30d",
+    "allTime": "すべて",
+    "statusSummary": "{{total}} 合計 · {{success}} 成功 · {{errors}} エラー · 平均 {{avg}}ms",
+    "ipAddress": "IPアドレス"
   },
   "apiKeys": {
     "title": "API キー",
@@ -508,7 +517,8 @@
     "dismiss": "却下",
     "action": "対応",
     "noReports": "報告が見つかりません",
-    "loadingReports": "報告を読み込み中..."
+    "loadingReports": "報告を読み込み中...",
+    "searchPlaceholder": "報告を検索..."
   },
   "adminCategories": {
     "title": "カテゴリ",
@@ -562,7 +572,8 @@
     "error": "エラー",
     "createdAt": "作成日時",
     "noInvocations": "呼び出しが見つかりません",
-    "loadingInvocations": "呼び出しを読み込み中..."
+    "loadingInvocations": "呼び出しを読み込み中...",
+    "detail": "呼び出し詳細"
   },
   "playground": {
     "title": "プレイグラウンド",

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useAdminInvocations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { exportToCSV, exportToJSON } from "@/lib/export"
 import {
   Table,
@@ -26,8 +32,27 @@ import {
 } from "@/components/ui/card"
 import { SortableHeader } from "@/components/ui/sortable-header"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { CopyButton } from "@/components/ui/copy-button"
+import type { InvocationRecord } from "@/api/types"
 
 const PAGE_SIZE = 50
+
+type TimeRange = "today" | "7d" | "30d" | "all"
+
+function getSinceISO(range: TimeRange): string | undefined {
+  if (range === "all") return undefined
+  const now = new Date()
+  switch (range) {
+    case "today": {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      return start.toISOString()
+    }
+    case "7d":
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    case "30d":
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  }
+}
 
 export function InvocationsPage() {
   const { t } = useTranslation()
@@ -35,11 +60,16 @@ export function InvocationsPage() {
   const [userFilter, setUserFilter] = useState("")
   const [sort, setSort] = useState("")
   const [page, setPage] = useState(0)
+  const [timeRange, setTimeRange] = useState<TimeRange>("all")
+  const [detailRecord, setDetailRecord] = useState<InvocationRecord | null>(null)
+
+  const since = useMemo(() => getSinceISO(timeRange), [timeRange])
 
   const { data, loading, error } = useAdminInvocations(
     agentFilter || undefined,
     userFilter || undefined,
     sort || undefined,
+    since,
     PAGE_SIZE,
     page * PAGE_SIZE
   )
@@ -48,12 +78,27 @@ export function InvocationsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const invocations = data?.invocations ?? []
 
+  const statusSummary = useMemo(() => {
+    if (!invocations.length) return null
+    const success = invocations.filter(i => i.status_code >= 200 && i.status_code < 400).length
+    const errors = invocations.filter(i => i.status_code >= 400 || i.error).length
+    const avgMs = Math.round(invocations.reduce((sum, i) => sum + i.duration_ms, 0) / invocations.length)
+    return { success, errors, avgMs }
+  }, [invocations])
+
   const statusBadgeVariant = (code: number) => {
     if (code >= 200 && code < 300) return "default"
     if (code >= 400 && code < 500) return "secondary"
     if (code >= 500) return "destructive"
     return "outline"
   }
+
+  const timeRanges: { key: TimeRange; label: string }[] = [
+    { key: "today", label: t('invocations.today') },
+    { key: "7d", label: t('invocations.last7d') },
+    { key: "30d", label: t('invocations.last30d') },
+    { key: "all", label: t('invocations.allTime') },
+  ]
 
   return (
     <div className="space-y-6">
@@ -104,6 +149,20 @@ export function InvocationsPage() {
         )}
       </div>
 
+      {/* Date range selector */}
+      <div className="flex items-center gap-2">
+        {timeRanges.map(({ key, label }) => (
+          <Button
+            key={key}
+            size="sm"
+            variant={timeRange === key ? "default" : "outline"}
+            onClick={() => { setTimeRange(key); setPage(0) }}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
       <div className="flex gap-3">
         <Input
           placeholder={t('adminInvocations.filterAgent')}
@@ -124,6 +183,18 @@ export function InvocationsPage() {
           className="max-w-xs"
         />
       </div>
+
+      {/* Status summary bar */}
+      {statusSummary && !loading && (
+        <div className="text-sm text-muted-foreground">
+          {t('invocations.statusSummary', {
+            total,
+            success: statusSummary.success,
+            errors: statusSummary.errors,
+            avg: statusSummary.avgMs,
+          })}
+        </div>
+      )}
 
       {loading ? (
         <Card>
@@ -154,12 +225,22 @@ export function InvocationsPage() {
                 </TableHeader>
                 <TableBody>
                   {invocations.map((inv) => (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-mono text-xs max-w-[80px] truncate">
-                        {inv.id.slice(0, 8)}...
+                    <TableRow
+                      key={inv.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setDetailRecord(inv)}
+                    >
+                      <TableCell className="font-mono text-xs max-w-[80px]">
+                        <div className="flex items-center gap-1">
+                          <span className="truncate">{inv.id.slice(0, 8)}...</span>
+                          <CopyButton value={inv.id} />
+                        </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs max-w-[100px] truncate">
-                        {inv.agent_id}
+                      <TableCell className="font-mono text-xs max-w-[100px]">
+                        <div className="flex items-center gap-1">
+                          <span className="truncate">{inv.agent_id}</span>
+                          <CopyButton value={inv.agent_id} />
+                        </div>
                       </TableCell>
                       <TableCell className="font-mono text-xs max-w-[100px] truncate">
                         {inv.user_id || "-"}
@@ -224,6 +305,40 @@ export function InvocationsPage() {
           )}
         </>
       )}
+
+      {/* Detail dialog */}
+      <Dialog open={!!detailRecord} onOpenChange={(open) => { if (!open) setDetailRecord(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('adminInvocations.detail')}</DialogTitle>
+          </DialogHeader>
+          {detailRecord && (
+            <div className="space-y-3 text-sm">
+              <DetailRow label={t('adminInvocations.id')} value={detailRecord.id} mono copy />
+              <DetailRow label={t('adminInvocations.agentId')} value={detailRecord.agent_id} mono copy />
+              <DetailRow label={t('adminInvocations.userId')} value={detailRecord.user_id || "-"} mono />
+              <DetailRow label={t('adminInvocations.protocol')} value={detailRecord.protocol || "unknown"} />
+              <DetailRow label={t('adminInvocations.status')} value={String(detailRecord.status_code)} />
+              <DetailRow label={t('adminInvocations.duration')} value={`${detailRecord.duration_ms}ms`} />
+              <DetailRow label={t('adminInvocations.error')} value={detailRecord.error || "-"} />
+              <DetailRow label={t('invocations.ipAddress')} value={detailRecord.ip_address || "-"} />
+              <DetailRow label={t('adminInvocations.createdAt')} value={new Date(detailRecord.created_at).toLocaleString()} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function DetailRow({ label, value, mono, copy }: { label: string; value: string; mono?: boolean; copy?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <div className="flex items-center gap-1 min-w-0">
+        <span className={`text-right break-all ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
+        {copy && value !== "-" && <CopyButton value={value} />}
+      </div>
     </div>
   )
 }

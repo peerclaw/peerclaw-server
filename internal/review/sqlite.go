@@ -259,7 +259,7 @@ func (s *SQLiteStore) SetAgentCategories(ctx context.Context, agentID string, ca
 	return tx.Commit()
 }
 
-func (s *SQLiteStore) ListReports(ctx context.Context, status, sortBy string, limit, offset int) ([]AbuseReport, int, error) {
+func (s *SQLiteStore) ListReports(ctx context.Context, status, search, sortBy string, limit, offset int) ([]AbuseReport, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -269,6 +269,11 @@ func (s *SQLiteStore) ListReports(ctx context.Context, status, sortBy string, li
 	if status != "" {
 		where += " AND status = ?"
 		args = append(args, status)
+	}
+	if search != "" {
+		where += " AND (reason LIKE ? OR target_id LIKE ? OR reporter_id LIKE ?)"
+		searchPattern := "%" + search + "%"
+		args = append(args, searchPattern, searchPattern, searchPattern)
 	}
 
 	var total int

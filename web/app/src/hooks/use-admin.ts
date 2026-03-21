@@ -8,6 +8,7 @@ import type {
   AdminReportListResponse,
   GlobalAnalytics,
   AdminInvocationListResponse,
+  InvocationRecord,
   AgentListResponse,
   Category,
 } from "@/api/types"
@@ -108,13 +109,14 @@ export function useAdminAgent(id: string | undefined): UseQueryResult<AdminAgent
 
 export function useAdminReports(
   status?: string,
+  search?: string,
   sort?: string,
   limit = 50,
   offset = 0
 ): UseQueryResult<AdminReportListResponse> {
   const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminReports(token, { status, sort, limit, offset }),
-    [status, sort, limit, offset]
+    (token: string) => adminAPI.fetchAdminReports(token, { status, search, sort, limit, offset }),
+    [status, search, sort, limit, offset]
   )
   return useAdminQuery(fetcher)
 }
@@ -139,6 +141,7 @@ export function useAdminInvocations(
   agentId?: string,
   userId?: string,
   sort?: string,
+  since?: string,
   limit = 50,
   offset = 0
 ): UseQueryResult<AdminInvocationListResponse> {
@@ -148,12 +151,21 @@ export function useAdminInvocations(
         agent_id: agentId,
         user_id: userId,
         sort,
+        since,
         limit,
         offset,
       }),
-    [agentId, userId, sort, limit, offset]
+    [agentId, userId, sort, since, limit, offset]
   )
   return useAdminQuery(fetcher)
+}
+
+export function useAdminInvocation(id: string | undefined): UseQueryResult<InvocationRecord> {
+  const fetcher = useCallback(
+    (token: string) => adminAPI.fetchAdminInvocation(token, id!),
+    [id]
+  )
+  return useAdminQuery(fetcher, !id)
 }
 
 // ----- Categories (uses existing public endpoint + admin mutations) -----

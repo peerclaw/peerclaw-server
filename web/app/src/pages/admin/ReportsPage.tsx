@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { useAdminReports, useAdminMutations } from "@/hooks/use-admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -18,15 +19,17 @@ import {
 } from "@/components/ui/card"
 import { SortableHeader } from "@/components/ui/sortable-header"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 const PAGE_SIZE = 20
 
 export function ReportsPage() {
   const { t } = useTranslation()
   const [statusFilter, setStatusFilter] = useState("")
+  const [search, setSearch] = useState("")
   const [sort, setSort] = useState("")
   const [page, setPage] = useState(0)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const STATUS_TABS = [
     { label: t('common.all'), value: "" },
@@ -38,6 +41,7 @@ export function ReportsPage() {
 
   const { data, loading, error, refetch } = useAdminReports(
     statusFilter || undefined,
+    search || undefined,
     sort || undefined,
     PAGE_SIZE,
     page * PAGE_SIZE
@@ -58,17 +62,18 @@ export function ReportsPage() {
   )
 
   const handleDelete = useCallback(
-    async (id: string) => {
+    async () => {
+      if (!deleteTarget) return
       try {
-        await deleteReport(id)
-        setConfirmDelete(null)
+        await deleteReport(deleteTarget)
+        setDeleteTarget(null)
         toast.success(t('toast.reportDeleted'))
         refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [deleteReport, refetch]
+    [deleteTarget, deleteReport, refetch]
   )
 
   const total = data?.total ?? 0
@@ -102,6 +107,16 @@ export function ReportsPage() {
           {t('adminReports.reportsCount', { count: total })}
         </p>
       </div>
+
+      <Input
+        placeholder={t('adminReports.searchPlaceholder')}
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value)
+          setPage(0)
+        }}
+        className="max-w-sm"
+      />
 
       <div className="flex gap-1">
         {STATUS_TABS.map((tab) => (
@@ -167,60 +182,39 @@ export function ReportsPage() {
                         {new Date(report.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        {confirmDelete === report.id ? (
-                          <span className="inline-flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(report.id)}
-                            >
-                              {t('common.confirm')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setConfirmDelete(null)}
-                            >
-                              {t('common.cancel')}
-                            </Button>
-                          </span>
-                        ) : (
+                        {report.status === "pending" && (
                           <>
-                            {report.status === "pending" && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleStatusChange(report.id, "reviewed")}
-                                >
-                                  {t('adminReports.review')}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleStatusChange(report.id, "dismissed")}
-                                >
-                                  {t('adminReports.dismiss')}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleStatusChange(report.id, "actioned")}
-                                >
-                                  {t('adminReports.action')}
-                                </Button>
-                              </>
-                            )}
                             <Button
                               size="sm"
-                              variant="ghost"
-                              className="text-destructive"
-                              onClick={() => setConfirmDelete(report.id)}
+                              variant="outline"
+                              onClick={() => handleStatusChange(report.id, "reviewed")}
                             >
-                              {t('common.delete')}
+                              {t('adminReports.review')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStatusChange(report.id, "dismissed")}
+                            >
+                              {t('adminReports.dismiss')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStatusChange(report.id, "actioned")}
+                            >
+                              {t('adminReports.action')}
                             </Button>
                           </>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => setDeleteTarget(report.id)}
+                        >
+                          {t('common.delete')}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -263,6 +257,16 @@ export function ReportsPage() {
           )}
         </>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        title={t('common.confirmDelete')}
+        description={t('common.deleteConfirmation')}
+        confirmLabel={t('common.delete')}
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

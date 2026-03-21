@@ -188,6 +188,7 @@ export interface InvocationRecord {
   status_code: number
   duration_ms: number
   error: string
+  ip_address: string
   created_at: string
 }
 
