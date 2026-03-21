@@ -137,8 +137,23 @@ function useProviderQuery<T>(path: string, skip = false): UseQueryResult<T> {
 
 // ----- Hooks -----
 
-export function useProviderAgents(): UseQueryResult<{ agents: ProviderAgent[] }> {
-  return useProviderQuery<{ agents: ProviderAgent[] }>("/provider/agents")
+export function useProviderAgents(
+  search?: string,
+  status?: string,
+  sort?: string,
+  limit = 50,
+  offset = 0
+): UseQueryResult<{ agents: ProviderAgent[]; total_count: number }> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  if (status) params.set("status", status)
+  if (sort) params.set("sort", sort)
+  params.set("limit", String(limit))
+  params.set("offset", String(offset))
+  const qs = params.toString()
+  return useProviderQuery<{ agents: ProviderAgent[]; total_count: number }>(
+    `/provider/agents?${qs}`
+  )
 }
 
 export function useProviderAgent(id: string | undefined): UseQueryResult<ProviderAgent> {

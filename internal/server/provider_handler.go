@@ -105,6 +105,11 @@ func (s *HTTPServer) handleProviderListAgents(w http.ResponseWriter, r *http.Req
 
 	filter := registry.ListFilter{
 		OwnerUserID: userID,
+		Search:      r.URL.Query().Get("search"),
+		Status:      agentcard.AgentStatus(r.URL.Query().Get("status")),
+		SortBy:      r.URL.Query().Get("sort"),
+		PageSize:    queryInt(r, "limit", 50),
+		PageToken:   strconv.Itoa(queryInt(r, "offset", 0)),
 	}
 
 	result, err := s.registry.ListAgents(r.Context(), filter)
