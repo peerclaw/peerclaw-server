@@ -7,6 +7,7 @@ import { AgentDirectoryCard } from "@/components/public/AgentDirectoryCard"
 import { CategoryFilter } from "@/components/public/CategoryFilter"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Search, SlidersHorizontal } from "lucide-react"
+import { CardSkeleton } from "@/components/ui/card-skeleton"
 
 type SortOption = "reputation" | "name" | "registered_at" | "popular"
 
@@ -158,11 +159,8 @@ export function DirectoryPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="flex h-48 items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="size-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
-          </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
         </div>
       ) : agents.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border/60">

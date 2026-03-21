@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardSkeleton } from "@/components/ui/card-skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import { isOutdated } from "@/lib/semver"
 import {
   PhoneCall,
@@ -96,8 +98,31 @@ export function ProviderAgentDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">{t('provider.loadingAgent')}</p>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-4 w-32 mb-2" />
+          <Skeleton className="h-8 w-64 mb-1" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <Card>
+          <CardHeader><Skeleton className="h-4 w-32" /></CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2"><Skeleton className="h-4 w-full" /></div>
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><Skeleton className="h-4 w-32" /></CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
       </div>
     )
   }

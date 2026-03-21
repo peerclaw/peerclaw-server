@@ -75,7 +75,7 @@ type Store interface {
 	SetAgentCategories(ctx context.Context, agentID string, categoryIDs []string) error
 
 	// ListReports returns abuse reports with optional status filter and pagination.
-	ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error)
+	ListReports(ctx context.Context, status, sortBy string, limit, offset int) ([]AbuseReport, int, error)
 
 	// GetReport retrieves a single abuse report by ID.
 	GetReport(ctx context.Context, id string) (*AbuseReport, error)

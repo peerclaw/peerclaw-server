@@ -56,8 +56,8 @@ func (s *Service) ProviderDashboardStats(ctx context.Context, ownerUserID string
 }
 
 // ListAll returns all invocations with optional agent/user filters.
-func (s *Service) ListAll(ctx context.Context, agentID, userID string, limit, offset int) ([]InvocationRecord, int, error) {
-	return s.store.ListAll(ctx, agentID, userID, limit, offset)
+func (s *Service) ListAll(ctx context.Context, agentID, userID, sortBy string, limit, offset int) ([]InvocationRecord, int, error) {
+	return s.store.ListAll(ctx, agentID, userID, sortBy, limit, offset)
 }
 
 // GlobalStats returns aggregated stats across all agents.

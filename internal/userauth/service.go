@@ -336,8 +336,8 @@ func (s *Service) ValidateAPIKey(ctx context.Context, key string) (*User, error)
 }
 
 // ListUsers returns users with optional search and role filter.
-func (s *Service) ListUsers(ctx context.Context, search, role string, limit, offset int) ([]User, int, error) {
-	return s.store.ListUsers(ctx, search, role, limit, offset)
+func (s *Service) ListUsers(ctx context.Context, search, role, sortBy string, limit, offset int) ([]User, int, error) {
+	return s.store.ListUsers(ctx, search, role, sortBy, limit, offset)
 }
 
 // UpdateRole updates a user's role after validation.

@@ -6,6 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { CardSkeleton } from "@/components/ui/card-skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { CircleCheck, CircleAlert } from "lucide-react"
 import { useEffect, useRef, useState, useMemo } from "react"
@@ -33,7 +35,7 @@ export function OverviewPage() {
   const { t } = useTranslation()
   const { data, loading, error } = useAdminDashboard()
   // Fetch agents for protocol distribution (first page only, small page size)
-  const { data: agentsData } = useAdminAgents(undefined, undefined, undefined, 200, 0)
+  const { data: agentsData } = useAdminAgents(undefined, undefined, undefined, undefined, 200, 0)
 
   const chart1 = useCssColor("--chart-1")
   const chart2 = useCssColor("--chart-2")
@@ -60,8 +62,14 @@ export function OverviewPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">{t('provider.loadingDashboard')}</p>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48 mb-1" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
       </div>
     )
   }

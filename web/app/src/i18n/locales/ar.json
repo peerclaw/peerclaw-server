@@ -26,7 +26,10 @@
     "showing": "عرض",
     "never": "أبداً",
     "all": "الكل",
-    "vsLastPeriod": "مقارنة بالفترة السابقة"
+    "vsLastPeriod": "مقارنة بالفترة السابقة",
+    "sortAsc": "ترتيب تصاعدي",
+    "sortDesc": "ترتيب تنازلي",
+    "unsorted": "غير مرتب"
   },
   "nav": {
     "directory": "الدليل",

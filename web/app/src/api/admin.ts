@@ -20,11 +20,12 @@ export function fetchAdminDashboard(token: string): Promise<AdminDashboardStats>
 // User Management
 export function fetchAdminUsers(
   token: string,
-  params?: { search?: string; role?: string; limit?: number; offset?: number }
+  params?: { search?: string; role?: string; sort?: string; limit?: number; offset?: number }
 ): Promise<AdminUserListResponse> {
   const query = new URLSearchParams()
   if (params?.search) query.set("search", params.search)
   if (params?.role) query.set("role", params.role)
+  if (params?.sort) query.set("sort", params.sort)
   if (params?.limit) query.set("limit", String(params.limit))
   if (params?.offset) query.set("offset", String(params.offset))
   const qs = query.toString()
@@ -53,12 +54,13 @@ export function deleteAdminUser(token: string, id: string): Promise<void> {
 // Agent Management
 export function fetchAdminAgents(
   token: string,
-  params?: { search?: string; protocol?: string; status?: string; limit?: number; offset?: number }
+  params?: { search?: string; protocol?: string; status?: string; sort?: string; limit?: number; offset?: number }
 ): Promise<AgentListResponse> {
   const query = new URLSearchParams()
   if (params?.search) query.set("search", params.search)
   if (params?.protocol) query.set("protocol", params.protocol)
   if (params?.status) query.set("status", params.status)
+  if (params?.sort) query.set("sort", params.sort)
   if (params?.limit) query.set("limit", String(params.limit))
   if (params?.offset) query.set("offset", String(params.offset))
   const qs = query.toString()
@@ -88,10 +90,11 @@ export function unverifyAdminAgent(token: string, id: string): Promise<{ status:
 // Report Moderation
 export function fetchAdminReports(
   token: string,
-  params?: { status?: string; limit?: number; offset?: number }
+  params?: { status?: string; sort?: string; limit?: number; offset?: number }
 ): Promise<AdminReportListResponse> {
   const query = new URLSearchParams()
   if (params?.status) query.set("status", params.status)
+  if (params?.sort) query.set("sort", params.sort)
   if (params?.limit) query.set("limit", String(params.limit))
   if (params?.offset) query.set("offset", String(params.offset))
   const qs = query.toString()
@@ -158,11 +161,12 @@ export function fetchAdminAnalytics(
 // Invocation Log
 export function fetchAdminInvocations(
   token: string,
-  params?: { agent_id?: string; user_id?: string; limit?: number; offset?: number }
+  params?: { agent_id?: string; user_id?: string; sort?: string; limit?: number; offset?: number }
 ): Promise<AdminInvocationListResponse> {
   const query = new URLSearchParams()
   if (params?.agent_id) query.set("agent_id", params.agent_id)
   if (params?.user_id) query.set("user_id", params.user_id)
+  if (params?.sort) query.set("sort", params.sort)
   if (params?.limit) query.set("limit", String(params.limit))
   if (params?.offset) query.set("offset", String(params.offset))
   const qs = query.toString()

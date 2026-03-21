@@ -26,7 +26,10 @@
     "showing": "affichage",
     "never": "Jamais",
     "all": "Tout",
-    "vsLastPeriod": "par rapport à la période précédente"
+    "vsLastPeriod": "par rapport à la période précédente",
+    "sortAsc": "Tri croissant",
+    "sortDesc": "Tri décroissant",
+    "unsorted": "Non trié"
   },
   "nav": {
     "directory": "Annuaire",

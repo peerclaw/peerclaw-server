@@ -13,6 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Bot, PlusCircle, ChevronDown, ChevronUp } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 export function ProviderAgentsPage() {
   const { t } = useTranslation()
@@ -21,8 +23,12 @@ export function ProviderAgentsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-muted-foreground">{t('provider.loadingDashboard')}</p>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48 mb-1" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <TableSkeleton rows={5} cols={5} />
       </div>
     )
   }

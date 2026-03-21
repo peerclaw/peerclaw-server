@@ -95,7 +95,7 @@ type Store interface {
 	UpdateAPIKeyLastUsed(ctx context.Context, keyID string) error
 
 	// ListUsers returns users with optional search and role filter, plus total count.
-	ListUsers(ctx context.Context, search, role string, limit, offset int) ([]User, int, error)
+	ListUsers(ctx context.Context, search, role, sortBy string, limit, offset int) ([]User, int, error)
 
 	// DeleteUser removes a user by ID.
 	DeleteUser(ctx context.Context, id string) error

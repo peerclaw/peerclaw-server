@@ -18,6 +18,8 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card"
+import { SortableHeader } from "@/components/ui/sortable-header"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 const PAGE_SIZE = 20
 
@@ -27,6 +29,7 @@ export function AgentsPage() {
   const [search, setSearch] = useState("")
   const [protocol, setProtocol] = useState("")
   const [status, setStatus] = useState("")
+  const [sort, setSort] = useState("")
   const [page, setPage] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
@@ -34,6 +37,7 @@ export function AgentsPage() {
     search || undefined,
     protocol || undefined,
     status || undefined,
+    sort || undefined,
     PAGE_SIZE,
     page * PAGE_SIZE
   )
@@ -111,9 +115,11 @@ export function AgentsPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">{t('adminAgents.loadingAgents')}</p>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <TableSkeleton rows={5} cols={6} />
+          </CardContent>
+        </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
           <p className="text-sm text-destructive">{error}</p>
@@ -125,11 +131,11 @@ export function AgentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('adminAgents.name')}</TableHead>
+                    <SortableHeader field="name" label={t('adminAgents.name')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <TableHead>{t('adminAgents.status')}</TableHead>
                     <TableHead>{t('adminAgents.protocols')}</TableHead>
                     <TableHead>{t('adminAgents.sdkVersion')}</TableHead>
-                    <TableHead>{t('adminAgents.lastHeartbeat')}</TableHead>
+                    <SortableHeader field="registered_at" label={t('adminAgents.lastHeartbeat')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>

@@ -12,6 +12,7 @@ import { ReviewSection } from "@/components/public/ReviewSection"
 import { ReportDialog } from "@/components/public/ReportDialog"
 import { AccessRequestDialog } from "@/components/public/AccessRequestDialog"
 import { ArrowLeft, ExternalLink, Key, Play, Clock, Star } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const statusConfig: Record<string, { color: string; glow: string; label: string }> = {
   online: { color: "bg-emerald-500", glow: "shadow-[0_0_8px_oklch(0.72_0.2_160_/_0.5)]", label: "Online" },
@@ -53,10 +54,44 @@ export function PublicProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+      <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+        <Skeleton className="h-4 w-32" />
+        <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
+            <div className="flex-1 space-y-3">
+              <Skeleton className="h-8 w-48" />
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+            <Skeleton className="h-24 w-24 rounded-full shrink-0" />
+          </div>
+          <div className="mt-6 flex gap-2">
+            <Skeleton className="h-10 w-36 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl" />
+          </div>
+          <Skeleton className="mt-5 h-10 w-full rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <div className="flex gap-1.5">
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-6 w-16 rounded-md" />)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <div className="flex gap-1.5">
+              {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-6 w-16 rounded-md" />)}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-48 w-full" />
         </div>
       </div>
     )

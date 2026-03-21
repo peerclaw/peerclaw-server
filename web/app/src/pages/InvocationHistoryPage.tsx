@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 const PAGE_SIZE = 20
 
@@ -62,9 +63,7 @@ export function InvocationHistoryPage() {
       </div>
 
       {loading && !data && (
-        <div className="flex h-64 items-center justify-center">
-          <p className="text-sm text-muted-foreground">{t('invocations.loadingInvocations')}</p>
-        </div>
+        <TableSkeleton rows={8} cols={5} />
       )}
 
       {error && (

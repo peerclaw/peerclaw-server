@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -286,7 +287,7 @@ func (s *SQLiteStore) UpdateAPIKeyLastUsed(ctx context.Context, keyID string) er
 	return err
 }
 
-func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit, offset int) ([]User, int, error) {
+func (s *SQLiteStore) ListUsers(ctx context.Context, search, role, sortBy string, limit, offset int) ([]User, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -309,9 +310,27 @@ func (s *SQLiteStore) ListUsers(ctx context.Context, search, role string, limit,
 		return nil, 0, err
 	}
 
+	// SECURITY: orderBy is safe — values come only from the whitelist below.
+	orderBy := "created_at DESC"
+	switch strings.TrimPrefix(sortBy, "-") {
+	case "email":
+		orderBy = "email"
+	case "display_name":
+		orderBy = "display_name"
+	case "role":
+		orderBy = "role"
+	case "created_at":
+		orderBy = "created_at"
+	}
+	if strings.HasPrefix(sortBy, "-") {
+		orderBy += " DESC"
+	} else if sortBy != "" {
+		orderBy += " ASC"
+	}
+
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at FROM users WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		"SELECT id, email, password_hash, display_name, description, role, email_verified, created_at, updated_at FROM users WHERE "+where+" ORDER BY "+orderBy+" LIMIT ? OFFSET ?",
 		args...,
 	)
 	if err != nil {

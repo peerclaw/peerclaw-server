@@ -26,7 +26,10 @@
     "showing": "exibindo",
     "never": "Nunca",
     "all": "Todos",
-    "vsLastPeriod": "vs período anterior"
+    "vsLastPeriod": "vs período anterior",
+    "sortAsc": "Ordem crescente",
+    "sortDesc": "Ordem decrescente",
+    "unsorted": "Sem ordenação"
   },
   "nav": {
     "directory": "Diretório",

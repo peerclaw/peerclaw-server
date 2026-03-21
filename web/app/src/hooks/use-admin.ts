@@ -68,12 +68,13 @@ export function useAdminDashboard(): UseQueryResult<AdminDashboardStats> {
 export function useAdminUsers(
   search?: string,
   role?: string,
+  sort?: string,
   limit = 50,
   offset = 0
 ): UseQueryResult<AdminUserListResponse> {
   const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminUsers(token, { search, role, limit, offset }),
-    [search, role, limit, offset]
+    (token: string) => adminAPI.fetchAdminUsers(token, { search, role, sort, limit, offset }),
+    [search, role, sort, limit, offset]
   )
   return useAdminQuery(fetcher)
 }
@@ -84,12 +85,13 @@ export function useAdminAgents(
   search?: string,
   protocol?: string,
   status?: string,
+  sort?: string,
   limit = 50,
   offset = 0
 ): UseQueryResult<AgentListResponse> {
   const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminAgents(token, { search, protocol, status, limit, offset }),
-    [search, protocol, status, limit, offset]
+    (token: string) => adminAPI.fetchAdminAgents(token, { search, protocol, status, sort, limit, offset }),
+    [search, protocol, status, sort, limit, offset]
   )
   return useAdminQuery(fetcher)
 }
@@ -106,12 +108,13 @@ export function useAdminAgent(id: string | undefined): UseQueryResult<AdminAgent
 
 export function useAdminReports(
   status?: string,
+  sort?: string,
   limit = 50,
   offset = 0
 ): UseQueryResult<AdminReportListResponse> {
   const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminReports(token, { status, limit, offset }),
-    [status, limit, offset]
+    (token: string) => adminAPI.fetchAdminReports(token, { status, sort, limit, offset }),
+    [status, sort, limit, offset]
   )
   return useAdminQuery(fetcher)
 }
@@ -135,6 +138,7 @@ export function useAdminAnalytics(
 export function useAdminInvocations(
   agentId?: string,
   userId?: string,
+  sort?: string,
   limit = 50,
   offset = 0
 ): UseQueryResult<AdminInvocationListResponse> {
@@ -143,10 +147,11 @@ export function useAdminInvocations(
       adminAPI.fetchAdminInvocations(token, {
         agent_id: agentId,
         user_id: userId,
+        sort,
         limit,
         offset,
       }),
-    [agentId, userId, limit, offset]
+    [agentId, userId, sort, limit, offset]
   )
   return useAdminQuery(fetcher)
 }

@@ -26,7 +26,10 @@
     "showing": "表示中",
     "never": "なし",
     "all": "すべて",
-    "vsLastPeriod": "前期間比"
+    "vsLastPeriod": "前期間比",
+    "sortAsc": "昇順ソート",
+    "sortDesc": "降順ソート",
+    "unsorted": "未ソート"
   },
   "nav": {
     "directory": "ディレクトリ",

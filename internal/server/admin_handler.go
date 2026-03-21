@@ -90,10 +90,11 @@ func (s *HTTPServer) handleAdminListUsers(w http.ResponseWriter, r *http.Request
 
 	search := r.URL.Query().Get("search")
 	role := r.URL.Query().Get("role")
+	sortBy := r.URL.Query().Get("sort")
 	limit := queryInt(r, "limit", 50)
 	offset := queryInt(r, "offset", 0)
 
-	users, total, err := s.userAuth.ListUsers(r.Context(), search, role, limit, offset)
+	users, total, err := s.userAuth.ListUsers(r.Context(), search, role, sortBy, limit, offset)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -184,10 +185,11 @@ func (s *HTTPServer) handleAdminListAgents(w http.ResponseWriter, r *http.Reques
 	offset := queryInt(r, "offset", 0)
 
 	filter := registry.ListFilter{
-		Search:   r.URL.Query().Get("search"),
-		Protocol: r.URL.Query().Get("protocol"),
-		Status:   agentcard.AgentStatus(r.URL.Query().Get("status")),
-		PageSize: limit,
+		Search:    r.URL.Query().Get("search"),
+		Protocol:  r.URL.Query().Get("protocol"),
+		Status:    agentcard.AgentStatus(r.URL.Query().Get("status")),
+		SortBy:    r.URL.Query().Get("sort"),
+		PageSize:  limit,
 		PageToken: fmt.Sprintf("%d", offset),
 	}
 
@@ -303,10 +305,11 @@ func (s *HTTPServer) handleAdminListReports(w http.ResponseWriter, r *http.Reque
 	}
 
 	status := r.URL.Query().Get("status")
+	sortBy := r.URL.Query().Get("sort")
 	limit := queryInt(r, "limit", 50)
 	offset := queryInt(r, "offset", 0)
 
-	reports, total, err := s.reviewService.ListReports(r.Context(), status, limit, offset)
+	reports, total, err := s.reviewService.ListReports(r.Context(), status, sortBy, limit, offset)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -492,10 +495,11 @@ func (s *HTTPServer) handleAdminListInvocations(w http.ResponseWriter, r *http.R
 
 	agentID := r.URL.Query().Get("agent_id")
 	userID := r.URL.Query().Get("user_id")
+	sortBy := r.URL.Query().Get("sort")
 	limit := queryInt(r, "limit", 50)
 	offset := queryInt(r, "offset", 0)
 
-	records, total, err := s.invocation.ListAll(r.Context(), agentID, userID, limit, offset)
+	records, total, err := s.invocation.ListAll(r.Context(), agentID, userID, sortBy, limit, offset)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
 		return

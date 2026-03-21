@@ -17,6 +17,8 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card"
+import { SortableHeader } from "@/components/ui/sortable-header"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 const PAGE_SIZE = 20
 
@@ -25,12 +27,14 @@ export function UsersPage() {
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("")
   const [page, setPage] = useState(0)
+  const [sort, setSort] = useState("")
   const [editingUser, setEditingUser] = useState<{ id: string; role: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   const { data, loading, error, refetch } = useAdminUsers(
     search || undefined,
     roleFilter || undefined,
+    sort || undefined,
     PAGE_SIZE,
     page * PAGE_SIZE
   )
@@ -107,9 +111,11 @@ export function UsersPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">{t('adminUsers.loadingUsers')}</p>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <TableSkeleton rows={5} cols={5} />
+          </CardContent>
+        </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
           <p className="text-sm text-destructive">{error}</p>
@@ -121,10 +127,10 @@ export function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('adminUsers.email')}</TableHead>
-                    <TableHead>{t('adminUsers.displayName')}</TableHead>
-                    <TableHead>{t('adminUsers.role')}</TableHead>
-                    <TableHead>{t('adminUsers.createdAt')}</TableHead>
+                    <SortableHeader field="email" label={t('adminUsers.email')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                    <SortableHeader field="display_name" label={t('adminUsers.displayName')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                    <SortableHeader field="role" label={t('adminUsers.role')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                    <SortableHeader field="created_at" label={t('adminUsers.createdAt')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>

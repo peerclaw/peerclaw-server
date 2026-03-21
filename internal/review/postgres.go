@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -251,7 +252,7 @@ func (s *PostgresStore) SetAgentCategories(ctx context.Context, agentID string, 
 	return tx.Commit()
 }
 
-func (s *PostgresStore) ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error) {
+func (s *PostgresStore) ListReports(ctx context.Context, status, sortBy string, limit, offset int) ([]AbuseReport, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -272,9 +273,23 @@ func (s *PostgresStore) ListReports(ctx context.Context, status string, limit, o
 		return nil, 0, err
 	}
 
+	// SECURITY: orderBy is safe — values come only from the whitelist below.
+	orderBy := "created_at DESC"
+	switch strings.TrimPrefix(sortBy, "-") {
+	case "status":
+		orderBy = "status"
+	case "created_at":
+		orderBy = "created_at"
+	}
+	if strings.HasPrefix(sortBy, "-") {
+		orderBy += " DESC"
+	} else if sortBy != "" {
+		orderBy += " ASC"
+	}
+
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		fmt.Sprintf("SELECT id, reporter_id, target_type, target_id, reason, details, status, created_at FROM abuse_reports WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", where, argN, argN+1),
+		fmt.Sprintf("SELECT id, reporter_id, target_type, target_id, reason, details, status, created_at FROM abuse_reports WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d", where, orderBy, argN, argN+1),
 		args...,
 	)
 	if err != nil {

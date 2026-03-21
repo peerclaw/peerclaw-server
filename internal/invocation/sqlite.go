@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -206,7 +207,7 @@ func (s *SQLiteStore) ProviderDashboardStats(ctx context.Context, ownerUserID st
 	return &stats, nil
 }
 
-func (s *SQLiteStore) ListAll(ctx context.Context, agentID, userID string, limit, offset int) ([]InvocationRecord, int, error) {
+func (s *SQLiteStore) ListAll(ctx context.Context, agentID, userID, sortBy string, limit, offset int) ([]InvocationRecord, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -229,9 +230,25 @@ func (s *SQLiteStore) ListAll(ctx context.Context, agentID, userID string, limit
 		return nil, 0, err
 	}
 
+	// SECURITY: orderBy is safe — values come only from the whitelist below.
+	orderBy := "created_at DESC"
+	switch strings.TrimPrefix(sortBy, "-") {
+	case "status_code":
+		orderBy = "status_code"
+	case "duration_ms":
+		orderBy = "duration_ms"
+	case "created_at":
+		orderBy = "created_at"
+	}
+	if strings.HasPrefix(sortBy, "-") {
+		orderBy += " DESC"
+	} else if sortBy != "" {
+		orderBy += " ASC"
+	}
+
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, agent_id, user_id, protocol, status_code, duration_ms, error, ip_address, created_at FROM invocations WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		"SELECT id, agent_id, user_id, protocol, status_code, duration_ms, error, ip_address, created_at FROM invocations WHERE "+where+" ORDER BY "+orderBy+" LIMIT ? OFFSET ?",
 		args...,
 	)
 	if err != nil {

@@ -13,6 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Bot, PhoneCall, CheckCircle, Timer, ArrowRight } from "lucide-react"
+import { CardSkeleton } from "@/components/ui/card-skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 export function ProviderDashboardPage() {
   const { t } = useTranslation()
@@ -20,11 +23,15 @@ export function ProviderDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-          <p className="text-sm text-muted-foreground">{t('provider.loadingDashboard')}</p>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48 mb-1" />
+          <Skeleton className="h-4 w-64" />
         </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
+        <TableSkeleton rows={5} cols={5} />
       </div>
     )
   }

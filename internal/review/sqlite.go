@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -258,7 +259,7 @@ func (s *SQLiteStore) SetAgentCategories(ctx context.Context, agentID string, ca
 	return tx.Commit()
 }
 
-func (s *SQLiteStore) ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error) {
+func (s *SQLiteStore) ListReports(ctx context.Context, status, sortBy string, limit, offset int) ([]AbuseReport, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -277,9 +278,23 @@ func (s *SQLiteStore) ListReports(ctx context.Context, status string, limit, off
 		return nil, 0, err
 	}
 
+	// SECURITY: orderBy is safe — values come only from the whitelist below.
+	orderBy := "created_at DESC"
+	switch strings.TrimPrefix(sortBy, "-") {
+	case "status":
+		orderBy = "status"
+	case "created_at":
+		orderBy = "created_at"
+	}
+	if strings.HasPrefix(sortBy, "-") {
+		orderBy += " DESC"
+	} else if sortBy != "" {
+		orderBy += " ASC"
+	}
+
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, reporter_id, target_type, target_id, reason, details, status, created_at FROM abuse_reports WHERE "+where+" ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		"SELECT id, reporter_id, target_type, target_id, reason, details, status, created_at FROM abuse_reports WHERE "+where+" ORDER BY "+orderBy+" LIMIT ? OFFSET ?",
 		args...,
 	)
 	if err != nil {

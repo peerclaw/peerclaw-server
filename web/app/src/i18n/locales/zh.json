@@ -26,7 +26,10 @@
     "showing": "显示",
     "never": "从未",
     "all": "全部",
-    "vsLastPeriod": "较上期"
+    "vsLastPeriod": "较上期",
+    "sortAsc": "升序排列",
+    "sortDesc": "降序排列",
+    "unsorted": "未排序"
   },
   "nav": {
     "directory": "目录",

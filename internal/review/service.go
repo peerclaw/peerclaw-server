@@ -120,8 +120,8 @@ func (s *Service) GetCategoriesByAgent(ctx context.Context, agentID string) ([]C
 }
 
 // ListReports returns abuse reports with optional status filter.
-func (s *Service) ListReports(ctx context.Context, status string, limit, offset int) ([]AbuseReport, int, error) {
-	return s.store.ListReports(ctx, status, limit, offset)
+func (s *Service) ListReports(ctx context.Context, status, sortBy string, limit, offset int) ([]AbuseReport, int, error) {
+	return s.store.ListReports(ctx, status, sortBy, limit, offset)
 }
 
 // GetReport retrieves a single abuse report by ID.

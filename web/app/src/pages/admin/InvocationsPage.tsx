@@ -16,6 +16,8 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card"
+import { SortableHeader } from "@/components/ui/sortable-header"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 const PAGE_SIZE = 50
 
@@ -23,11 +25,13 @@ export function InvocationsPage() {
   const { t } = useTranslation()
   const [agentFilter, setAgentFilter] = useState("")
   const [userFilter, setUserFilter] = useState("")
+  const [sort, setSort] = useState("")
   const [page, setPage] = useState(0)
 
   const { data, loading, error } = useAdminInvocations(
     agentFilter || undefined,
     userFilter || undefined,
+    sort || undefined,
     PAGE_SIZE,
     page * PAGE_SIZE
   )
@@ -74,9 +78,11 @@ export function InvocationsPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">{t('adminInvocations.loadingInvocations')}</p>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <TableSkeleton rows={5} cols={8} />
+          </CardContent>
+        </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
           <p className="text-sm text-destructive">{error}</p>
@@ -92,10 +98,10 @@ export function InvocationsPage() {
                     <TableHead>{t('adminInvocations.agentId')}</TableHead>
                     <TableHead>{t('adminInvocations.userId')}</TableHead>
                     <TableHead>{t('adminInvocations.protocol')}</TableHead>
-                    <TableHead>{t('adminInvocations.status')}</TableHead>
-                    <TableHead>{t('adminInvocations.duration')}</TableHead>
+                    <SortableHeader field="status_code" label={t('adminInvocations.status')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                    <SortableHeader field="duration_ms" label={t('adminInvocations.duration')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <TableHead>{t('adminInvocations.error')}</TableHead>
-                    <TableHead>{t('adminInvocations.createdAt')}</TableHead>
+                    <SortableHeader field="created_at" label={t('adminInvocations.createdAt')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                   </TableRow>
                 </TableHeader>
                 <TableBody>

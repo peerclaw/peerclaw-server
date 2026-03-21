@@ -9,6 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { CardSkeleton } from "@/components/ui/card-skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   AreaChart,
   Area,
@@ -151,8 +153,11 @@ export function AnalyticsPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-muted-foreground">{t('adminAnalytics.loadingAnalytics')}</p>
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
+          </div>
+          <Card><CardContent className="p-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
