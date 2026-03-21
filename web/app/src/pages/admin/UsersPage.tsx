@@ -14,18 +14,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { exportToCSV, exportToJSON } from "@/lib/export"
 import {
-  Table,
-  TableBody,
   TableCell,
   TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/ui/table"
 import {
   Card,
   CardContent,
 } from "@/components/ui/card"
 import { SortableHeader } from "@/components/ui/sortable-header"
+import { SelectableTable } from "@/components/ui/selectable-table"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 
 const PAGE_SIZE = 20
@@ -46,7 +43,7 @@ export function UsersPage() {
     PAGE_SIZE,
     page * PAGE_SIZE
   )
-  const { updateUserRole, deleteUser } = useAdminMutations()
+  const { updateUserRole, deleteUser, bulkUsersAction } = useAdminMutations()
 
   const handleRoleChange = useCallback(
     async (id: string, role: string) => {
@@ -75,6 +72,23 @@ export function UsersPage() {
     },
     [deleteUser, refetch]
   )
+
+  const handleBulkAction = useCallback(
+    async (action: string, ids: string[]) => {
+      try {
+        const result = await bulkUsersAction(action, ids)
+        toast.success(t("common.bulkActions") + `: ${result.success} success, ${result.errors} errors`)
+        refetch()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("toast.operationFailed"))
+      }
+    },
+    [bulkUsersAction, refetch, t]
+  )
+
+  const userBulkActions = [
+    { label: t("common.delete"), variant: "destructive" as const, onClick: (ids: string[]) => handleBulkAction("delete", ids) },
+  ]
 
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -168,108 +182,101 @@ export function UsersPage() {
         <>
           <Card>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortableHeader field="email" label={t('adminUsers.email')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
-                    <SortableHeader field="display_name" label={t('adminUsers.displayName')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
-                    <SortableHeader field="role" label={t('adminUsers.role')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
-                    <SortableHeader field="created_at" label={t('adminUsers.createdAt')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
-                    <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(data?.users ?? []).map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-mono text-xs">{user.email}</TableCell>
-                      <TableCell>{user.display_name}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.role === "admin"
-                              ? "destructive"
-                              : user.role === "provider"
-                              ? "secondary"
-                              : "default"
-                          }
-                        >
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        {editingUser?.id === user.id ? (
-                          <span className="inline-flex gap-1">
-                            {["user", "provider", "admin"].map((r) => (
-                              <Button
-                                key={r}
-                                size="sm"
-                                variant={r === editingUser.role ? "default" : "outline"}
-                                onClick={() => handleRoleChange(user.id, r)}
-                              >
-                                {r}
-                              </Button>
-                            ))}
+              <SelectableTable
+                items={data?.users ?? []}
+                getKey={(u) => u.id}
+                columns={<>
+                  <SortableHeader field="email" label={t('adminUsers.email')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                  <SortableHeader field="display_name" label={t('adminUsers.displayName')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                  <SortableHeader field="role" label={t('adminUsers.role')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                  <SortableHeader field="created_at" label={t('adminUsers.createdAt')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
+                  <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
+                </>}
+                renderRow={(user) => (
+                  <>
+                    <TableCell className="font-mono text-xs">{user.email}</TableCell>
+                    <TableCell>{user.display_name}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          user.role === "admin"
+                            ? "destructive"
+                            : user.role === "provider"
+                            ? "secondary"
+                            : "default"
+                        }
+                      >
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {editingUser?.id === user.id ? (
+                        <span className="inline-flex gap-1">
+                          {["user", "provider", "admin"].map((r) => (
                             <Button
+                              key={r}
                               size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingUser(null)}
+                              variant={r === editingUser.role ? "default" : "outline"}
+                              onClick={() => handleRoleChange(user.id, r)}
                             >
-                              {t('common.cancel')}
+                              {r}
                             </Button>
-                          </span>
-                        ) : confirmDelete === user.id ? (
-                          <span className="inline-flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(user.id)}
-                            >
-                              {t('adminUsers.confirmDelete')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setConfirmDelete(null)}
-                            >
-                              {t('common.cancel')}
-                            </Button>
-                          </span>
-                        ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                setEditingUser({ id: user.id, role: user.role })
-                              }
-                            >
-                              {t('adminUsers.editRole')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive"
-                              onClick={() => setConfirmDelete(user.id)}
-                            >
-                              {t('common.delete')}
-                            </Button>
-                          </>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(data?.users ?? []).length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        {t('adminUsers.noUsers')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                          ))}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingUser(null)}
+                          >
+                            {t('common.cancel')}
+                          </Button>
+                        </span>
+                      ) : confirmDelete === user.id ? (
+                        <span className="inline-flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(user.id)}
+                          >
+                            {t('adminUsers.confirmDelete')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmDelete(null)}
+                          >
+                            {t('common.cancel')}
+                          </Button>
+                        </span>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setEditingUser({ id: user.id, role: user.role })
+                            }
+                          >
+                            {t('adminUsers.editRole')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => setConfirmDelete(user.id)}
+                          >
+                            {t('common.delete')}
+                          </Button>
+                        </>
+                      )}
+                    </TableCell>
+                  </>
+                )}
+                bulkActions={userBulkActions}
+                emptyMessage={t('adminUsers.noUsers')}
+              />
             </CardContent>
           </Card>
 

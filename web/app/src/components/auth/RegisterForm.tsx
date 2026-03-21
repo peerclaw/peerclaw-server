@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { PasswordStrength } from "@/components/ui/password-strength"
 
 interface RegisterFormProps {
   onSubmit: (
@@ -111,6 +112,7 @@ export function RegisterForm({ onSubmit, error }: RegisterFormProps) {
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('auth.atLeastChars')}
         />
+        <PasswordStrength password={password} />
       </div>
 
       <div>

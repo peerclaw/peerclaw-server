@@ -1,6 +1,8 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useProviderDashboard } from "@/hooks/use-provider"
+import { Button } from "@/components/ui/button"
 import { AgentStatsCard } from "@/components/provider/AgentStatsCard"
 import { ClaimTokenSection } from "@/components/provider/ClaimTokenSection"
 import { Badge } from "@/components/ui/badge"
@@ -17,9 +19,19 @@ import { CardSkeleton } from "@/components/ui/card-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 
+const TIME_RANGES = [
+  { label: "7d", days: 7 },
+  { label: "30d", days: 30 },
+  { label: "All", days: 0 },
+]
+
 export function ProviderDashboardPage() {
   const { t } = useTranslation()
-  const { data, loading, error } = useProviderDashboard()
+  const [timeRange, setTimeRange] = useState(0)
+  const since = timeRange > 0
+    ? new Date(Date.now() - timeRange * 86400000).toISOString()
+    : undefined
+  const { data, loading, error } = useProviderDashboard(since)
 
   if (loading) {
     return (
@@ -65,6 +77,20 @@ export function ProviderDashboardPage() {
         <p className="text-sm text-muted-foreground mt-1">
           {t('provider.overview')}
         </p>
+      </div>
+
+      {/* Time range selector */}
+      <div className="flex gap-1">
+        {TIME_RANGES.map((r) => (
+          <Button
+            key={r.label}
+            size="sm"
+            variant={timeRange === r.days ? "default" : "outline"}
+            onClick={() => setTimeRange(r.days)}
+          >
+            {r.label}
+          </Button>
+        ))}
       </div>
 
       {/* Stats cards */}

@@ -163,8 +163,9 @@ export function useProviderAgent(id: string | undefined): UseQueryResult<Provide
   )
 }
 
-export function useProviderDashboard(): UseQueryResult<ProviderDashboardData> {
-  return useProviderQuery<ProviderDashboardData>("/provider/dashboard")
+export function useProviderDashboard(since?: string): UseQueryResult<ProviderDashboardData> {
+  const qs = since ? `?since=${encodeURIComponent(since)}` : ""
+  return useProviderQuery<ProviderDashboardData>(`/provider/dashboard${qs}`)
 }
 
 export function useAgentAnalytics(agentId: string | undefined): UseQueryResult<AgentAnalytics> {

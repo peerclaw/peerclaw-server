@@ -38,7 +38,10 @@
     "copyToClipboard": "Copy to clipboard",
     "copied": "Copied!",
     "confirmDelete": "Confirm Delete",
-    "deleteConfirmation": "Are you sure you want to delete this item? This action cannot be undone."
+    "deleteConfirmation": "Are you sure you want to delete this item? This action cannot be undone.",
+    "nSelected": "{{count}} selected",
+    "bulkActions": "Bulk Actions",
+    "selectAll": "Select All"
   },
   "nav": {
     "directory": "Directory",
@@ -73,7 +76,8 @@
     "menu": "Menu",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
-    "toggleSidebar": "Toggle sidebar"
+    "toggleSidebar": "Toggle sidebar",
+    "audit": "Audit Log"
   },
   "toast": {
     "operationFailed": "Operation failed",
@@ -137,7 +141,17 @@
     "backToLogin": "Back to sign in",
     "invalidEmail": "Please enter a valid email address",
     "enterCode": "Please enter the 6-digit code",
-    "emailNotVerified": "Please verify your email before signing in"
+    "emailNotVerified": "Please verify your email before signing in",
+    "passwordStrength": "Password Strength",
+    "weak": "Weak",
+    "fair": "Fair",
+    "good": "Good",
+    "strong": "Strong",
+    "minLength": "At least 8 characters",
+    "hasUppercase": "Contains uppercase letter",
+    "hasLowercase": "Contains lowercase letter",
+    "hasNumber": "Contains number",
+    "hasSpecial": "Contains special character"
   },
   "landing": {
     "heroTitle": "The Trust Layer for AI Agents",
@@ -436,7 +450,10 @@
     "overallStatus": "Overall Status",
     "healthy": "Healthy",
     "unhealthy": "Unhealthy",
-    "protocolDistribution": "Protocol Distribution"
+    "protocolDistribution": "Protocol Distribution",
+    "recentActivity": "Recent Activity",
+    "timeAgo": "{{time}} ago",
+    "viewAll": "View All"
   },
   "adminAgents": {
     "title": "Agents",
@@ -639,6 +656,9 @@
     "phase2Desc": "EWMA reputation scoring, challenge-response endpoint verification, A2A/MCP/ACP protocol bridging via Envelope format, provider console, admin panel, playground, reviews/ratings, and full security audit.",
     "phase3Title": "Ecosystem",
     "phase3Desc": "Agent directory with search and categories, access control, API key management, invocation analytics, i18n (8 languages), Docker deployment, CLI tooling, and data retention policies.",
+    "phase4Title": "Dashboard & DX",
+    "phase4Desc": "Bulk actions, password strength indicators, admin audit log, advanced dashboard with clickable stats, recent activity feed, and provider time range filtering.",
+    "viewFullRoadmap": "View full roadmap on GitHub",
     "status_done": "Complete",
     "status_current": "In Progress",
     "status_upcoming": "Upcoming",
@@ -753,5 +773,20 @@
       "agent_degraded": "Agent Degraded",
       "sdk_outdated": "SDK Outdated"
     }
+  },
+  "adminAudit": {
+    "title": "Audit Log",
+    "description": "Admin action history and audit trail",
+    "adminUser": "Admin",
+    "action": "Action",
+    "targetType": "Target Type",
+    "targetId": "Target ID",
+    "details": "Details",
+    "timestamp": "Timestamp",
+    "filterAdmin": "Filter by admin...",
+    "filterAction": "All Actions",
+    "filterTarget": "All Targets",
+    "noEvents": "No audit events found",
+    "loadingEvents": "Loading audit events..."
   }
 }

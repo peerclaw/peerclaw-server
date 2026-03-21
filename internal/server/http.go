@@ -16,6 +16,7 @@ import (
 	coreidentity "github.com/peerclaw/peerclaw-core/identity"
 	"github.com/peerclaw/peerclaw-core/protocol"
 	coresignaling "github.com/peerclaw/peerclaw-core/signaling"
+	"github.com/peerclaw/peerclaw-server/internal/adminaudit"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/claimtoken"
@@ -79,6 +80,7 @@ type HTTPServer struct {
 	versionCheck           *versioncheck.Service
 	notificationSvc        *notification.Service
 	notifHub               *notification.DashboardHub
+	adminAudit             *adminaudit.Service
 	cleanupCancel          context.CancelFunc // cancels bridge cleanup goroutines
 }
 
@@ -235,6 +237,11 @@ func (s *HTTPServer) SetNotification(n *notification.Service) {
 // SetNotificationHub sets the dashboard WebSocket notification hub.
 func (s *HTTPServer) SetNotificationHub(h *notification.DashboardHub) {
 	s.notifHub = h
+}
+
+// SetAdminAudit sets the admin audit service.
+func (s *HTTPServer) SetAdminAudit(a *adminaudit.Service) {
+	s.adminAudit = a
 }
 
 // wrapAuth applies agent authentication middleware to a handler.

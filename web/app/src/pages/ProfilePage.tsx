@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { useTranslation } from "react-i18next"
+import { PasswordStrength } from "@/components/ui/password-strength"
 
 export function ProfilePage() {
   const { user, updateProfile, changePassword } = useAuth()
@@ -19,6 +20,21 @@ export function ProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordMsg, setPasswordMsg] = useState("")
   const [passwordError, setPasswordError] = useState("")
+
+  // Auto-dismiss success messages after 3s.
+  useEffect(() => {
+    if (passwordMsg) {
+      const timer = setTimeout(() => setPasswordMsg(""), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [passwordMsg])
+
+  useEffect(() => {
+    if (profileMsg) {
+      const timer = setTimeout(() => setProfileMsg(""), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [profileMsg])
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -168,6 +184,7 @@ export function ProfilePage() {
               required
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <PasswordStrength password={newPassword} />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">

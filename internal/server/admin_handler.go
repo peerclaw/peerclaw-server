@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-server/internal/identity"
 	"github.com/peerclaw/peerclaw-server/internal/registry"
 	"github.com/peerclaw/peerclaw-server/internal/review"
 )
@@ -158,6 +159,7 @@ func (s *HTTPServer) handleAdminUpdateUserRole(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	s.recordAdminAudit(r, "user.role_change", "user", id, fmt.Sprintf(`{"role":"%s"}`, req.Role))
 	s.jsonResponse(w, http.StatusOK, sanitizeUser(user))
 }
 
@@ -174,6 +176,7 @@ func (s *HTTPServer) handleAdminDeleteUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	s.recordAdminAudit(r, "user.delete", "user", id, "")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -260,6 +263,7 @@ func (s *HTTPServer) handleAdminDeleteAgent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	s.engine.RemoveAgent(id)
+	s.recordAdminAudit(r, "agent.delete", "agent", id, "")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -276,6 +280,7 @@ func (s *HTTPServer) handleAdminVerifyAgent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	s.recordAdminAudit(r, "agent.verify", "agent", id, "")
 	s.jsonResponse(w, http.StatusOK, map[string]string{"status": "verified"})
 }
 
@@ -292,6 +297,7 @@ func (s *HTTPServer) handleAdminUnverifyAgent(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	s.recordAdminAudit(r, "agent.unverify", "agent", id, "")
 	s.jsonResponse(w, http.StatusOK, map[string]string{"status": "unverified"})
 }
 
@@ -360,6 +366,7 @@ func (s *HTTPServer) handleAdminUpdateReport(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	s.recordAdminAudit(r, "report.update", "report", id, fmt.Sprintf(`{"status":"%s"}`, req.Status))
 	s.jsonResponse(w, http.StatusOK, map[string]string{"status": req.Status})
 }
 
@@ -376,6 +383,7 @@ func (s *HTTPServer) handleAdminDeleteReport(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	s.recordAdminAudit(r, "report.delete", "report", id, "")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -403,6 +411,7 @@ func (s *HTTPServer) handleAdminCreateCategory(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	s.recordAdminAudit(r, "category.create", "category", cat.ID, "")
 	s.jsonResponse(w, http.StatusCreated, cat)
 }
 
@@ -426,6 +435,7 @@ func (s *HTTPServer) handleAdminUpdateCategory(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	s.recordAdminAudit(r, "category.update", "category", id, "")
 	s.jsonResponse(w, http.StatusOK, cat)
 }
 
@@ -442,6 +452,7 @@ func (s *HTTPServer) handleAdminDeleteCategory(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	s.recordAdminAudit(r, "category.delete", "category", id, "")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -536,6 +547,199 @@ func (s *HTTPServer) handleAdminGetInvocation(w http.ResponseWriter, r *http.Req
 	s.jsonResponse(w, http.StatusOK, record)
 }
 
+// --- Bulk Actions ---
+
+// handleAdminBulkAgents handles POST /api/v1/admin/agents/bulk.
+func (s *HTTPServer) handleAdminBulkAgents(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Action string   `json:"action"`
+		IDs    []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if len(req.IDs) == 0 {
+		s.jsonError(w, "ids is required", http.StatusBadRequest)
+		return
+	}
+
+	var successCount, errorCount int
+	for _, id := range req.IDs {
+		var err error
+		switch req.Action {
+		case "verify":
+			if s.reputation != nil {
+				err = s.reputation.SetVerified(r.Context(), id)
+			}
+		case "unverify":
+			if s.reputation != nil {
+				err = s.reputation.UnsetVerified(r.Context(), id)
+			}
+		case "delete":
+			err = s.registry.Deregister(r.Context(), id)
+			if err == nil {
+				s.engine.RemoveAgent(id)
+			}
+		default:
+			s.jsonError(w, "invalid action: must be verify, unverify, or delete", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			errorCount++
+		} else {
+			successCount++
+		}
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"success": successCount,
+		"errors":  errorCount,
+	})
+}
+
+// handleAdminBulkReports handles POST /api/v1/admin/reports/bulk.
+func (s *HTTPServer) handleAdminBulkReports(w http.ResponseWriter, r *http.Request) {
+	if s.reviewService == nil {
+		s.jsonError(w, "review service not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	var req struct {
+		Action string   `json:"action"`
+		IDs    []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if len(req.IDs) == 0 {
+		s.jsonError(w, "ids is required", http.StatusBadRequest)
+		return
+	}
+
+	var successCount, errorCount int
+	for _, id := range req.IDs {
+		var err error
+		switch req.Action {
+		case "review":
+			err = s.reviewService.UpdateReportStatus(r.Context(), id, "reviewed")
+		case "dismiss":
+			err = s.reviewService.UpdateReportStatus(r.Context(), id, "dismissed")
+		case "action":
+			err = s.reviewService.UpdateReportStatus(r.Context(), id, "actioned")
+		case "delete":
+			err = s.reviewService.DeleteReport(r.Context(), id)
+		default:
+			s.jsonError(w, "invalid action: must be review, dismiss, action, or delete", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			errorCount++
+		} else {
+			successCount++
+		}
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"success": successCount,
+		"errors":  errorCount,
+	})
+}
+
+// handleAdminBulkUsers handles POST /api/v1/admin/users/bulk.
+func (s *HTTPServer) handleAdminBulkUsers(w http.ResponseWriter, r *http.Request) {
+	if s.userAuth == nil {
+		s.jsonError(w, "user authentication not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	var req struct {
+		Action string   `json:"action"`
+		IDs    []string `json:"ids"`
+		Role   string   `json:"role,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if len(req.IDs) == 0 {
+		s.jsonError(w, "ids is required", http.StatusBadRequest)
+		return
+	}
+
+	var successCount, errorCount int
+	for _, id := range req.IDs {
+		var err error
+		switch req.Action {
+		case "delete":
+			err = s.userAuth.DeleteUser(r.Context(), id)
+		case "set_role":
+			if req.Role == "" {
+				s.jsonError(w, "role is required for set_role action", http.StatusBadRequest)
+				return
+			}
+			_, err = s.userAuth.UpdateRole(r.Context(), id, req.Role)
+		default:
+			s.jsonError(w, "invalid action: must be delete or set_role", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			errorCount++
+		} else {
+			successCount++
+		}
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"success": successCount,
+		"errors":  errorCount,
+	})
+}
+
+// --- Admin Audit Log ---
+
+// recordAdminAudit is a helper that records an admin audit event if the service is available.
+func (s *HTTPServer) recordAdminAudit(r *http.Request, action, targetType, targetID, details string) {
+	if s.adminAudit == nil {
+		return
+	}
+	adminUserID, _ := identity.UserIDFromContext(r.Context())
+	s.adminAudit.Record(r.Context(), adminUserID, action, targetType, targetID, details, r.RemoteAddr)
+}
+
+// handleAdminListAudit handles GET /api/v1/admin/audit.
+func (s *HTTPServer) handleAdminListAudit(w http.ResponseWriter, r *http.Request) {
+	if s.adminAudit == nil {
+		s.jsonError(w, "admin audit not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	adminUserID := r.URL.Query().Get("admin_user_id")
+	action := r.URL.Query().Get("action")
+	targetType := r.URL.Query().Get("target_type")
+	limit := queryInt(r, "limit", 50)
+	offset := queryInt(r, "offset", 0)
+
+	var since time.Time
+	if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
+		if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+			since = t
+		}
+	}
+
+	events, total, err := s.adminAudit.List(r.Context(), adminUserID, action, targetType, since, limit, offset)
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]any{
+		"events": events,
+		"total":  total,
+	})
+}
+
 // --- Route Registration ---
 
 // registerAdminRoutes registers all admin API routes.
@@ -588,6 +792,14 @@ func (s *HTTPServer) registerAdminRoutes() {
 
 	// SDK version check.
 	s.mux.Handle("GET /api/v1/admin/sdk-version", wrapAdmin(s.handleAdminSDKVersion))
+
+	// Bulk actions.
+	s.mux.Handle("POST /api/v1/admin/agents/bulk", wrapAdmin(s.handleAdminBulkAgents))
+	s.mux.Handle("POST /api/v1/admin/reports/bulk", wrapAdmin(s.handleAdminBulkReports))
+	s.mux.Handle("POST /api/v1/admin/users/bulk", wrapAdmin(s.handleAdminBulkUsers))
+
+	// Audit log.
+	s.mux.Handle("GET /api/v1/admin/audit", wrapAdmin(s.handleAdminListAudit))
 }
 
 // handleAdminSDKVersion handles GET /api/v1/admin/sdk-version.

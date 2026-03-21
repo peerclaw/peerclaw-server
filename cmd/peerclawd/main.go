@@ -14,6 +14,7 @@ import (
 	"database/sql"
 
 	"github.com/peerclaw/peerclaw-core/agentcard"
+	"github.com/peerclaw/peerclaw-server/internal/adminaudit"
 	"github.com/peerclaw/peerclaw-server/internal/audit"
 	"github.com/peerclaw/peerclaw-server/internal/bridge"
 	"github.com/peerclaw/peerclaw-server/internal/bridge/a2a"
@@ -233,6 +234,18 @@ func main() {
 		logger.Info("user ACL service initialized")
 	}
 
+	// Initialize admin audit service.
+	var adminAuditService *adminaudit.Service
+	if sqlDB != nil {
+		aaStore := adminaudit.NewStore(cfg.Database.Driver, sqlDB)
+		if err := aaStore.Migrate(context.Background()); err != nil {
+			logger.Error("failed to migrate admin audit tables", "error", err)
+			os.Exit(1)
+		}
+		adminAuditService = adminaudit.NewService(aaStore, logger)
+		logger.Info("admin audit service initialized")
+	}
+
 	// Forward-declare sigHub so the notification emitter closure can reference it.
 	var sigHub *signaling.Hub
 
@@ -416,6 +429,9 @@ func main() {
 	if notificationSvc != nil {
 		httpServer.SetNotification(notificationSvc)
 		httpServer.SetNotificationHub(notifHub)
+	}
+	if adminAuditService != nil {
+		httpServer.SetAdminAudit(adminAuditService)
 	}
 	if sigHub != nil {
 		sigHub.SetAudit(auditLogger)

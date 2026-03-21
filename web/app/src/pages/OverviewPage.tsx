@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
-import { useAdminDashboard, useAdminAgents } from "@/hooks/use-admin"
+import { useNavigate } from "react-router-dom"
+import { useAdminDashboard, useAdminAgents, useAdminAudit } from "@/hooks/use-admin"
 import {
   Card,
   CardContent,
@@ -9,7 +10,8 @@ import {
 import { CardSkeleton } from "@/components/ui/card-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
-import { CircleCheck, CircleAlert } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { CircleCheck, CircleAlert, ArrowRight } from "lucide-react"
 import { useEffect, useRef, useState, useMemo } from "react"
 
 function useCssColor(varName: string): string {
@@ -31,11 +33,25 @@ function useCssColor(varName: string): string {
   return color
 }
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  return `${days}d`
+}
+
 export function OverviewPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { data, loading, error } = useAdminDashboard()
   // Fetch agents for protocol distribution (first page only, small page size)
   const { data: agentsData } = useAdminAgents(undefined, undefined, undefined, undefined, 200, 0)
+  // Fetch recent audit events for activity feed
+  const { data: auditData } = useAdminAudit(undefined, undefined, undefined, undefined, 10, 0)
 
   const chart1 = useCssColor("--chart-1")
   const chart2 = useCssColor("--chart-2")
@@ -87,12 +103,12 @@ export function OverviewPage() {
   const invocations7d = data.trends?.invocations_7d
 
   const stats = [
-    { label: t('admin.totalUsers'), value: data.total_users ?? 0 },
-    { label: t('admin.totalAgents'), value: data.total_agents ?? 0 },
-    { label: t('admin.connectedAgents'), value: data.connected_agents ?? 0 },
-    { label: t('admin.totalInvocations'), value: data.total_invocations ?? 0, trend: invocations7d },
-    { label: t('admin.totalReviews'), value: data.total_reviews ?? 0 },
-    { label: t('admin.pendingReports'), value: data.pending_reports ?? 0 },
+    { label: t('admin.totalUsers'), value: data.total_users ?? 0, href: "/admin/users" },
+    { label: t('admin.totalAgents'), value: data.total_agents ?? 0, href: "/admin/agents" },
+    { label: t('admin.connectedAgents'), value: data.connected_agents ?? 0, href: "/admin/agents" },
+    { label: t('admin.totalInvocations'), value: data.total_invocations ?? 0, trend: invocations7d, href: "/admin/invocations" },
+    { label: t('admin.totalReviews'), value: data.total_reviews ?? 0, href: "/admin/agents" },
+    { label: t('admin.pendingReports'), value: data.pending_reports ?? 0, href: "/admin/reports?status=pending" },
   ]
 
   const tooltipStyle = {
@@ -125,8 +141,12 @@ export function OverviewPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map(({ label, value, trend }) => (
-          <Card key={label}>
+        {stats.map(({ label, value, trend, href }) => (
+          <Card
+            key={label}
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate(href)}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {label}
@@ -204,6 +224,41 @@ export function OverviewPage() {
           </Card>
         )}
       </div>
+
+      {/* Recent Activity */}
+      {(auditData?.events ?? []).length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">{t('admin.recentActivity')}</CardTitle>
+            <button
+              onClick={() => navigate("/admin/audit")}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              {t('admin.viewAll')}
+              <ArrowRight className="size-3" />
+            </button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(auditData?.events ?? []).slice(0, 10).map((event) => (
+                <div key={event.id} className="flex items-center gap-3 text-sm">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {timeAgo(event.created_at)}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground truncate max-w-[100px]">
+                    {event.admin_user_id.slice(0, 8)}...
+                  </span>
+                  <Badge variant="outline" className="text-xs shrink-0">{event.action}</Badge>
+                  <Badge variant="secondary" className="text-xs shrink-0">{event.target_type}</Badge>
+                  <span className="font-mono text-xs text-muted-foreground truncate">
+                    {event.target_id.slice(0, 12)}...
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

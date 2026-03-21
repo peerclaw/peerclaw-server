@@ -11,6 +11,7 @@ import type {
   InvocationRecord,
   AgentListResponse,
   Category,
+  AdminAuditListResponse,
 } from "@/api/types"
 
 // ----- Generic query hook -----
@@ -168,6 +169,31 @@ export function useAdminInvocation(id: string | undefined): UseQueryResult<Invoc
   return useAdminQuery(fetcher, !id)
 }
 
+// ----- Audit Log -----
+
+export function useAdminAudit(
+  adminUserID?: string,
+  action?: string,
+  targetType?: string,
+  since?: string,
+  limit = 50,
+  offset = 0
+): UseQueryResult<AdminAuditListResponse> {
+  const fetcher = useCallback(
+    (token: string) =>
+      adminAPI.fetchAdminAudit(token, {
+        admin_user_id: adminUserID,
+        action,
+        target_type: targetType,
+        since,
+        limit,
+        offset,
+      }),
+    [adminUserID, action, targetType, since, limit, offset]
+  )
+  return useAdminQuery(fetcher)
+}
+
 // ----- Categories (uses existing public endpoint + admin mutations) -----
 
 export function useAdminCategories(): UseQueryResult<{ categories: Category[] }> {
@@ -282,6 +308,30 @@ export function useAdminMutations() {
     [accessToken]
   )
 
+  const bulkAgentsAction = useCallback(
+    async (action: string, ids: string[]) => {
+      if (!accessToken) throw new Error("Not authenticated")
+      return adminAPI.bulkAgents(accessToken, action, ids)
+    },
+    [accessToken]
+  )
+
+  const bulkReportsAction = useCallback(
+    async (action: string, ids: string[]) => {
+      if (!accessToken) throw new Error("Not authenticated")
+      return adminAPI.bulkReports(accessToken, action, ids)
+    },
+    [accessToken]
+  )
+
+  const bulkUsersAction = useCallback(
+    async (action: string, ids: string[], role?: string) => {
+      if (!accessToken) throw new Error("Not authenticated")
+      return adminAPI.bulkUsers(accessToken, action, ids, role)
+    },
+    [accessToken]
+  )
+
   return {
     updateUserRole,
     deleteUser,
@@ -293,5 +343,8 @@ export function useAdminMutations() {
     createCategory,
     updateCategory,
     deleteCategory,
+    bulkAgentsAction,
+    bulkReportsAction,
+    bulkUsersAction,
   }
 }

@@ -7,6 +7,7 @@ import {
   Tags,
   BarChart3,
   Activity,
+  ClipboardList,
   Github,
   ArrowLeft,
   Home,
@@ -34,6 +35,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     { to: "/admin/categories", label: t('nav.categories'), icon: Tags },
     { to: "/admin/analytics", label: t('nav.analytics'), icon: BarChart3 },
     { to: "/admin/invocations", label: t('nav.invocations'), icon: Activity },
+    { to: "/admin/audit", label: t('nav.audit'), icon: ClipboardList },
   ]
 
   const handleLogout = async () => {

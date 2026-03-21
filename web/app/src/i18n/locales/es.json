@@ -38,7 +38,10 @@
     "copyToClipboard": "Copiar al portapapeles",
     "copied": "¡Copiado!",
     "confirmDelete": "Confirmar eliminación",
-    "deleteConfirmation": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer."
+    "deleteConfirmation": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer.",
+    "nSelected": "{{count}} seleccionados",
+    "bulkActions": "Acciones masivas",
+    "selectAll": "Seleccionar todo"
   },
   "nav": {
     "directory": "Directorio",
@@ -73,7 +76,8 @@
     "menu": "Menú",
     "collapseSidebar": "Contraer barra lateral",
     "expandSidebar": "Expandir barra lateral",
-    "toggleSidebar": "Alternar barra lateral"
+    "toggleSidebar": "Alternar barra lateral",
+    "audit": "Registro de auditoría"
   },
   "toast": {
     "operationFailed": "La operación falló",
@@ -137,7 +141,17 @@
     "backToLogin": "Volver a iniciar sesión",
     "invalidEmail": "Ingresa un correo válido",
     "enterCode": "Ingresa el código de 6 dígitos",
-    "emailNotVerified": "Verifica tu correo antes de iniciar sesión"
+    "emailNotVerified": "Verifica tu correo antes de iniciar sesión",
+    "passwordStrength": "Fortaleza de contraseña",
+    "weak": "Débil",
+    "fair": "Regular",
+    "good": "Buena",
+    "strong": "Fuerte",
+    "minLength": "Al menos 8 caracteres",
+    "hasUppercase": "Contiene mayúscula",
+    "hasLowercase": "Contiene minúscula",
+    "hasNumber": "Contiene número",
+    "hasSpecial": "Contiene carácter especial"
   },
   "landing": {
     "heroTitle": "La capa de confianza para Agentes de IA",
@@ -432,7 +446,10 @@
     "overallStatus": "Estado general",
     "healthy": "Saludable",
     "unhealthy": "No saludable",
-    "protocolDistribution": "Distribución de protocolos"
+    "protocolDistribution": "Distribución de protocolos",
+    "recentActivity": "Actividad reciente",
+    "timeAgo": "hace {{time}}",
+    "viewAll": "Ver todo"
   },
   "adminAgents": {
     "title": "Agentes",
@@ -640,7 +657,10 @@
     "status_upcoming": "Próximamente",
     "openSourceTitle": "Código abierto e impulsado por la comunidad",
     "openSourceDesc": "PeerClaw es completamente de código abierto. La transparencia, la auditabilidad y la contribución de la comunidad están en el corazón de todo lo que construimos.",
-    "viewOnGithub": "Ver en GitHub"
+    "viewOnGithub": "Ver en GitHub",
+    "phase4Title": "Panel y DX",
+    "phase4Desc": "Acciones masivas, indicadores de fortaleza, registro de auditoría admin, panel avanzado.",
+    "viewFullRoadmap": "Ver hoja de ruta completa en GitHub"
   },
   "accessRequest": {
     "title": "Solicitudes de acceso",
@@ -749,5 +769,20 @@
     "prompt_zeroclaw": "\n\n## Paso 4: Reinstalar plugin de ZeroClaw\n\nActualiza la dependencia en tu `Cargo.toml`:\n```toml\npeerclaw-zeroclaw-plugin = { git = \"https://github.com/peerclaw/zeroclaw-plugin.git\" }\n```\n\nEjecuta `cargo update` y reconstruye tu agente ZeroClaw.",
     "copyPrompt": "Copiar Prompt",
     "copied": "Copiado"
+  },
+  "adminAudit": {
+    "title": "Registro de auditoría",
+    "description": "Historial de acciones de administrador",
+    "adminUser": "Admin",
+    "action": "Acción",
+    "targetType": "Tipo de objetivo",
+    "targetId": "ID de objetivo",
+    "details": "Detalles",
+    "timestamp": "Fecha",
+    "filterAdmin": "Filtrar por admin...",
+    "filterAction": "Todas las acciones",
+    "filterTarget": "Todos los objetivos",
+    "noEvents": "No se encontraron eventos",
+    "loadingEvents": "Cargando eventos..."
   }
 }

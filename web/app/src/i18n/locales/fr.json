@@ -38,7 +38,10 @@
     "copyToClipboard": "Copier dans le presse-papiers",
     "copied": "Copié !",
     "confirmDelete": "Confirmer la suppression",
-    "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible."
+    "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.",
+    "nSelected": "{{count}} sélectionnés",
+    "bulkActions": "Actions groupées",
+    "selectAll": "Tout sélectionner"
   },
   "nav": {
     "directory": "Annuaire",
@@ -73,7 +76,8 @@
     "menu": "Menu",
     "collapseSidebar": "Réduire la barre latérale",
     "expandSidebar": "Développer la barre latérale",
-    "toggleSidebar": "Basculer la barre latérale"
+    "toggleSidebar": "Basculer la barre latérale",
+    "audit": "Journal audit"
   },
   "toast": {
     "operationFailed": "L'opération a échoué",
@@ -137,7 +141,17 @@
     "backToLogin": "Retour à la connexion",
     "invalidEmail": "Veuillez entrer une adresse e-mail valide",
     "enterCode": "Veuillez entrer le code à 6 chiffres",
-    "emailNotVerified": "Veuillez vérifier votre e-mail avant de vous connecter"
+    "emailNotVerified": "Veuillez vérifier votre e-mail avant de vous connecter",
+    "passwordStrength": "Force du mot de passe",
+    "weak": "Faible",
+    "fair": "Moyen",
+    "good": "Bon",
+    "strong": "Fort",
+    "minLength": "Au moins 8 caractères",
+    "hasUppercase": "Contient une majuscule",
+    "hasLowercase": "Contient une minuscule",
+    "hasNumber": "Contient un chiffre",
+    "hasSpecial": "Contient un caractère spécial"
   },
   "landing": {
     "heroTitle": "La couche de confiance pour les Agents IA",
@@ -432,7 +446,10 @@
     "overallStatus": "Statut général",
     "healthy": "Sain",
     "unhealthy": "Défaillant",
-    "protocolDistribution": "Distribution des protocoles"
+    "protocolDistribution": "Distribution des protocoles",
+    "recentActivity": "Activité récente",
+    "timeAgo": "il y a {{time}}",
+    "viewAll": "Tout voir"
   },
   "adminAgents": {
     "title": "Agents",
@@ -640,7 +657,10 @@
     "status_upcoming": "À venir",
     "openSourceTitle": "Open source et porté par la communauté",
     "openSourceDesc": "PeerClaw est entièrement open source. La transparence, l'auditabilité et la contribution communautaire sont au cœur de tout ce que nous construisons.",
-    "viewOnGithub": "Voir sur GitHub"
+    "viewOnGithub": "Voir sur GitHub",
+    "phase4Title": "Tableau de bord et DX",
+    "phase4Desc": "Actions groupées, indicateurs de force du mot de passe, journal audit admin, tableau de bord avancé.",
+    "viewFullRoadmap": "Voir la feuille de route complète sur GitHub"
   },
   "accessRequest": {
     "title": "Demandes d'accès",
@@ -749,5 +769,20 @@
     "prompt_zeroclaw": "\n\n## Étape 4 : Réinstaller le plugin ZeroClaw\n\nMettez à jour la dépendance dans votre `Cargo.toml` :\n```toml\npeerclaw-zeroclaw-plugin = { git = \"https://github.com/peerclaw/zeroclaw-plugin.git\" }\n```\n\nExécutez `cargo update` et reconstruisez votre agent ZeroClaw.",
     "copyPrompt": "Copier le Prompt",
     "copied": "Copié"
+  },
+  "adminAudit": {
+    "title": "Journal audit",
+    "description": "Historique des actions administrateur",
+    "adminUser": "Admin",
+    "action": "Action",
+    "targetType": "Type cible",
+    "targetId": "ID cible",
+    "details": "Détails",
+    "timestamp": "Date",
+    "filterAdmin": "Filtrer par admin...",
+    "filterAction": "Toutes les actions",
+    "filterTarget": "Toutes les cibles",
+    "noEvents": "Aucun événement trouvé",
+    "loadingEvents": "Chargement..."
   }
 }

@@ -345,3 +345,24 @@ export interface AdminInvocationListResponse {
   invocations: InvocationRecord[]
   total: number
 }
+
+export interface BulkActionResponse {
+  success: number
+  errors: number
+}
+
+export interface AdminAuditEvent {
+  id: string
+  admin_user_id: string
+  action: string
+  target_type: string
+  target_id: string
+  details: string
+  ip_address: string
+  created_at: string
+}
+
+export interface AdminAuditListResponse {
+  events: AdminAuditEvent[]
+  total: number
+}

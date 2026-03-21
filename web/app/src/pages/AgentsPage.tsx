@@ -15,13 +15,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { exportToCSV, exportToJSON } from "@/lib/export"
 import {
-  Table,
-  TableBody,
   TableCell,
   TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/ui/table"
+import { SelectableTable } from "@/components/ui/selectable-table"
 import {
   Card,
   CardContent,
@@ -49,7 +46,7 @@ export function AgentsPage() {
     PAGE_SIZE,
     page * PAGE_SIZE
   )
-  const { deleteAgent } = useAdminMutations()
+  const { deleteAgent, bulkAgentsAction } = useAdminMutations()
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -65,6 +62,24 @@ export function AgentsPage() {
     [deleteAgent, refetch]
   )
 
+
+  const handleBulkAction = useCallback(
+    async (action: string, ids: string[]) => {
+      try {
+        const result = await bulkAgentsAction(action, ids)
+        toast.success(t("common.bulkActions") + `: ${result.success} success, ${result.errors} errors`)
+        refetch()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("toast.operationFailed"))
+      }
+    },
+    [bulkAgentsAction, refetch, t]
+  )
+
+  const agentBulkActions = [
+    { label: t("adminAgents.verify"), onClick: (ids: string[]) => handleBulkAction("verify", ids) },
+    { label: t("common.delete"), variant: "destructive" as const, onClick: (ids: string[]) => handleBulkAction("delete", ids) },
+  ]
 
   const agents = data?.agents ?? []
   const total = data?.total_count ?? 0
@@ -174,102 +189,96 @@ export function AgentsPage() {
         <>
           <Card>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
+              <SelectableTable
+                items={agents}
+                getKey={(a) => a.id}
+                columns={
+                  <>
                     <SortableHeader field="name" label={t('adminAgents.name')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <TableHead>{t('adminAgents.status')}</TableHead>
                     <TableHead>{t('adminAgents.protocols')}</TableHead>
                     <TableHead>{t('adminAgents.sdkVersion')}</TableHead>
                     <SortableHeader field="registered_at" label={t('adminAgents.lastHeartbeat')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agents.map((agent) => (
-                    <TableRow
-                      key={agent.id}
+                  </>
+                }
+                renderRow={(agent) => (
+                  <>
+                    <TableCell
                       className="cursor-pointer"
                       onClick={() => navigate(`/admin/agents/${agent.id}`)}
                     >
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{agent.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
-                            {agent.id}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            agent.status === "online"
-                              ? "default"
-                              : agent.status === "degraded"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {agent.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {agent.protocols?.map((p) => (
-                            <Badge key={p} variant="outline" className="text-xs">
-                              {p}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground font-mono">
-                        {agent.metadata?.sdk_version || "-"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {agent.last_heartbeat
-                          ? new Date(agent.last_heartbeat).toLocaleString()
-                          : "Never"}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        {confirmDelete === agent.id ? (
-                          <span className="inline-flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(agent.id)}
-                            >
-                              {t('common.confirm')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setConfirmDelete(null)}
-                            >
-                              {t('common.cancel')}
-                            </Button>
-                          </span>
-                        ) : (
+                      <div>
+                        <p className="font-medium">{agent.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
+                          {agent.id}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          agent.status === "online"
+                            ? "default"
+                            : agent.status === "degraded"
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {agent.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {agent.protocols?.map((p) => (
+                          <Badge key={p} variant="outline" className="text-xs">
+                            {p}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">
+                      {agent.metadata?.sdk_version || "-"}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {agent.last_heartbeat
+                        ? new Date(agent.last_heartbeat).toLocaleString()
+                        : "Never"}
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      {confirmDelete === agent.id ? (
+                        <span className="inline-flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(agent.id)}
+                          >
+                            {t('common.confirm')}
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-destructive"
-                            onClick={() => setConfirmDelete(agent.id)}
+                            onClick={() => setConfirmDelete(null)}
                           >
-                            {t('common.delete')}
+                            {t('common.cancel')}
                           </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {agents.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        {t('adminAgents.noAgents')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => setConfirmDelete(agent.id)}
+                        >
+                          {t('common.delete')}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </>
+                )}
+                bulkActions={agentBulkActions}
+                emptyMessage={t('adminAgents.noAgents')}
+              />
             </CardContent>
           </Card>
 

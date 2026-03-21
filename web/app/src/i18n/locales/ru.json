@@ -38,7 +38,10 @@
     "copyToClipboard": "Скопировать в буфер обмена",
     "copied": "Скопировано!",
     "confirmDelete": "Подтвердить удаление",
-    "deleteConfirmation": "Вы уверены, что хотите удалить этот элемент? Это действие нельзя отменить."
+    "deleteConfirmation": "Вы уверены, что хотите удалить этот элемент? Это действие нельзя отменить.",
+    "nSelected": "{{count}} выбрано",
+    "bulkActions": "Массовые действия",
+    "selectAll": "Выбрать все"
   },
   "nav": {
     "directory": "Каталог",
@@ -73,7 +76,8 @@
     "menu": "Меню",
     "collapseSidebar": "Свернуть боковую панель",
     "expandSidebar": "Развернуть боковую панель",
-    "toggleSidebar": "Переключить боковую панель"
+    "toggleSidebar": "Переключить боковую панель",
+    "audit": "Журнал аудита"
   },
   "toast": {
     "operationFailed": "Операция не удалась",
@@ -137,7 +141,17 @@
     "backToLogin": "Вернуться к входу",
     "invalidEmail": "Введите корректный email",
     "enterCode": "Введите 6-значный код",
-    "emailNotVerified": "Подтвердите email перед входом"
+    "emailNotVerified": "Подтвердите email перед входом",
+    "passwordStrength": "Надёжность пароля",
+    "weak": "Слабый",
+    "fair": "Средний",
+    "good": "Хороший",
+    "strong": "Сильный",
+    "minLength": "Минимум 8 символов",
+    "hasUppercase": "Содержит заглавную букву",
+    "hasLowercase": "Содержит строчную букву",
+    "hasNumber": "Содержит цифру",
+    "hasSpecial": "Содержит спецсимвол"
   },
   "landing": {
     "heroTitle": "Слой доверия для ИИ-агентов",
@@ -432,7 +446,10 @@
     "overallStatus": "Общий статус",
     "healthy": "Исправно",
     "unhealthy": "Неисправно",
-    "protocolDistribution": "Распределение протоколов"
+    "protocolDistribution": "Распределение протоколов",
+    "recentActivity": "Недавняя активность",
+    "timeAgo": "{{time}} назад",
+    "viewAll": "Показать все"
   },
   "adminAgents": {
     "title": "Агенты",
@@ -640,7 +657,10 @@
     "status_upcoming": "Планируется",
     "openSourceTitle": "Открытый исходный код и сообщество",
     "openSourceDesc": "PeerClaw полностью с открытым исходным кодом. Прозрачность, проверяемость и вклад сообщества лежат в основе всего, что мы создаём.",
-    "viewOnGithub": "Смотреть на GitHub"
+    "viewOnGithub": "Смотреть на GitHub",
+    "phase4Title": "Панель и DX",
+    "phase4Desc": "Массовые действия, индикаторы надёжности пароля, журнал аудита администратора, расширенная панель.",
+    "viewFullRoadmap": "Смотреть полную дорожную карту на GitHub"
   },
   "accessRequest": {
     "title": "Запросы доступа",
@@ -749,5 +769,20 @@
     "prompt_zeroclaw": "\n\n## Шаг 4: Переустановить плагин ZeroClaw\n\nОбновите зависимость в вашем `Cargo.toml`:\n```toml\npeerclaw-zeroclaw-plugin = { git = \"https://github.com/peerclaw/zeroclaw-plugin.git\" }\n```\n\nВыполните `cargo update` и пересоберите вашего агента ZeroClaw.",
     "copyPrompt": "Копировать Prompt",
     "copied": "Скопировано"
+  },
+  "adminAudit": {
+    "title": "Журнал аудита",
+    "description": "История действий администратора",
+    "adminUser": "Админ",
+    "action": "Действие",
+    "targetType": "Тип цели",
+    "targetId": "ID цели",
+    "details": "Детали",
+    "timestamp": "Время",
+    "filterAdmin": "Фильтр по админу...",
+    "filterAction": "Все действия",
+    "filterTarget": "Все цели",
+    "noEvents": "Событий не найдено",
+    "loadingEvents": "Загрузка событий..."
   }
 }

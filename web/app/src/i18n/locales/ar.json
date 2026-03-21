@@ -38,7 +38,10 @@
     "copyToClipboard": "نسخ إلى الحافظة",
     "copied": "!تم النسخ",
     "confirmDelete": "تأكيد الحذف",
-    "deleteConfirmation": "هل أنت متأكد من أنك تريد حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء."
+    "deleteConfirmation": "هل أنت متأكد من أنك تريد حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.",
+    "nSelected": "{{count}} محدد",
+    "bulkActions": "إجراءات جماعية",
+    "selectAll": "تحديد الكل"
   },
   "nav": {
     "directory": "الدليل",
@@ -73,7 +76,8 @@
     "menu": "القائمة",
     "collapseSidebar": "طي الشريط الجانبي",
     "expandSidebar": "توسيع الشريط الجانبي",
-    "toggleSidebar": "تبديل الشريط الجانبي"
+    "toggleSidebar": "تبديل الشريط الجانبي",
+    "audit": "سجل التدقيق"
   },
   "toast": {
     "operationFailed": "فشلت العملية",
@@ -137,7 +141,17 @@
     "backToLogin": "العودة لتسجيل الدخول",
     "invalidEmail": "يرجى إدخال بريد إلكتروني صالح",
     "enterCode": "يرجى إدخال الرمز المكون من 6 أرقام",
-    "emailNotVerified": "يرجى التحقق من بريدك الإلكتروني قبل تسجيل الدخول"
+    "emailNotVerified": "يرجى التحقق من بريدك الإلكتروني قبل تسجيل الدخول",
+    "passwordStrength": "قوة كلمة المرور",
+    "weak": "ضعيفة",
+    "fair": "مقبولة",
+    "good": "جيدة",
+    "strong": "قوية",
+    "minLength": "8 أحرف على الأقل",
+    "hasUppercase": "تحتوي على حرف كبير",
+    "hasLowercase": "تحتوي على حرف صغير",
+    "hasNumber": "تحتوي على رقم",
+    "hasSpecial": "تحتوي على رمز خاص"
   },
   "landing": {
     "heroTitle": "طبقة الثقة لوكلاء الذكاء الاصطناعي",
@@ -432,7 +446,10 @@
     "overallStatus": "الحالة العامة",
     "healthy": "سليم",
     "unhealthy": "غير سليم",
-    "protocolDistribution": "توزيع البروتوكولات"
+    "protocolDistribution": "توزيع البروتوكولات",
+    "recentActivity": "النشاط الأخير",
+    "timeAgo": "منذ {{time}}",
+    "viewAll": "عرض الكل"
   },
   "adminAgents": {
     "title": "الوكلاء",
@@ -640,7 +657,10 @@
     "status_upcoming": "قادم",
     "openSourceTitle": "مفتوح المصدر ومدعوم من المجتمع",
     "openSourceDesc": "PeerClaw مفتوح المصدر بالكامل. الشفافية وقابلية التدقيق ومساهمات المجتمع هي جوهر كل ما نبنيه.",
-    "viewOnGithub": "عرض على GitHub"
+    "viewOnGithub": "عرض على GitHub",
+    "phase4Title": "لوحة التحكم وتجربة المطور",
+    "phase4Desc": "إجراءات جماعية ومؤشرات قوة كلمة المرور وسجل تدقيق المدير ولوحة تحكم متقدمة.",
+    "viewFullRoadmap": "عرض خريطة الطريق الكاملة على GitHub"
   },
   "accessRequest": {
     "title": "طلبات الوصول",
@@ -749,5 +769,20 @@
     "prompt_zeroclaw": "\n\n## الخطوة 4: إعادة تثبيت إضافة ZeroClaw\n\nقم بتحديث التبعية في ملف `Cargo.toml`:\n```toml\npeerclaw-zeroclaw-plugin = { git = \"https://github.com/peerclaw/zeroclaw-plugin.git\" }\n```\n\nنفّذ `cargo update` وأعد بناء وكيل ZeroClaw.",
     "copyPrompt": "نسخ النص",
     "copied": "تم النسخ"
+  },
+  "adminAudit": {
+    "title": "سجل التدقيق",
+    "description": "سجل إجراءات المدير",
+    "adminUser": "المدير",
+    "action": "الإجراء",
+    "targetType": "نوع الهدف",
+    "targetId": "معرف الهدف",
+    "details": "التفاصيل",
+    "timestamp": "الوقت",
+    "filterAdmin": "تصفية حسب المدير...",
+    "filterAction": "جميع الإجراءات",
+    "filterTarget": "جميع الأهداف",
+    "noEvents": "لم يتم العثور على أحداث",
+    "loadingEvents": "جارٍ تحميل الأحداث..."
   }
 }

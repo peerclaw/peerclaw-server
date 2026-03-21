@@ -38,7 +38,10 @@
     "copyToClipboard": "クリップボードにコピー",
     "copied": "コピーしました！",
     "confirmDelete": "削除の確認",
-    "deleteConfirmation": "このアイテムを削除してもよろしいですか？この操作は元に戻せません。"
+    "deleteConfirmation": "このアイテムを削除してもよろしいですか？この操作は元に戻せません。",
+    "nSelected": "{{count}} 件選択中",
+    "bulkActions": "一括操作",
+    "selectAll": "すべて選択"
   },
   "nav": {
     "directory": "ディレクトリ",
@@ -73,7 +76,8 @@
     "menu": "メニュー",
     "collapseSidebar": "サイドバーを閉じる",
     "expandSidebar": "サイドバーを開く",
-    "toggleSidebar": "サイドバー切替"
+    "toggleSidebar": "サイドバー切替",
+    "audit": "監査ログ"
   },
   "toast": {
     "operationFailed": "操作に失敗しました",
@@ -137,7 +141,17 @@
     "backToLogin": "ログインに戻る",
     "invalidEmail": "有効なメールアドレスを入力してください",
     "enterCode": "6桁のコードを入力してください",
-    "emailNotVerified": "ログインする前にメールアドレスを確認してください"
+    "emailNotVerified": "ログインする前にメールアドレスを確認してください",
+    "passwordStrength": "パスワード強度",
+    "weak": "弱い",
+    "fair": "普通",
+    "good": "良い",
+    "strong": "強い",
+    "minLength": "8文字以上",
+    "hasUppercase": "大文字を含む",
+    "hasLowercase": "小文字を含む",
+    "hasNumber": "数字を含む",
+    "hasSpecial": "特殊文字を含む"
   },
   "landing": {
     "heroTitle": "AI Agent のための信頼レイヤー",
@@ -432,7 +446,10 @@
     "overallStatus": "全体ステータス",
     "healthy": "正常",
     "unhealthy": "異常",
-    "protocolDistribution": "プロトコル分布"
+    "protocolDistribution": "プロトコル分布",
+    "recentActivity": "最近のアクティビティ",
+    "timeAgo": "{{time}} 前",
+    "viewAll": "すべて表示"
   },
   "adminAgents": {
     "title": "Agent 一覧",
@@ -640,7 +657,10 @@
     "status_upcoming": "予定",
     "openSourceTitle": "オープンソース＆コミュニティ主導",
     "openSourceDesc": "PeerClaw は完全にオープンソースです。透明性、監査可能性、コミュニティへの貢献が、私たちの構築するすべてのものの中心にあります。",
-    "viewOnGithub": "GitHub で見る"
+    "viewOnGithub": "GitHub で見る",
+    "phase4Title": "ダッシュボードとDX",
+    "phase4Desc": "一括操作、パスワード強度インジケーター、管理者監査ログ、高度なダッシュボード。",
+    "viewFullRoadmap": "GitHub で完全なロードマップを見る"
   },
   "accessRequest": {
     "title": "アクセスリクエスト",
@@ -749,5 +769,20 @@
     "prompt_zeroclaw": "\n\n## ステップ 4：ZeroClaw プラグインの再インストール\n\n`Cargo.toml` の依存関係を更新します：\n```toml\npeerclaw-zeroclaw-plugin = { git = \"https://github.com/peerclaw/zeroclaw-plugin.git\" }\n```\n\n`cargo update` を実行し、ZeroClaw エージェントを再ビルドしてください。",
     "copyPrompt": "プロンプトをコピー",
     "copied": "コピー済み"
+  },
+  "adminAudit": {
+    "title": "監査ログ",
+    "description": "管理者アクション履歴と監査証跡",
+    "adminUser": "管理者",
+    "action": "アクション",
+    "targetType": "対象タイプ",
+    "targetId": "対象 ID",
+    "details": "詳細",
+    "timestamp": "タイムスタンプ",
+    "filterAdmin": "管理者でフィルター...",
+    "filterAction": "すべてのアクション",
+    "filterTarget": "すべての対象",
+    "noEvents": "監査イベントが見つかりません",
+    "loadingEvents": "監査イベントを読み込み中..."
   }
 }

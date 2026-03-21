@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { OTPInput } from "@/components/auth/OTPInput"
 import { useTranslation } from "react-i18next"
+import { PasswordStrength } from "@/components/ui/password-strength"
 import * as authAPI from "@/api/auth"
 
 type Step = "email" | "reset"
@@ -145,6 +146,7 @@ export function ForgotPasswordPage() {
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder={t("auth.atLeastChars")}
             />
+            <PasswordStrength password={newPassword} />
           </div>
 
           <div>

@@ -38,7 +38,10 @@
     "copyToClipboard": "复制到剪贴板",
     "copied": "已复制！",
     "confirmDelete": "确认删除",
-    "deleteConfirmation": "确定要删除此项吗？此操作无法撤销。"
+    "deleteConfirmation": "确定要删除此项吗？此操作无法撤销。",
+    "nSelected": "已选择 {{count}} 项",
+    "bulkActions": "批量操作",
+    "selectAll": "全选"
   },
   "nav": {
     "directory": "目录",
@@ -73,7 +76,8 @@
     "menu": "菜单",
     "collapseSidebar": "收起侧边栏",
     "expandSidebar": "展开侧边栏",
-    "toggleSidebar": "切换侧栏"
+    "toggleSidebar": "切换侧栏",
+    "audit": "审计日志"
   },
   "toast": {
     "operationFailed": "操作失败",
@@ -137,7 +141,17 @@
     "backToLogin": "返回登录",
     "invalidEmail": "请输入有效的邮箱地址",
     "enterCode": "请输入 6 位验证码",
-    "emailNotVerified": "请先验证邮箱再登录"
+    "emailNotVerified": "请先验证邮箱再登录",
+    "passwordStrength": "密码强度",
+    "weak": "弱",
+    "fair": "一般",
+    "good": "好",
+    "strong": "强",
+    "minLength": "至少8个字符",
+    "hasUppercase": "包含大写字母",
+    "hasLowercase": "包含小写字母",
+    "hasNumber": "包含数字",
+    "hasSpecial": "包含特殊字符"
   },
   "landing": {
     "heroTitle": "AI Agent 的信任层",
@@ -436,7 +450,10 @@
     "overallStatus": "总体状态",
     "healthy": "正常",
     "unhealthy": "异常",
-    "protocolDistribution": "协议分布"
+    "protocolDistribution": "协议分布",
+    "recentActivity": "最近活动",
+    "timeAgo": "{{time}} 前",
+    "viewAll": "查看全部"
   },
   "adminAgents": {
     "title": "Agent",
@@ -644,7 +661,10 @@
     "status_upcoming": "即将开始",
     "openSourceTitle": "开源与社区驱动",
     "openSourceDesc": "PeerClaw 完全开源。透明、可审计和社区贡献是我们构建一切的核心。",
-    "viewOnGithub": "在 GitHub 上查看"
+    "viewOnGithub": "在 GitHub 上查看",
+    "phase4Title": "仪表盘与开发体验",
+    "phase4Desc": "批量操作、密码强度指示器、管理员审计日志、高级仪表盘。",
+    "viewFullRoadmap": "在 GitHub 查看完整路线图"
   },
   "accessRequest": {
     "title": "访问请求",
@@ -753,5 +773,20 @@
     "prompt_zeroclaw": "\n\n## 第四步：重装 ZeroClaw 插件\n\n更新 `Cargo.toml` 中的依赖：\n```toml\npeerclaw-zeroclaw-plugin = { git = \"https://github.com/peerclaw/zeroclaw-plugin.git\" }\n```\n\n运行 `cargo update` 并重新构建你的 ZeroClaw Agent。",
     "copyPrompt": "复制提示词",
     "copied": "已复制"
+  },
+  "adminAudit": {
+    "title": "审计日志",
+    "description": "管理员操作历史和审计跟踪",
+    "adminUser": "管理员",
+    "action": "操作",
+    "targetType": "目标类型",
+    "targetId": "目标 ID",
+    "details": "详情",
+    "timestamp": "时间",
+    "filterAdmin": "按管理员筛选...",
+    "filterAction": "所有操作",
+    "filterTarget": "所有目标",
+    "noEvents": "未找到审计事件",
+    "loadingEvents": "正在加载审计事件..."
   }
 }

@@ -34,6 +34,7 @@ export function AboutPage() {
     { titleKey: "about.phase1Title", descKey: "about.phase1Desc", status: "done" },
     { titleKey: "about.phase2Title", descKey: "about.phase2Desc", status: "done" },
     { titleKey: "about.phase3Title", descKey: "about.phase3Desc", status: "done" },
+    { titleKey: "about.phase4Title", descKey: "about.phase4Desc", status: "done" },
   ]
 
   return (
@@ -139,6 +140,16 @@ export function AboutPage() {
           {t("about.roadmapTitle")}
         </h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <p className="text-center text-sm text-muted-foreground mb-6">
+            <a
+              href="https://github.com/peerclaw/peerclaw/blob/main/docs/ROADMAP.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              {t("about.viewFullRoadmap")}
+            </a>
+          </p>
           {phases.map((p) => (
             <div
               key={p.titleKey}

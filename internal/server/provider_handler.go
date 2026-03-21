@@ -449,8 +449,16 @@ func (s *HTTPServer) handleProviderDashboard(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Parse optional since filter.
+	var sinceStat time.Time
+	if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
+		if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+			sinceStat = t
+		}
+	}
+
 	// Build per-agent entries with invocation stats.
-	allTimeSince := time.Time{} // zero value = all time
+	allTimeSince := sinceStat
 	agents := make([]map[string]any, 0, len(result.Agents))
 	for _, card := range result.Agents {
 		agent := map[string]any{

@@ -33,6 +33,7 @@ import { ReportsPage } from "@/pages/admin/ReportsPage"
 import { CategoriesPage } from "@/pages/admin/CategoriesPage"
 import { AnalyticsPage } from "@/pages/admin/AnalyticsPage"
 import { InvocationsPage } from "@/pages/admin/InvocationsPage"
+import { AuditLogPage } from "@/pages/admin/AuditLogPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 
 export function App() {
@@ -92,6 +93,7 @@ export function App() {
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="invocations" element={<InvocationsPage />} />
+            <Route path="audit" element={<AuditLogPage />} />
           </Route>
 
           {/* Catch-all 404 */}

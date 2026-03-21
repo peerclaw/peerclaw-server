@@ -6,17 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
-  Table,
-  TableBody,
   TableCell,
   TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/ui/table"
 import {
   Card,
   CardContent,
 } from "@/components/ui/card"
+import { SelectableTable } from "@/components/ui/selectable-table"
 import { SortableHeader } from "@/components/ui/sortable-header"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -46,7 +43,7 @@ export function ReportsPage() {
     PAGE_SIZE,
     page * PAGE_SIZE
   )
-  const { updateReport, deleteReport } = useAdminMutations()
+  const { updateReport, deleteReport, bulkReportsAction } = useAdminMutations()
 
   const handleStatusChange = useCallback(
     async (id: string, newStatus: string) => {
@@ -75,6 +72,25 @@ export function ReportsPage() {
     },
     [deleteTarget, deleteReport, refetch]
   )
+
+  const handleBulkAction = useCallback(
+    async (action: string, ids: string[]) => {
+      try {
+        const result = await bulkReportsAction(action, ids)
+        toast.success(t("common.bulkActions") + `: ${result.success} success, ${result.errors} errors`)
+        refetch()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("toast.operationFailed"))
+      }
+    },
+    [bulkReportsAction, refetch, t]
+  )
+
+  const reportBulkActions = [
+    { label: t("adminReports.review"), onClick: (ids: string[]) => handleBulkAction("review", ids) },
+    { label: t("adminReports.dismiss"), onClick: (ids: string[]) => handleBulkAction("dismiss", ids) },
+    { label: t("common.delete"), variant: "destructive" as const, onClick: (ids: string[]) => handleBulkAction("delete", ids) },
+  ]
 
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -148,9 +164,11 @@ export function ReportsPage() {
         <>
           <Card>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
+              <SelectableTable
+                items={data?.reports ?? []}
+                getKey={(r) => r.id}
+                columns={
+                  <>
                     <TableHead>{t('adminReports.targetType')}</TableHead>
                     <TableHead>{t('adminReports.targetId')}</TableHead>
                     <TableHead>{t('adminReports.reason')}</TableHead>
@@ -158,75 +176,68 @@ export function ReportsPage() {
                     <SortableHeader field="status" label={t('adminReports.status')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <SortableHeader field="created_at" label={t('adminReports.createdAt')} currentSort={sort} onSort={(s) => { setSort(s); setPage(0) }} />
                     <TableHead className="text-right">{t('adminAgents.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(data?.reports ?? []).map((report) => (
-                    <TableRow key={report.id}>
-                      <TableCell>
-                        <Badge variant="outline">{report.target_type}</Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs max-w-[120px] truncate">
-                        {report.target_id}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">{report.reason}</TableCell>
-                      <TableCell className="font-mono text-xs max-w-[120px] truncate">
-                        {report.reporter_id}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusBadgeVariant(report.status)}>
-                          {report.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(report.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right space-x-1">
-                        {report.status === "pending" && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStatusChange(report.id, "reviewed")}
-                            >
-                              {t('adminReports.review')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStatusChange(report.id, "dismissed")}
-                            >
-                              {t('adminReports.dismiss')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStatusChange(report.id, "actioned")}
-                            >
-                              {t('adminReports.action')}
-                            </Button>
-                          </>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive"
-                          onClick={() => setDeleteTarget(report.id)}
-                        >
-                          {t('common.delete')}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(data?.reports ?? []).length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        {t('adminReports.noReports')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </>
+                }
+                renderRow={(report) => (
+                  <>
+                    <TableCell>
+                      <Badge variant="outline">{report.target_type}</Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs max-w-[120px] truncate">
+                      {report.target_id}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">{report.reason}</TableCell>
+                    <TableCell className="font-mono text-xs max-w-[120px] truncate">
+                      {report.reporter_id}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(report.status)}>
+                        {report.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(report.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right space-x-1">
+                      {report.status === "pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusChange(report.id, "reviewed")}
+                          >
+                            {t('adminReports.review')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusChange(report.id, "dismissed")}
+                          >
+                            {t('adminReports.dismiss')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusChange(report.id, "actioned")}
+                          >
+                            {t('adminReports.action')}
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => setDeleteTarget(report.id)}
+                      >
+                        {t('common.delete')}
+                      </Button>
+                    </TableCell>
+                  </>
+                )}
+                bulkActions={reportBulkActions}
+                emptyMessage={t('adminReports.noReports')}
+              />
             </CardContent>
           </Card>
 

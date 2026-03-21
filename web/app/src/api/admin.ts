@@ -11,6 +11,8 @@ import type {
   AdminInvocationListResponse,
   InvocationRecord,
   AgentListResponse,
+  BulkActionResponse,
+  AdminAuditListResponse,
 } from "./types"
 
 // Dashboard
@@ -184,4 +186,55 @@ export function fetchAdminInvocation(
   id: string
 ): Promise<InvocationRecord> {
   return fetchWithAuth<InvocationRecord>(`/admin/invocations/${id}`, token)
+}
+
+// Bulk Actions
+export function bulkAgents(
+  token: string,
+  action: string,
+  ids: string[]
+): Promise<BulkActionResponse> {
+  return fetchWithAuth<BulkActionResponse>("/admin/agents/bulk", token, {
+    method: "POST",
+    body: JSON.stringify({ action, ids }),
+  })
+}
+
+export function bulkReports(
+  token: string,
+  action: string,
+  ids: string[]
+): Promise<BulkActionResponse> {
+  return fetchWithAuth<BulkActionResponse>("/admin/reports/bulk", token, {
+    method: "POST",
+    body: JSON.stringify({ action, ids }),
+  })
+}
+
+export function bulkUsers(
+  token: string,
+  action: string,
+  ids: string[],
+  role?: string
+): Promise<BulkActionResponse> {
+  return fetchWithAuth<BulkActionResponse>("/admin/users/bulk", token, {
+    method: "POST",
+    body: JSON.stringify({ action, ids, role }),
+  })
+}
+
+// Admin Audit Log
+export function fetchAdminAudit(
+  token: string,
+  params?: { admin_user_id?: string; action?: string; target_type?: string; since?: string; limit?: number; offset?: number }
+): Promise<AdminAuditListResponse> {
+  const query = new URLSearchParams()
+  if (params?.admin_user_id) query.set("admin_user_id", params.admin_user_id)
+  if (params?.action) query.set("action", params.action)
+  if (params?.target_type) query.set("target_type", params.target_type)
+  if (params?.since) query.set("since", params.since)
+  if (params?.limit) query.set("limit", String(params.limit))
+  if (params?.offset) query.set("offset", String(params.offset))
+  const qs = query.toString()
+  return fetchWithAuth<AdminAuditListResponse>(`/admin/audit${qs ? `?${qs}` : ""}`, token)
 }
