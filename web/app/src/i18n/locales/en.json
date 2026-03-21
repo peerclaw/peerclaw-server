@@ -29,7 +29,12 @@
     "vsLastPeriod": "vs last period",
     "sortAsc": "Sort ascending",
     "sortDesc": "Sort descending",
-    "unsorted": "Unsorted"
+    "unsorted": "Unsorted",
+    "export": "Export",
+    "exportCSV": "Export CSV",
+    "exportJSON": "Export JSON",
+    "skipToContent": "Skip to content",
+    "github": "GitHub"
   },
   "nav": {
     "directory": "Directory",
@@ -63,7 +68,8 @@
     "notifications": "Notifications",
     "menu": "Menu",
     "collapseSidebar": "Collapse sidebar",
-    "expandSidebar": "Expand sidebar"
+    "expandSidebar": "Expand sidebar",
+    "toggleSidebar": "Toggle sidebar"
   },
   "toast": {
     "operationFailed": "Operation failed",
@@ -257,7 +263,10 @@
     "copied": "Copied",
     "sdkVersion": "SDK Version",
     "sdkOutdated": "Update available: {{latest}}",
-    "upgradeAgent": "Upgrade Agent"
+    "upgradeAgent": "Upgrade Agent",
+    "searchPlaceholder": "Search agents...",
+    "allStatus": "All Status",
+    "registered": "Registered"
   },
   "claim": {
     "title": "Agent Pairing",

@@ -188,3 +188,12 @@
 .animate-float-2 { animation: float-2 18s ease-in-out infinite; }
 .animate-float-3 { animation: float-3 12s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-1,
+  .animate-float-2,
+  .animate-float-3,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+}

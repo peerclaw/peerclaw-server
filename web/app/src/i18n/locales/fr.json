@@ -29,7 +29,12 @@
     "vsLastPeriod": "par rapport à la période précédente",
     "sortAsc": "Tri croissant",
     "sortDesc": "Tri décroissant",
-    "unsorted": "Non trié"
+    "unsorted": "Non trié",
+    "export": "Exporter",
+    "exportCSV": "Exporter CSV",
+    "exportJSON": "Exporter JSON",
+    "skipToContent": "Aller au contenu",
+    "github": "GitHub"
   },
   "nav": {
     "directory": "Annuaire",
@@ -63,7 +68,8 @@
     "notifications": "Notifications",
     "menu": "Menu",
     "collapseSidebar": "Réduire la barre latérale",
-    "expandSidebar": "Développer la barre latérale"
+    "expandSidebar": "Développer la barre latérale",
+    "toggleSidebar": "Basculer la barre latérale"
   },
   "toast": {
     "operationFailed": "L'opération a échoué",
@@ -257,7 +263,10 @@
     "copied": "Copié",
     "sdkVersion": "Version SDK",
     "sdkOutdated": "Mise à jour disponible : {{latest}}",
-    "upgradeAgent": "Mettre à jour l'Agent"
+    "upgradeAgent": "Mettre à jour l'Agent",
+    "searchPlaceholder": "Rechercher des agents...",
+    "allStatus": "Tous les statuts",
+    "registered": "Enregistré"
   },
   "claim": {
     "title": "Jumelage d'Agent",

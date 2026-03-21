@@ -5,6 +5,14 @@ import { useAdminUsers, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Download } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { exportToCSV, exportToJSON } from "@/lib/export"
 import {
   Table,
   TableBody,
@@ -78,11 +86,47 @@ export function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t('adminUsers.title')}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('adminUsers.usersRegistered', { count: total })}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{t('adminUsers.title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('adminUsers.usersRegistered', { count: total })}
+          </p>
+        </div>
+        {(data?.users ?? []).length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <Download className="size-4 mr-1.5" />
+                {t('common.export')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportToCSV(
+                (data?.users ?? []).map(u => ({
+                  id: u.id,
+                  email: u.email,
+                  display_name: u.display_name,
+                  role: u.role,
+                  created_at: u.created_at,
+                })),
+                [
+                  { key: "id", label: "ID" },
+                  { key: "email", label: "Email" },
+                  { key: "display_name", label: "Display Name" },
+                  { key: "role", label: "Role" },
+                  { key: "created_at", label: "Created At" },
+                ],
+                "users"
+              )}>
+                {t('common.exportCSV')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToJSON(data?.users ?? [], "users")}>
+                {t('common.exportJSON')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div className="flex gap-3">
@@ -113,12 +157,12 @@ export function UsersPage() {
       {loading ? (
         <Card>
           <CardContent className="p-0">
-            <TableSkeleton rows={5} cols={5} />
+            <div aria-live="polite"><TableSkeleton rows={5} cols={5} /></div>
           </CardContent>
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error}</p>
         </div>
       ) : (
         <>

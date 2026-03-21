@@ -29,7 +29,12 @@
     "vsLastPeriod": "مقارنة بالفترة السابقة",
     "sortAsc": "ترتيب تصاعدي",
     "sortDesc": "ترتيب تنازلي",
-    "unsorted": "غير مرتب"
+    "unsorted": "غير مرتب",
+    "export": "تصدير",
+    "exportCSV": "تصدير CSV",
+    "exportJSON": "تصدير JSON",
+    "skipToContent": "تخطي إلى المحتوى",
+    "github": "GitHub"
   },
   "nav": {
     "directory": "الدليل",
@@ -63,7 +68,8 @@
     "notifications": "الإشعارات",
     "menu": "القائمة",
     "collapseSidebar": "طي الشريط الجانبي",
-    "expandSidebar": "توسيع الشريط الجانبي"
+    "expandSidebar": "توسيع الشريط الجانبي",
+    "toggleSidebar": "تبديل الشريط الجانبي"
   },
   "toast": {
     "operationFailed": "فشلت العملية",
@@ -257,7 +263,10 @@
     "copied": "تم النسخ",
     "sdkVersion": "إصدار SDK",
     "sdkOutdated": "تحديث متاح: {{latest}}",
-    "upgradeAgent": "ترقية الوكيل"
+    "upgradeAgent": "ترقية الوكيل",
+    "searchPlaceholder": "البحث عن الوكلاء...",
+    "allStatus": "جميع الحالات",
+    "registered": "مسجل"
   },
   "claim": {
     "title": "إقران Agent",

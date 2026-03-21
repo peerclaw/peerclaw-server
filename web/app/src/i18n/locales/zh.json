@@ -29,7 +29,12 @@
     "vsLastPeriod": "较上期",
     "sortAsc": "升序排列",
     "sortDesc": "降序排列",
-    "unsorted": "未排序"
+    "unsorted": "未排序",
+    "export": "导出",
+    "exportCSV": "导出 CSV",
+    "exportJSON": "导出 JSON",
+    "skipToContent": "跳至内容",
+    "github": "GitHub"
   },
   "nav": {
     "directory": "目录",
@@ -63,7 +68,8 @@
     "notifications": "通知",
     "menu": "菜单",
     "collapseSidebar": "收起侧边栏",
-    "expandSidebar": "展开侧边栏"
+    "expandSidebar": "展开侧边栏",
+    "toggleSidebar": "切换侧栏"
   },
   "toast": {
     "operationFailed": "操作失败",
@@ -257,7 +263,10 @@
     "copied": "已复制",
     "sdkVersion": "SDK 版本",
     "sdkOutdated": "可用更新：{{latest}}",
-    "upgradeAgent": "升级 Agent"
+    "upgradeAgent": "升级 Agent",
+    "searchPlaceholder": "搜索代理...",
+    "allStatus": "全部状态",
+    "registered": "注册时间"
   },
   "claim": {
     "title": "Agent 配对",

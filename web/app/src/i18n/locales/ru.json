@@ -29,7 +29,12 @@
     "vsLastPeriod": "по сравнению с предыдущим периодом",
     "sortAsc": "По возрастанию",
     "sortDesc": "По убыванию",
-    "unsorted": "Не отсортировано"
+    "unsorted": "Не отсортировано",
+    "export": "Экспорт",
+    "exportCSV": "Экспорт CSV",
+    "exportJSON": "Экспорт JSON",
+    "skipToContent": "Перейти к содержимому",
+    "github": "GitHub"
   },
   "nav": {
     "directory": "Каталог",
@@ -63,7 +68,8 @@
     "notifications": "Уведомления",
     "menu": "Меню",
     "collapseSidebar": "Свернуть боковую панель",
-    "expandSidebar": "Развернуть боковую панель"
+    "expandSidebar": "Развернуть боковую панель",
+    "toggleSidebar": "Переключить боковую панель"
   },
   "toast": {
     "operationFailed": "Операция не удалась",
@@ -257,7 +263,10 @@
     "copied": "Скопировано",
     "sdkVersion": "Версия SDK",
     "sdkOutdated": "Доступно обновление: {{latest}}",
-    "upgradeAgent": "Обновить агента"
+    "upgradeAgent": "Обновить агента",
+    "searchPlaceholder": "Поиск агентов...",
+    "allStatus": "Все статусы",
+    "registered": "Зарегистрирован"
   },
   "claim": {
     "title": "Привязка Agent",

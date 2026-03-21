@@ -4,6 +4,14 @@ import { useAdminInvocations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Download } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { exportToCSV, exportToJSON } from "@/lib/export"
 import {
   Table,
   TableBody,
@@ -49,11 +57,51 @@ export function InvocationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t('adminInvocations.title')}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('adminInvocations.records', { count: total })}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{t('adminInvocations.title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('adminInvocations.records', { count: total })}
+          </p>
+        </div>
+        {invocations.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <Download className="size-4 mr-1.5" />
+                {t('common.export')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportToCSV(
+                invocations.map(inv => ({
+                  id: inv.id,
+                  agent_id: inv.agent_id,
+                  user_id: inv.user_id || "",
+                  protocol: inv.protocol || "",
+                  status_code: String(inv.status_code),
+                  duration_ms: String(inv.duration_ms),
+                  created_at: inv.created_at,
+                })),
+                [
+                  { key: "id", label: "ID" },
+                  { key: "agent_id", label: "Agent ID" },
+                  { key: "user_id", label: "User ID" },
+                  { key: "protocol", label: "Protocol" },
+                  { key: "status_code", label: "Status Code" },
+                  { key: "duration_ms", label: "Duration (ms)" },
+                  { key: "created_at", label: "Created At" },
+                ],
+                "invocations"
+              )}>
+                {t('common.exportCSV')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToJSON(invocations, "invocations")}>
+                {t('common.exportJSON')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div className="flex gap-3">
@@ -80,12 +128,12 @@ export function InvocationsPage() {
       {loading ? (
         <Card>
           <CardContent className="p-0">
-            <TableSkeleton rows={5} cols={8} />
+            <div aria-live="polite"><TableSkeleton rows={5} cols={8} /></div>
           </CardContent>
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error}</p>
         </div>
       ) : (
         <>

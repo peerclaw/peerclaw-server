@@ -29,7 +29,12 @@
     "vsLastPeriod": "vs período anterior",
     "sortAsc": "Ordem crescente",
     "sortDesc": "Ordem decrescente",
-    "unsorted": "Sem ordenação"
+    "unsorted": "Sem ordenação",
+    "export": "Exportar",
+    "exportCSV": "Exportar CSV",
+    "exportJSON": "Exportar JSON",
+    "skipToContent": "Pular para o conteúdo",
+    "github": "GitHub"
   },
   "nav": {
     "directory": "Diretório",
@@ -63,7 +68,8 @@
     "notifications": "Notificações",
     "menu": "Menu",
     "collapseSidebar": "Recolher barra lateral",
-    "expandSidebar": "Expandir barra lateral"
+    "expandSidebar": "Expandir barra lateral",
+    "toggleSidebar": "Alternar barra lateral"
   },
   "toast": {
     "operationFailed": "Operação falhou",
@@ -257,7 +263,10 @@
     "copied": "Copiado",
     "sdkVersion": "Versão SDK",
     "sdkOutdated": "Atualização disponível: {{latest}}",
-    "upgradeAgent": "Atualizar Agente"
+    "upgradeAgent": "Atualizar Agente",
+    "searchPlaceholder": "Buscar agentes...",
+    "allStatus": "Todos os status",
+    "registered": "Registrado"
   },
   "claim": {
     "title": "Pareamento de Agent",

@@ -29,7 +29,12 @@
     "vsLastPeriod": "前期間比",
     "sortAsc": "昇順ソート",
     "sortDesc": "降順ソート",
-    "unsorted": "未ソート"
+    "unsorted": "未ソート",
+    "export": "エクスポート",
+    "exportCSV": "CSV エクスポート",
+    "exportJSON": "JSON エクスポート",
+    "skipToContent": "コンテンツへスキップ",
+    "github": "GitHub"
   },
   "nav": {
     "directory": "ディレクトリ",
@@ -63,7 +68,8 @@
     "notifications": "通知",
     "menu": "メニュー",
     "collapseSidebar": "サイドバーを閉じる",
-    "expandSidebar": "サイドバーを開く"
+    "expandSidebar": "サイドバーを開く",
+    "toggleSidebar": "サイドバー切替"
   },
   "toast": {
     "operationFailed": "操作に失敗しました",
@@ -257,7 +263,10 @@
     "copied": "コピーしました",
     "sdkVersion": "SDKバージョン",
     "sdkOutdated": "アップデート利用可能: {{latest}}",
-    "upgradeAgent": "エージェントを更新"
+    "upgradeAgent": "エージェントを更新",
+    "searchPlaceholder": "エージェントを検索...",
+    "allStatus": "すべてのステータス",
+    "registered": "登録日"
   },
   "claim": {
     "title": "Agent ペアリング",

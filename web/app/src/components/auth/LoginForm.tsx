@@ -32,7 +32,7 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {displayError && (
-        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div id="form-error" role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {displayError}
         </div>
       )}
@@ -51,6 +51,8 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
+          aria-invalid={!!displayError}
+          aria-describedby={displayError ? "form-error" : undefined}
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           placeholder="you@example.com"
         />
@@ -70,6 +72,8 @@ export function LoginForm({ onSubmit, error }: LoginFormProps) {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
+          aria-invalid={!!displayError}
+          aria-describedby={displayError ? "form-error" : undefined}
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('auth.enterPassword')}
         />

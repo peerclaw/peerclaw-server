@@ -172,6 +172,9 @@ export function ConsoleLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground">
+        {t('common.skipToContent')}
+      </a>
       {/* Desktop sidebar */}
       {!isMobile && (
         <aside
@@ -194,7 +197,7 @@ export function ConsoleLayout() {
       </Sheet>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main id="main-content" className="flex-1 overflow-y-auto">
         {/* Mobile header */}
         <div className={`flex h-12 items-center border-b border-border px-4 md:px-6 ${isMobile ? "" : "justify-end"}`}>
           {isMobile && (
@@ -217,6 +220,7 @@ export function ConsoleLayout() {
               onClick={toggleCollapsed}
               className="mr-auto rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
               title={t('nav.collapseSidebar')}
+              aria-label={t('nav.toggleSidebar')}
             >
               <PanelLeftClose className="size-4" />
             </button>
@@ -226,6 +230,7 @@ export function ConsoleLayout() {
               onClick={toggleCollapsed}
               className="mr-auto rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
               title={t('nav.expandSidebar')}
+              aria-label={t('nav.toggleSidebar')}
             >
               <PanelLeftOpen className="size-4" />
             </button>

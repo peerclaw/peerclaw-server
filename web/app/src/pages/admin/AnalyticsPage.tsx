@@ -23,7 +23,14 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
-import { TrendingUp, TrendingDown } from "lucide-react"
+import { TrendingUp, TrendingDown, Download } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { exportToCSV, exportToJSON } from "@/lib/export"
 
 function useCssColor(varName: string): string {
   const [color, setColor] = useState("")
@@ -138,17 +145,53 @@ export function AnalyticsPage() {
             {t('adminAnalytics.globalAnalytics')}
           </p>
         </div>
-        <div className="flex gap-1">
-          {TIME_RANGES.map((r, i) => (
-            <Button
-              key={r.label}
-              size="sm"
-              variant={rangeIdx === i ? "default" : "outline"}
-              onClick={() => setRangeIdx(i)}
-            >
-              {r.label}
-            </Button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {TIME_RANGES.map((r, i) => (
+              <Button
+                key={r.label}
+                size="sm"
+                variant={rangeIdx === i ? "default" : "outline"}
+                onClick={() => setRangeIdx(i)}
+              >
+                {r.label}
+              </Button>
+            ))}
+          </div>
+          {timeSeries.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Download className="size-4 mr-1.5" />
+                  {t('common.export')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportToCSV(
+                  timeSeries.map(p => ({
+                    timestamp: p.timestamp,
+                    total_calls: String(p.total_calls),
+                    success_calls: String(p.success_calls),
+                    error_calls: String(p.error_calls),
+                    avg_duration_ms: String(p.avg_duration_ms ?? ""),
+                  })),
+                  [
+                    { key: "timestamp", label: "Timestamp" },
+                    { key: "total_calls", label: "Total Calls" },
+                    { key: "success_calls", label: "Success Calls" },
+                    { key: "error_calls", label: "Error Calls" },
+                    { key: "avg_duration_ms", label: "Avg Duration (ms)" },
+                  ],
+                  "analytics"
+                )}>
+                  {t('common.exportCSV')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToJSON(timeSeries, "analytics")}>
+                  {t('common.exportJSON')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -161,7 +204,7 @@ export function AnalyticsPage() {
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error}</p>
         </div>
       ) : (
         <>

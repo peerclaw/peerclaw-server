@@ -32,6 +32,9 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground">
+        {t('common.skipToContent')}
+      </a>
       {/* Desktop sidebar */}
       {!isMobile && (
         <div className="hidden md:flex">
@@ -48,7 +51,7 @@ export function AppLayout() {
       </Sheet>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main id="main-content" className="flex-1 overflow-y-auto">
         {/* Mobile header */}
         {isMobile && (
           <div className="flex h-12 items-center border-b border-border px-4">
@@ -72,6 +75,7 @@ export function AppLayout() {
               onClick={toggleCollapsed}
               className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
               title={collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
+              aria-label={t('nav.toggleSidebar')}
             >
               {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
             </button>

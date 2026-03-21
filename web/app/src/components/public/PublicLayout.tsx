@@ -48,6 +48,9 @@ export function PublicLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground">
+        {t('common.skipToContent')}
+      </a>
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -121,6 +124,7 @@ export function PublicLayout() {
               rel="noopener noreferrer"
               className="ml-1 rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all"
               title={t('nav.github')}
+              aria-label={t('common.github')}
             >
               <Github className="size-[18px]" />
             </a>
@@ -206,7 +210,7 @@ export function PublicLayout() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Outlet />
       </main>
 

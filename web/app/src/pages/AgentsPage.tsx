@@ -6,6 +6,14 @@ import { useAdminAgents, useAdminMutations } from "@/hooks/use-admin"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Download } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { exportToCSV, exportToJSON } from "@/lib/export"
 import {
   Table,
   TableBody,
@@ -69,11 +77,49 @@ export function AgentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t('adminAgents.title')}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('adminAgents.agentsRegistered', { count: total })}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{t('adminAgents.title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('adminAgents.agentsRegistered', { count: total })}
+          </p>
+        </div>
+        {agents.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <Download className="size-4 mr-1.5" />
+                {t('common.export')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportToCSV(
+                agents.map(a => ({
+                  id: a.id,
+                  name: a.name,
+                  status: a.status,
+                  protocols: a.protocols?.join("; ") ?? "",
+                  registered_at: a.registered_at ?? "",
+                  last_heartbeat: a.last_heartbeat ?? "",
+                })),
+                [
+                  { key: "id", label: "ID" },
+                  { key: "name", label: "Name" },
+                  { key: "status", label: "Status" },
+                  { key: "protocols", label: "Protocols" },
+                  { key: "registered_at", label: "Registered At" },
+                  { key: "last_heartbeat", label: "Last Heartbeat" },
+                ],
+                "agents"
+              )}>
+                {t('common.exportCSV')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToJSON(agents, "agents")}>
+                {t('common.exportJSON')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div className="flex gap-3">
@@ -117,12 +163,12 @@ export function AgentsPage() {
       {loading ? (
         <Card>
           <CardContent className="p-0">
-            <TableSkeleton rows={5} cols={6} />
+            <div aria-live="polite"><TableSkeleton rows={5} cols={6} /></div>
           </CardContent>
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error}</p>
         </div>
       ) : (
         <>

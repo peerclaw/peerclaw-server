@@ -36,7 +36,7 @@ export function ProviderAgentsPage() {
   if (error) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive" role="alert">{error}</p>
       </div>
     )
   }
