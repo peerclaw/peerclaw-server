@@ -449,7 +449,10 @@
     "protocolDistribution": "توزيع البروتوكولات",
     "recentActivity": "النشاط الأخير",
     "timeAgo": "منذ {{time}}",
-    "viewAll": "عرض الكل"
+    "viewAll": "عرض الكل",
+    "recentAgents": "الوكلاء الأخيرون",
+    "noAgentsRegistered": "لا يوجد وكلاء مسجلون",
+    "thisWeek": "هذا الأسبوع"
   },
   "adminAgents": {
     "title": "الوكلاء",

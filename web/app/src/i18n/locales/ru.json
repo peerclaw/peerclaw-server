@@ -449,7 +449,10 @@
     "protocolDistribution": "Распределение протоколов",
     "recentActivity": "Недавняя активность",
     "timeAgo": "{{time}} назад",
-    "viewAll": "Показать все"
+    "viewAll": "Показать все",
+    "recentAgents": "Недавние агенты",
+    "noAgentsRegistered": "Нет зарегистрированных агентов",
+    "thisWeek": "за неделю"
   },
   "adminAgents": {
     "title": "Агенты",

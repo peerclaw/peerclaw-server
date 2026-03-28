@@ -449,7 +449,10 @@
     "protocolDistribution": "Distribución de protocolos",
     "recentActivity": "Actividad reciente",
     "timeAgo": "hace {{time}}",
-    "viewAll": "Ver todo"
+    "viewAll": "Ver todo",
+    "recentAgents": "Agentes recientes",
+    "noAgentsRegistered": "No hay agentes registrados",
+    "thisWeek": "esta semana"
   },
   "adminAgents": {
     "title": "Agentes",

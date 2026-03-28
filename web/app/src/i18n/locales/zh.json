@@ -452,8 +452,11 @@
     "unhealthy": "异常",
     "protocolDistribution": "协议分布",
     "recentActivity": "最近活动",
+    "recentAgents": "最近注册的 Agent",
+    "noAgentsRegistered": "暂无注册的 Agent",
     "timeAgo": "{{time}} 前",
-    "viewAll": "查看全部"
+    "viewAll": "查看全部",
+    "thisWeek": "本周"
   },
   "adminAgents": {
     "title": "Agent",

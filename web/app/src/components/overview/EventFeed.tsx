@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { AgentSummary } from "@/api/types"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { timeAgo } from "@/lib/time"
 
 interface Props {
   agents: AgentSummary[]
@@ -20,27 +22,18 @@ function statusColor(status: string) {
   }
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "just now"
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
-}
-
 export function EventFeed({ agents }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm font-medium">Recent Agents</CardTitle>
+        <CardTitle className="text-sm font-medium">{t('admin.recentAgents')}</CardTitle>
       </CardHeader>
       <CardContent>
         {agents.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No agents registered yet</p>
+          <p className="text-sm text-muted-foreground">{t('admin.noAgentsRegistered')}</p>
         ) : (
           <div className="space-y-3">
             {agents.map((agent) => (

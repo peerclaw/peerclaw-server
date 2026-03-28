@@ -452,8 +452,11 @@
     "unhealthy": "Unhealthy",
     "protocolDistribution": "Protocol Distribution",
     "recentActivity": "Recent Activity",
+    "recentAgents": "Recent Agents",
+    "noAgentsRegistered": "No agents registered yet",
     "timeAgo": "{{time}} ago",
-    "viewAll": "View All"
+    "viewAll": "View All",
+    "thisWeek": "this week"
   },
   "adminAgents": {
     "title": "Agents",

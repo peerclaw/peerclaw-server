@@ -449,7 +449,10 @@
     "protocolDistribution": "プロトコル分布",
     "recentActivity": "最近のアクティビティ",
     "timeAgo": "{{time}} 前",
-    "viewAll": "すべて表示"
+    "viewAll": "すべて表示",
+    "recentAgents": "最近のエージェント",
+    "noAgentsRegistered": "エージェント未登録",
+    "thisWeek": "今週"
   },
   "adminAgents": {
     "title": "Agent 一覧",

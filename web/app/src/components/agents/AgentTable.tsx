@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { timeAgo } from "@/lib/time"
 import type { Agent } from "@/api/types"
 
 interface Props {
@@ -27,23 +29,14 @@ function statusColor(status: string) {
   }
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "just now"
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
-}
-
 export function AgentTable({ agents }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   if (agents.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-md border border-dashed border-border">
-        <p className="text-sm text-muted-foreground">No agents found</p>
+        <p className="text-sm text-muted-foreground">{t('adminAgents.noAgents')}</p>
       </div>
     )
   }
@@ -53,11 +46,11 @@ export function AgentTable({ agents }: Props) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-10">Status</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Capabilities</TableHead>
-            <TableHead>Protocols</TableHead>
-            <TableHead className="text-right">Last Heartbeat</TableHead>
+            <TableHead className="w-10">{t('adminAgents.status')}</TableHead>
+            <TableHead>{t('adminAgents.name')}</TableHead>
+            <TableHead>{t('profile.capabilities')}</TableHead>
+            <TableHead>{t('adminAgents.protocols')}</TableHead>
+            <TableHead className="text-right">{t('adminAgents.lastHeartbeat')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

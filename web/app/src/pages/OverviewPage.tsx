@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { useAdminDashboard, useAdminAgents, useAdminAudit } from "@/hooks/use-admin"
+import { timeAgo } from "@/lib/time"
 import {
   Card,
   CardContent,
@@ -31,17 +32,6 @@ function useCssColor(varName: string): string {
   }, [varName])
 
   return color
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "just now"
-  if (mins < 60) return `${mins}m`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
-  const days = Math.floor(hours / 24)
-  return `${days}d`
 }
 
 export function OverviewPage() {
@@ -156,7 +146,7 @@ export function OverviewPage() {
               <p className="text-2xl font-bold">{value.toLocaleString()}</p>
               {trend != null && trend > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  +{trend.toLocaleString()} this week
+                  +{trend.toLocaleString()} {t('admin.thisWeek')}
                 </p>
               )}
             </CardContent>
