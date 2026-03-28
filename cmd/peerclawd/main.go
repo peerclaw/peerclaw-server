@@ -467,6 +467,8 @@ func main() {
 			sigHub.SetBroker(signaling.NewLocalBroker(sigHub))
 		}
 	}
+	var wg sync.WaitGroup
+
 	// Initialize version check service.
 	if cfg.VersionCheck.Enabled {
 		vcInterval, err := time.ParseDuration(cfg.VersionCheck.Interval)
@@ -475,7 +477,11 @@ func main() {
 		}
 		vcService := versioncheck.New(cfg.VersionCheck.Repo, vcInterval, logger)
 		httpServer.SetVersionCheck(vcService)
-		go vcService.Start(ctx)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			vcService.Start(ctx)
+		}()
 		logger.Info("version check service started", "repo", cfg.VersionCheck.Repo, "interval", vcInterval)
 	}
 
@@ -485,7 +491,9 @@ func main() {
 
 	// Start heartbeat timeout checker goroutine.
 	if repEngine != nil && repStore != nil {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			ticker := time.NewTicker(60 * time.Second)
 			defer ticker.Stop()
 			for {
@@ -529,7 +537,9 @@ func main() {
 
 	// Start expired email verification cleanup goroutine.
 	if userAuthService != nil {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			ticker := time.NewTicker(1 * time.Hour)
 			defer ticker.Stop()
 			for {
@@ -557,7 +567,9 @@ func main() {
 			InvocationsDays:      cfg.Retention.InvocationsDays,
 			AbuseReportsDays:     cfg.Retention.AbuseReportsDays,
 		}, logger)
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			ticker := time.NewTicker(retentionInterval)
 			defer ticker.Stop()
 			// Run once on startup.
@@ -581,7 +593,9 @@ func main() {
 
 	// Start notification retention cleanup goroutine.
 	if notificationSvc != nil && cfg.Notification.RetentionDays > 0 {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			ticker := time.NewTicker(6 * time.Hour)
 			defer ticker.Stop()
 			for {
@@ -605,7 +619,6 @@ func main() {
 		)
 	}
 
-	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 
 	wg.Add(1)
@@ -620,15 +633,21 @@ func main() {
 
 	// Broadcast re-register notification to agents that reconnected before server was ready.
 	if sigHub != nil {
+		wg.Add(1)
 		go func() {
-			time.Sleep(5 * time.Second)
+			defer wg.Done()
+			select {
+			case <-time.After(5 * time.Second):
+			case <-ctx.Done():
+				return
+			}
 			payload, _ := json.Marshal(map[string]string{
 				"type":     "re_register",
 				"severity": "info",
 				"title":    "Server restarted",
 				"body":     "Please re-register to restore your agent record.",
 			})
-			sigHub.BroadcastNotification(context.Background(), payload)
+			sigHub.BroadcastNotification(ctx, payload)
 			logger.Info("broadcast re-register notification to connected agents",
 				"connected", sigHub.ConnectedAgents())
 		}()
