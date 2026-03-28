@@ -64,7 +64,7 @@ func (s *HTTPServer) handleProviderRegisterAgent(w http.ResponseWriter, r *http.
 		OwnerUserID: userID,
 	})
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "agent registration failed", http.StatusBadRequest)
 		return
 	}
 
@@ -114,7 +114,7 @@ func (s *HTTPServer) handleProviderListAgents(w http.ResponseWriter, r *http.Req
 
 	result, err := s.registry.ListAgents(r.Context(), filter)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list agents", err)
 		return
 	}
 
@@ -296,7 +296,7 @@ func (s *HTTPServer) handleProviderUpdateAgent(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := s.store.Put(r.Context(), existing); err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "update agent", err)
 		return
 	}
 
@@ -343,7 +343,7 @@ func (s *HTTPServer) handleProviderDeleteAgent(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := s.registry.Deregister(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "delete agent", err)
 		return
 	}
 
@@ -445,7 +445,7 @@ func (s *HTTPServer) handleProviderDashboard(w http.ResponseWriter, r *http.Requ
 		OwnerUserID: userID,
 	})
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list dashboard agents", err)
 		return
 	}
 
@@ -584,7 +584,7 @@ func (s *HTTPServer) handleConsoleDirectory(w http.ResponseWriter, r *http.Reque
 
 	result, err := s.registry.ListAgents(r.Context(), filter)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list directory agents", err)
 		return
 	}
 

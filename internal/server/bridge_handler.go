@@ -39,7 +39,7 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 
 	var req bridgeSendRequest
 	if err := json.Unmarshal(body, &req); err != nil {
-		s.jsonError(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (s *HTTPServer) handleBridgeSend(w http.ResponseWriter, r *http.Request) {
 				s.logger.Debug("failed to record reputation event", "agent_id", req.Source, "error", recErr)
 			}
 		}
-		s.jsonError(w, "bridge send failed: "+err.Error(), http.StatusBadGateway)
+		s.jsonError(w, "bridge send failed", http.StatusBadGateway)
 		return
 	}
 

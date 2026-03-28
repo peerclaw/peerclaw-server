@@ -46,7 +46,7 @@ func (s *HTTPServer) handleAgentAddContact(w http.ResponseWriter, r *http.Reques
 	}
 	contact, err := s.contacts.Add(r.Context(), ownerID, req.ContactAgentID, req.Alias, expiresAt)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "failed to add contact", http.StatusBadRequest)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (s *HTTPServer) handleAgentListContacts(w http.ResponseWriter, r *http.Requ
 	ownerID := r.PathValue("id")
 	list, err := s.contacts.ListByOwner(r.Context(), ownerID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list contacts", err)
 		return
 	}
 	if list == nil {
@@ -84,7 +84,7 @@ func (s *HTTPServer) handleAgentRemoveContact(w http.ResponseWriter, r *http.Req
 	contactAgentID := r.PathValue("contact_id")
 
 	if err := s.contacts.Remove(r.Context(), ownerID, contactAgentID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (s *HTTPServer) handleProviderAddContact(w http.ResponseWriter, r *http.Req
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -130,7 +130,7 @@ func (s *HTTPServer) handleProviderAddContact(w http.ResponseWriter, r *http.Req
 	}
 	contact, err := s.contacts.Add(r.Context(), agentID, req.ContactAgentID, req.Alias, expiresAt)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "failed to add contact", http.StatusBadRequest)
 		return
 	}
 
@@ -152,13 +152,13 @@ func (s *HTTPServer) handleProviderListContacts(w http.ResponseWriter, r *http.R
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
 	list, err := s.contacts.ListByOwner(r.Context(), agentID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list contacts", err)
 		return
 	}
 	if list == nil {
@@ -183,13 +183,13 @@ func (s *HTTPServer) handleProviderRemoveContact(w http.ResponseWriter, r *http.
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
 	contactAgentID := r.PathValue("contact_id")
 	if err := s.contacts.Remove(r.Context(), agentID, contactAgentID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 

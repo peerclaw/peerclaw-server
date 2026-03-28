@@ -39,7 +39,7 @@ func (s *HTTPServer) handleAgentSendContactRequest(w http.ResponseWriter, r *htt
 
 	req, err := s.contactReq.Submit(r.Context(), fromAgentID, body.TargetAgentID, body.Message)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "failed to submit contact request", http.StatusBadRequest)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (s *HTTPServer) handleAgentListIncomingContactRequests(w http.ResponseWrite
 	status := r.URL.Query().Get("status")
 	requests, err := s.contactReq.ListIncoming(r.Context(), agentID, status)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list incoming contact requests", err)
 		return
 	}
 	if requests == nil {
@@ -86,7 +86,7 @@ func (s *HTTPServer) handleAgentListSentContactRequests(w http.ResponseWriter, r
 	status := r.URL.Query().Get("status")
 	requests, err := s.contactReq.ListSent(r.Context(), agentID, status)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list sent contact requests", err)
 		return
 	}
 	if requests == nil {
@@ -119,13 +119,13 @@ func (s *HTTPServer) handleAgentUpdateContactRequest(w http.ResponseWriter, r *h
 	case "approve":
 		req, err := s.contactReq.Approve(r.Context(), requestID)
 		if err != nil {
-			s.jsonError(w, err.Error(), http.StatusBadRequest)
+			s.jsonError(w, "failed to approve contact request", http.StatusBadRequest)
 			return
 		}
 		s.notifyContactAdded(r.Context(), req)
 	case "reject":
 		if err := s.contactReq.Reject(r.Context(), requestID, body.Reason); err != nil {
-			s.jsonError(w, err.Error(), http.StatusBadRequest)
+			s.jsonError(w, "failed to reject contact request", http.StatusBadRequest)
 			return
 		}
 	default:
@@ -187,14 +187,14 @@ func (s *HTTPServer) handleProviderListContactRequests(w http.ResponseWriter, r 
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
 	status := r.URL.Query().Get("status")
 	requests, err := s.contactReq.ListIncoming(r.Context(), agentID, status)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list incoming contact requests", err)
 		return
 	}
 	if requests == nil {
@@ -219,7 +219,7 @@ func (s *HTTPServer) handleProviderUpdateContactRequest(w http.ResponseWriter, r
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -234,13 +234,13 @@ func (s *HTTPServer) handleProviderUpdateContactRequest(w http.ResponseWriter, r
 	case "approve":
 		req, err := s.contactReq.Approve(r.Context(), requestID)
 		if err != nil {
-			s.jsonError(w, err.Error(), http.StatusBadRequest)
+			s.jsonError(w, "failed to approve contact request", http.StatusBadRequest)
 			return
 		}
 		s.notifyContactAdded(r.Context(), req)
 	case "reject":
 		if err := s.contactReq.Reject(r.Context(), requestID, body.Reason); err != nil {
-			s.jsonError(w, err.Error(), http.StatusBadRequest)
+			s.jsonError(w, "failed to reject contact request", http.StatusBadRequest)
 			return
 		}
 	default:

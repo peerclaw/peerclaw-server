@@ -149,12 +149,14 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	// Synchronous invocation via bridge.
 	var respBody string
 	var statusCode int
-	var invokeErr string
+	var invokeErr string // internal error detail — never sent to client
+	var clientMsg string // safe message for client response
 
 	if s.bridges != nil {
 		err := s.bridges.Send(r.Context(), env)
 		if err != nil {
 			invokeErr = err.Error()
+			clientMsg = "bridge delivery failed"
 			statusCode = 502
 		} else {
 			respBody = "Message delivered to agent " + agentID
@@ -162,6 +164,7 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		invokeErr = "bridge not available"
+		clientMsg = "bridge not available"
 		statusCode = 503
 	}
 
@@ -201,7 +204,8 @@ func (s *HTTPServer) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if invokeErr != "" {
-		s.jsonError(w, invokeErr, statusCode)
+		s.logger.Error("invoke failed", "agent_id", agentID, "error", invokeErr, "status", statusCode)
+		s.jsonError(w, clientMsg, statusCode)
 		return
 	}
 
@@ -247,13 +251,14 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 
 	var respBody string
 	var statusCode int
-	var invokeErr string
+	var invokeErr string // internal error detail — never sent to client
 
 	if s.bridges != nil {
 		chunks, err := s.bridges.SendStream(r.Context(), env)
 		if err != nil {
 			invokeErr = err.Error()
 			statusCode = 502
+			s.logger.Error("stream invoke failed", "agent_id", agentID, "error", invokeErr)
 		} else {
 			statusCode = 200
 			var sb strings.Builder
@@ -261,8 +266,9 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 				if chunk.Error != nil {
 					invokeErr = chunk.Error.Error()
 					statusCode = 502
+					s.logger.Error("stream chunk error", "agent_id", agentID, "error", invokeErr)
 					_, _ = fmt.Fprintf(w, "event: error\ndata: %s\n\n",
-						escapeSSEData(invokeErr))
+						escapeSSEData("bridge delivery failed"))
 					flusher.Flush()
 					break
 				}
@@ -292,7 +298,7 @@ func (s *HTTPServer) handleInvokeSSE(w http.ResponseWriter, r *http.Request, env
 
 	// Send error event only if not already sent by the streaming loop.
 	if invokeErr != "" && statusCode >= 500 && s.bridges == nil {
-		_, _ = fmt.Fprintf(w, "event: error\ndata: %s\n\n", escapeSSEData(invokeErr))
+		_, _ = fmt.Fprintf(w, "event: error\ndata: %s\n\n", escapeSSEData("bridge not available"))
 		flusher.Flush()
 	}
 
@@ -365,7 +371,7 @@ func (s *HTTPServer) handleListInvocations(w http.ResponseWriter, r *http.Reques
 
 	records, total, err := s.invocation.ListByUser(r.Context(), userID, limit, offset)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list invocations", err)
 		return
 	}
 	if records == nil {

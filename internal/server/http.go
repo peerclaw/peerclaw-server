@@ -539,7 +539,7 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "agent registration failed", http.StatusBadRequest)
 		return
 	}
 
@@ -586,7 +586,7 @@ func (s *HTTPServer) handleListAgents(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := s.registry.ListAgents(r.Context(), filter)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list agents", err)
 		return
 	}
 	s.jsonResponse(w, http.StatusOK, result)
@@ -596,7 +596,7 @@ func (s *HTTPServer) handleGetAgent(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	card, err := s.registry.GetAgent(r.Context(), id)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "agent not found", http.StatusNotFound)
 		return
 	}
 	s.jsonResponse(w, http.StatusOK, card)
@@ -605,7 +605,7 @@ func (s *HTTPServer) handleGetAgent(w http.ResponseWriter, r *http.Request) {
 func (s *HTTPServer) handleDeregister(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if err := s.registry.Deregister(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "agent not found", http.StatusNotFound)
 		return
 	}
 	s.engine.RemoveAgent(id)
@@ -646,7 +646,7 @@ func (s *HTTPServer) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 
 	deadline, err := s.registry.Heartbeat(r.Context(), id, status, req.Metadata)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "agent not found", http.StatusNotFound)
 		return
 	}
 
@@ -697,7 +697,7 @@ func (s *HTTPServer) handleDiscover(w http.ResponseWriter, r *http.Request) {
 	}
 	agents, err := s.registry.Discover(r.Context(), req.Capabilities, req.Protocol, req.MaxResults)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "discovery failed", http.StatusBadRequest)
 		return
 	}
 	s.jsonResponse(w, http.StatusOK, map[string]any{"agents": agents})
@@ -718,7 +718,7 @@ func (s *HTTPServer) handleResolveRoute(w http.ResponseWriter, r *http.Request) 
 	}
 	route, err := s.engine.Resolve(opts)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "route not found", http.StatusNotFound)
 		return
 	}
 	s.jsonResponse(w, http.StatusOK, route)
@@ -823,7 +823,7 @@ func (s *HTTPServer) handleFederationDiscover(w http.ResponseWriter, r *http.Req
 
 	agents, err := s.registry.Discover(r.Context(), req.Capabilities, req.Protocol, req.MaxResults)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "discovery failed", http.StatusBadRequest)
 		return
 	}
 	s.jsonResponse(w, http.StatusOK, map[string]any{"agents": agents})
@@ -989,6 +989,18 @@ func (s *HTTPServer) jsonResponse(w http.ResponseWriter, status int, data any) {
 func (s *HTTPServer) jsonError(w http.ResponseWriter, message string, status int) {
 	code := statusToErrorCode(status)
 	s.jsonResponse(w, status, pcerrors.Error{Code: code, Message: message})
+}
+
+// internalError logs the real error and returns a generic message to the client.
+// Use this for all 5xx errors to avoid leaking implementation details.
+func (s *HTTPServer) internalError(w http.ResponseWriter, r *http.Request, operation string, err error) {
+	s.logger.Error("internal error",
+		"operation", operation,
+		"error", err,
+		"method", r.Method,
+		"path", r.URL.Path,
+	)
+	s.jsonError(w, "internal server error", http.StatusInternalServerError)
 }
 
 // statusToErrorCode maps HTTP status codes to structured error codes.
