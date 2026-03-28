@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react"
 import { Routes, Route } from "react-router-dom"
 import { Toaster } from "sonner"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
@@ -29,13 +30,15 @@ import { AccessRequestsPage } from "@/pages/AccessRequestsPage"
 import { APIKeysPage } from "@/pages/APIKeysPage"
 import { NotificationsPage } from "@/pages/NotificationsPage"
 import { ProfilePage } from "@/pages/ProfilePage"
-import { UsersPage } from "@/pages/admin/UsersPage"
-import { ReportsPage } from "@/pages/admin/ReportsPage"
-import { CategoriesPage } from "@/pages/admin/CategoriesPage"
-import { AnalyticsPage } from "@/pages/admin/AnalyticsPage"
-import { InvocationsPage } from "@/pages/admin/InvocationsPage"
-import { AuditLogPage } from "@/pages/admin/AuditLogPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
+
+// Lazy-loaded admin pages (reduces initial bundle size).
+const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then(m => ({ default: m.UsersPage })))
+const ReportsPage = lazy(() => import("@/pages/admin/ReportsPage").then(m => ({ default: m.ReportsPage })))
+const CategoriesPage = lazy(() => import("@/pages/admin/CategoriesPage").then(m => ({ default: m.CategoriesPage })))
+const AnalyticsPage = lazy(() => import("@/pages/admin/AnalyticsPage").then(m => ({ default: m.AnalyticsPage })))
+const InvocationsPage = lazy(() => import("@/pages/admin/InvocationsPage").then(m => ({ default: m.InvocationsPage })))
+const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage").then(m => ({ default: m.AuditLogPage })))
 
 export function App() {
   return (
@@ -77,12 +80,16 @@ export function App() {
             <Route path="profile" element={<ProfilePage />} />
           </Route>
 
-          {/* Admin routes (admin role required) */}
+          {/* Admin routes (admin role required, lazy-loaded) */}
           <Route
             path="admin"
             element={
               <AdminGuard>
-                <ErrorBoundary><AppLayout /></ErrorBoundary>
+                <ErrorBoundary>
+                  <Suspense fallback={<div className="flex h-screen items-center justify-center text-muted-foreground">Loading...</div>}>
+                    <AppLayout />
+                  </Suspense>
+                </ErrorBoundary>
               </AdminGuard>
             }
           >
