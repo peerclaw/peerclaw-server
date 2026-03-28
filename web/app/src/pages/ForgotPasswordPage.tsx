@@ -65,7 +65,7 @@ export function ForgotPasswordPage() {
       setError(t("auth.passwordMinLength"))
       return
     }
-    if (code.length !== 6) {
+    if (code.length !== 8) {
       setError(t("auth.enterCode"))
       return
     }

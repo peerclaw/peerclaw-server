@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/peerclaw/peerclaw-server/internal/identity"
@@ -11,7 +10,7 @@ import (
 // handleAuthRegister handles POST /api/v1/auth/register.
 func (s *HTTPServer) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 	var req userauth.RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -40,7 +39,7 @@ func (s *HTTPServer) handleAuthRegister(w http.ResponseWriter, r *http.Request) 
 // handleAuthLogin handles POST /api/v1/auth/login.
 func (s *HTTPServer) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 	var req userauth.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -72,7 +71,7 @@ func (s *HTTPServer) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -91,7 +90,7 @@ func (s *HTTPServer) handleAuthLogout(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -126,7 +125,7 @@ func (s *HTTPServer) handleAuthUpdateMe(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var req userauth.UpdateProfileRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -149,7 +148,7 @@ func (s *HTTPServer) handleAuthChangePassword(w http.ResponseWriter, r *http.Req
 	}
 
 	var req userauth.ChangePasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -177,7 +176,7 @@ func (s *HTTPServer) handleAuthCreateAPIKey(w http.ResponseWriter, r *http.Reque
 	var req struct {
 		Name string `json:"name"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -240,7 +239,7 @@ func (s *HTTPServer) handleAuthRevokeAPIKey(w http.ResponseWriter, r *http.Reque
 // handleAuthVerifyEmail handles POST /api/v1/auth/verify-email.
 func (s *HTTPServer) handleAuthVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var req userauth.VerifyEmailRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -265,7 +264,7 @@ func (s *HTTPServer) handleAuthResendVerification(w http.ResponseWriter, r *http
 	var req struct {
 		Email string `json:"email"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -283,7 +282,7 @@ func (s *HTTPServer) handleAuthRequestPasswordReset(w http.ResponseWriter, r *ht
 	var req struct {
 		Email string `json:"email"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -296,7 +295,7 @@ func (s *HTTPServer) handleAuthRequestPasswordReset(w http.ResponseWriter, r *ht
 // handleAuthResetPassword handles POST /api/v1/auth/reset-password.
 func (s *HTTPServer) handleAuthResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req userauth.ResetPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := s.decodeJSON(r, &req, maxAuthBodyBytes); err != nil {
 		s.jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}

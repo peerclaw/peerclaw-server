@@ -6,7 +6,7 @@ interface OTPInputProps {
   disabled?: boolean
 }
 
-export function OTPInput({ length = 6, onComplete, disabled }: OTPInputProps) {
+export function OTPInput({ length = 8, onComplete, disabled }: OTPInputProps) {
   const [values, setValues] = useState<string[]>(Array(length).fill(""))
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 

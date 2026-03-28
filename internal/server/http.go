@@ -1010,6 +1010,17 @@ func (s *HTTPServer) internalError(w http.ResponseWriter, r *http.Request, opera
 	s.jsonError(w, "internal server error", http.StatusInternalServerError)
 }
 
+// Body size limits for JSON decoding.
+const (
+	maxAuthBodyBytes    int64 = 64 * 1024 // 64 KB for auth endpoints
+	maxDefaultBodyBytes int64 = 1 << 20   // 1 MB for general endpoints
+)
+
+// decodeJSON decodes a JSON request body with a size limit.
+func (s *HTTPServer) decodeJSON(r *http.Request, v any, maxBytes int64) error {
+	return json.NewDecoder(io.LimitReader(r.Body, maxBytes)).Decode(v)
+}
+
 // statusToErrorCode maps HTTP status codes to structured error codes.
 func statusToErrorCode(status int) pcerrors.Code {
 	switch status {

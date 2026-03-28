@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,7 @@ type Service struct {
 	adminEmails map[string]bool
 	emailSender EmailSender
 	logger      *slog.Logger
+	otpFailures sync.Map // email -> *otpAttemptTracker
 }
 
 // NewService creates a new auth service.
@@ -44,6 +46,35 @@ func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []stri
 		emailSender: emailSender,
 		logger:      logger,
 	}
+}
+
+type otpAttemptTracker struct {
+	count    int
+	lastFail time.Time
+}
+
+func (s *Service) isOTPBlocked(email string) bool {
+	if v, ok := s.otpFailures.Load(email); ok {
+		tracker := v.(*otpAttemptTracker)
+		if tracker.count >= 5 && time.Since(tracker.lastFail) < 15*time.Minute {
+			return true
+		}
+		if time.Since(tracker.lastFail) >= 15*time.Minute {
+			s.otpFailures.Delete(email)
+		}
+	}
+	return false
+}
+
+func (s *Service) recordOTPFailure(email string) {
+	v, _ := s.otpFailures.LoadOrStore(email, &otpAttemptTracker{})
+	tracker := v.(*otpAttemptTracker)
+	tracker.count++
+	tracker.lastFail = time.Now()
+}
+
+func (s *Service) clearOTPFailures(email string) {
+	s.otpFailures.Delete(email)
 }
 
 // RegisterRequest holds registration parameters.
@@ -389,9 +420,14 @@ func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest, ipAdd
 		return nil, nil, fmt.Errorf("email and code are required")
 	}
 
+	if s.isOTPBlocked(email) {
+		return nil, nil, fmt.Errorf("too many failed attempts, please try again later")
+	}
+
 	codeHash := hashToken(code)
 	ev, err := s.store.GetEmailVerification(ctx, email, codeHash, "register")
 	if err != nil {
+		s.recordOTPFailure(email)
 		return nil, nil, fmt.Errorf("invalid or expired verification code")
 	}
 	if time.Now().After(ev.ExpiresAt) {
@@ -399,6 +435,7 @@ func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest, ipAdd
 	}
 
 	_ = s.store.MarkEmailVerificationUsed(ctx, ev.ID)
+	s.clearOTPFailures(email)
 
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
@@ -461,9 +498,14 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordRequest) e
 		return fmt.Errorf("password must be at least 8 characters")
 	}
 
+	if s.isOTPBlocked(email) {
+		return fmt.Errorf("too many failed attempts, please try again later")
+	}
+
 	codeHash := hashToken(code)
 	ev, err := s.store.GetEmailVerification(ctx, email, codeHash, "password_reset")
 	if err != nil {
+		s.recordOTPFailure(email)
 		return fmt.Errorf("invalid or expired reset code")
 	}
 	if time.Now().After(ev.ExpiresAt) {
@@ -471,6 +513,7 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordRequest) e
 	}
 
 	_ = s.store.MarkEmailVerificationUsed(ctx, ev.ID)
+	s.clearOTPFailures(email)
 
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
@@ -491,7 +534,7 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordRequest) e
 	return nil
 }
 
-// sendOTP generates a 6-digit OTP, checks rate limits, stores the hash, and sends the email.
+// sendOTP generates an 8-digit OTP, checks rate limits, stores the hash, and sends the email.
 func (s *Service) sendOTP(ctx context.Context, email, purpose string) error {
 	// Rate limit: 5 per hour.
 	count, err := s.store.CountRecentVerifications(ctx, email, time.Now().Add(-1*time.Hour))
@@ -502,7 +545,7 @@ func (s *Service) sendOTP(ctx context.Context, email, purpose string) error {
 		return fmt.Errorf("too many verification requests, please try again later")
 	}
 
-	// Generate 6-digit code.
+	// Generate 8-digit code.
 	code, err := generateOTP()
 	if err != nil {
 		return fmt.Errorf("generate OTP: %w", err)
@@ -530,14 +573,14 @@ func (s *Service) sendOTP(ctx context.Context, email, purpose string) error {
 	return nil
 }
 
-// generateOTP returns a cryptographically random 6-digit numeric string.
+// generateOTP returns a cryptographically random 8-digit numeric string.
 func generateOTP() (string, error) {
-	b := make([]byte, 3)
+	b := make([]byte, 4)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	n := (int(b[0])<<16 | int(b[1])<<8 | int(b[2])) % 1000000
-	return fmt.Sprintf("%06d", n), nil
+	n := (int(b[0])<<24 | int(b[1])<<16 | int(b[2])<<8 | int(b[3])) % 100000000
+	return fmt.Sprintf("%08d", n), nil
 }
 
 // DeleteExpiredVerifications removes expired verification records.
