@@ -261,14 +261,26 @@ func (h *Hub) HandleConnect(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var msg signaling.SignalMessage
-		if err := json.Unmarshal(data, &msg); err != nil {
-			h.logger.Warn("invalid signal message", "agent_id", agentID, "error", err)
-			continue
-		}
+		// Process message with panic recovery to prevent connection leak.
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					h.logger.Error("panic in websocket message processing",
+						"agent_id", agentID,
+						"error", fmt.Sprintf("%v", rec),
+					)
+				}
+			}()
 
-		msg.From = agentID
-		h.Forward(r.Context(), msg)
+			var msg signaling.SignalMessage
+			if err := json.Unmarshal(data, &msg); err != nil {
+				h.logger.Warn("invalid signal message", "agent_id", agentID, "error", err)
+				return
+			}
+
+			msg.From = agentID
+			h.Forward(r.Context(), msg)
+		}()
 	}
 }
 

@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom"
 import { Toaster } from "sonner"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { ConsoleLayout } from "@/components/layout/ConsoleLayout"
 import { PublicLayout } from "@/components/public/PublicLayout"
@@ -42,7 +43,7 @@ export function App() {
       <AuthProvider>
         <Routes>
           {/* Public routes */}
-          <Route element={<PublicLayout />}>
+          <Route element={<ErrorBoundary><PublicLayout /></ErrorBoundary>}>
             <Route index element={<LandingPage />} />
             <Route path="directory" element={<DirectoryPage />} />
             <Route path="agents/:id" element={<PublicProfilePage />} />
@@ -60,7 +61,7 @@ export function App() {
             path="console"
             element={
               <AuthGuard>
-                <ConsoleLayout />
+                <ErrorBoundary><ConsoleLayout /></ErrorBoundary>
               </AuthGuard>
             }
           >
@@ -81,7 +82,7 @@ export function App() {
             path="admin"
             element={
               <AdminGuard>
-                <AppLayout />
+                <ErrorBoundary><AppLayout /></ErrorBoundary>
               </AdminGuard>
             }
           >

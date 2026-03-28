@@ -139,21 +139,26 @@ func (s *HTTPServer) handleA2ABridgeSendMessage(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Reject if too many in-flight tasks.
+	// Reject if too many in-flight tasks (atomic CAS to prevent TOCTOU race).
 	const maxA2ATasks = 10000
-	if s.a2aTasks.taskCount.Load() >= maxA2ATasks {
-		writeA2ABridgeError(w, req.ID, -32003, "too many in-flight tasks")
-		return
+	for {
+		current := s.a2aTasks.taskCount.Load()
+		if current >= maxA2ATasks {
+			writeA2ABridgeError(w, req.ID, -32003, "too many in-flight tasks")
+			return
+		}
+		if s.a2aTasks.taskCount.CompareAndSwap(current, current+1) {
+			break
+		}
 	}
 
-	// Create task.
+	// Create task (count already incremented).
 	contextID := params.Message.ContextID
 	if contextID == "" {
 		contextID = uuid.New().String()
 	}
 	task := a2a.NewTask(contextID, params.Message)
 	s.a2aTasks.tasks.Store(task.ID, task)
-	s.a2aTasks.taskCount.Add(1)
 
 	ipAddress := BridgeClientIP(r)
 	s.a2aTasks.creatorIPs.Store(task.ID, ipAddress)
