@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,9 @@ type AuthConfig struct {
 	Required bool
 	// Verifier validates signatures and API keys.
 	Verifier *identity.Verifier
+	// AgentExists checks whether an agent ID is registered. When non-nil the
+	// pubKey-fallback path rejects IDs that are not in the registry.
+	AgentExists func(ctx context.Context, agentID string) bool
 }
 
 // AuthMiddleware validates requests using bearer token or Ed25519 signature.
@@ -100,6 +104,12 @@ func authenticate(r *http.Request, cfg AuthConfig, logger *slog.Logger) (string,
 		if agentID == "" {
 			// Fall back to using public key as agent ID.
 			agentID = pubKeyStr
+		}
+
+		// Verify agent exists in registry when using pubKey fallback.
+		if cfg.AgentExists != nil && !cfg.AgentExists(r.Context(), agentID) {
+			logger.Debug("agent not found in registry", "agent_id", agentID)
+			return "", false
 		}
 		return agentID, true
 	}

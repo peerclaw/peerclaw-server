@@ -106,6 +106,10 @@ func NewHTTPServer(addr string, reg *registry.Service, eng *router.Engine, brg *
 	if s.authCfg.Verifier == nil {
 		s.authCfg.Verifier = s.verifier
 	}
+	s.authCfg.AgentExists = func(ctx context.Context, agentID string) bool {
+		_, err := s.registry.GetAgent(ctx, agentID)
+		return err == nil
+	}
 
 	// Build middleware chain.
 	middlewares := []Middleware{
@@ -482,6 +486,9 @@ func (s *HTTPServer) handleRegister(w http.ResponseWriter, r *http.Request) {
 		s.jsonError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Strip reserved metadata keys that can only be set by authenticated provider routes.
+	delete(req.Metadata, "owner_user_id")
 
 	// Proof-of-Possession: if public_key is provided, require matching signature.
 	if req.PublicKey != "" {
