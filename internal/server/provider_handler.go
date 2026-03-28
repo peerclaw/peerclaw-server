@@ -496,17 +496,23 @@ func (s *HTTPServer) handleProviderDashboard(w http.ResponseWriter, r *http.Requ
 		agents = append(agents, agent)
 	}
 
-	// Aggregated top-level stats.
-	var totalCalls int64
-	var successRate, avgLatency float64
-	if s.invocation != nil {
-		if stats, err := s.invocation.ProviderDashboardStats(r.Context(), userID); err == nil {
-			totalCalls = stats.TotalCalls
-			avgLatency = stats.AvgDurationMs
-			if stats.TotalCalls > 0 {
-				successRate = float64(stats.SuccessCalls) / float64(stats.TotalCalls) * 100
-			}
+	// Aggregated top-level stats (computed from per-agent stats to respect since filter).
+	var totalCalls, totalSuccess int64
+	var totalLatencySum float64
+	for _, a := range agents {
+		calls, _ := a["total_calls"].(int64)
+		rate, _ := a["success_rate"].(float64)
+		latency, _ := a["avg_latency_ms"].(float64)
+		totalCalls += calls
+		if calls > 0 {
+			totalSuccess += int64(rate / 100 * float64(calls))
+			totalLatencySum += latency * float64(calls)
 		}
+	}
+	var successRate, avgLatency float64
+	if totalCalls > 0 {
+		successRate = float64(totalSuccess) / float64(totalCalls) * 100
+		avgLatency = totalLatencySum / float64(totalCalls)
 	}
 
 	s.jsonResponse(w, http.StatusOK, map[string]any{

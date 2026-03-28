@@ -589,6 +589,7 @@ func (s *HTTPServer) handleAdminBulkAgents(w http.ResponseWriter, r *http.Reques
 			errorCount++
 		} else {
 			successCount++
+			s.recordAdminAudit(r, "agent."+req.Action, "agent", id, "")
 		}
 	}
 
@@ -638,6 +639,7 @@ func (s *HTTPServer) handleAdminBulkReports(w http.ResponseWriter, r *http.Reque
 			errorCount++
 		} else {
 			successCount++
+			s.recordAdminAudit(r, "report."+req.Action, "report", id, "")
 		}
 	}
 
@@ -688,6 +690,7 @@ func (s *HTTPServer) handleAdminBulkUsers(w http.ResponseWriter, r *http.Request
 			errorCount++
 		} else {
 			successCount++
+			s.recordAdminAudit(r, "user."+req.Action, "user", id, "")
 		}
 	}
 
