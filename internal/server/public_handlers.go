@@ -129,7 +129,7 @@ func (s *HTTPServer) handleDirectory(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.registry.ListAgents(r.Context(), filter)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list directory agents", err)
 		return
 	}
 
@@ -253,7 +253,7 @@ func (s *HTTPServer) handleReputationHistory(w http.ResponseWriter, r *http.Requ
 
 	events, err := s.reputation.GetHistory(r.Context(), id, limit)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "get reputation history", err)
 		return
 	}
 
@@ -298,7 +298,7 @@ func (s *HTTPServer) handleVerifyEndpoint(w http.ResponseWriter, r *http.Request
 				s.logger.Debug("failed to record reputation event", "agent_id", id, "error", recErr)
 			}
 		}
-		s.jsonError(w, "verification failed: "+err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "verification failed", http.StatusBadRequest)
 		return
 	}
 

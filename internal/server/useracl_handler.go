@@ -44,7 +44,7 @@ func (s *HTTPServer) handleSubmitAccessRequest(w http.ResponseWriter, r *http.Re
 
 	req, err := svc.SubmitRequest(r.Context(), agentID, userID, body.Message)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "invalid access request", http.StatusBadRequest)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (s *HTTPServer) handleGetAccessRequestStatus(w http.ResponseWriter, r *http
 
 	req, err := svc.GetByAgentAndUser(r.Context(), agentID, userID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "get access request status", err)
 		return
 	}
 	if req == nil {
@@ -114,7 +114,7 @@ func (s *HTTPServer) handleListMyAccessRequests(w http.ResponseWriter, r *http.R
 
 	requests, err := svc.ListByUser(r.Context(), userID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list access requests", err)
 		return
 	}
 	if requests == nil {
@@ -141,7 +141,7 @@ func (s *HTTPServer) handleProviderListAccessRequests(w http.ResponseWriter, r *
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -154,7 +154,7 @@ func (s *HTTPServer) handleProviderListAccessRequests(w http.ResponseWriter, r *
 	status := r.URL.Query().Get("status")
 	requests, err := svc.ListByAgent(r.Context(), agentID, status)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list agent access requests", err)
 		return
 	}
 	if requests == nil {
@@ -185,7 +185,7 @@ func (s *HTTPServer) handleProviderUpdateAccessRequest(w http.ResponseWriter, r 
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -211,7 +211,7 @@ func (s *HTTPServer) handleProviderUpdateAccessRequest(w http.ResponseWriter, r 
 			}
 		}
 		if err := svc.Approve(r.Context(), requestID, expiresAt); err != nil {
-			s.jsonError(w, err.Error(), http.StatusBadRequest)
+			s.jsonError(w, "failed to approve access request", http.StatusBadRequest)
 			return
 		}
 		// Notify the requester that their access request was approved.
@@ -227,7 +227,7 @@ func (s *HTTPServer) handleProviderUpdateAccessRequest(w http.ResponseWriter, r 
 		// Fetch the request before rejecting to get the requester's user ID.
 		accessReq, _ := svc.GetByID(r.Context(), requestID)
 		if err := svc.Reject(r.Context(), requestID, body.RejectReason); err != nil {
-			s.jsonError(w, err.Error(), http.StatusBadRequest)
+			s.jsonError(w, "failed to reject access request", http.StatusBadRequest)
 			return
 		}
 		// Notify the requester that their access request was rejected.
@@ -262,7 +262,7 @@ func (s *HTTPServer) handleProviderRevokeAccessRequest(w http.ResponseWriter, r 
 
 	agentID := r.PathValue("id")
 	if err := s.verifyAgentOwnership(r, agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusForbidden)
+		s.jsonError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -274,7 +274,7 @@ func (s *HTTPServer) handleProviderRevokeAccessRequest(w http.ResponseWriter, r 
 
 	requestID := r.PathValue("request_id")
 	if err := svc.Revoke(r.Context(), requestID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 

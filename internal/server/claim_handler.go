@@ -53,10 +53,10 @@ func (s *HTTPServer) handleGenerateClaimToken(w http.ResponseWriter, r *http.Req
 	token, err := s.claimToken.Generate(r.Context(), userID, params)
 	if err != nil {
 		if err == claimtoken.ErrTooManyPendingTokens {
-			s.jsonError(w, err.Error(), http.StatusTooManyRequests)
+			s.jsonError(w, "too many pending claim tokens", http.StatusTooManyRequests)
 			return
 		}
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "generate claim token", err)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (s *HTTPServer) handleListClaimTokens(w http.ResponseWriter, r *http.Reques
 
 	tokens, err := s.claimToken.ListByUser(r.Context(), userID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list claim tokens", err)
 		return
 	}
 
@@ -115,23 +115,27 @@ func (s *HTTPServer) handleClaimAgent(w http.ResponseWriter, r *http.Request) {
 	// 1. Validate token: exists, pending, not expired.
 	ct, err := s.claimToken.Validate(r.Context(), req.Token)
 	if err != nil {
-		// Determine appropriate status code.
+		// Determine appropriate status code and message.
 		status := http.StatusBadRequest
+		msg := "invalid claim token"
 		switch {
 		case contains(err.Error(), "already claimed"):
 			status = http.StatusConflict
+			msg = "token already claimed"
 		case contains(err.Error(), "expired"):
 			status = http.StatusGone
+			msg = "token expired"
 		case contains(err.Error(), "not found"):
 			status = http.StatusNotFound
+			msg = "token not found"
 		}
-		s.jsonError(w, err.Error(), status)
+		s.jsonError(w, msg, status)
 		return
 	}
 
 	// 2. Verify signature: the agent must prove ownership of the private key.
 	if err := s.verifier.VerifySignature(req.PublicKey, []byte(req.Token), req.Signature); err != nil {
-		s.jsonError(w, "invalid signature: "+err.Error(), http.StatusUnauthorized)
+		s.jsonError(w, "invalid signature", http.StatusUnauthorized)
 		return
 	}
 
@@ -179,7 +183,7 @@ func (s *HTTPServer) handleClaimAgent(w http.ResponseWriter, r *http.Request) {
 		OwnerUserID: ct.UserID,
 	})
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "failed to register agent", http.StatusBadRequest)
 		return
 	}
 

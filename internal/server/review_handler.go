@@ -32,7 +32,7 @@ func (s *HTTPServer) handleListReviews(w http.ResponseWriter, r *http.Request) {
 
 	reviews, total, err := s.reviewService.ListReviews(r.Context(), agentID, limit, offset)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list reviews", err)
 		return
 	}
 	if reviews == nil {
@@ -55,7 +55,7 @@ func (s *HTTPServer) handleGetReviewSummary(w http.ResponseWriter, r *http.Reque
 	agentID := r.PathValue("id")
 	summary, err := s.reviewService.GetSummary(r.Context(), agentID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "get review summary", err)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (s *HTTPServer) handleSubmitReview(w http.ResponseWriter, r *http.Request) 
 
 	rev, err := s.reviewService.SubmitReview(r.Context(), agentID, userID, req.Rating, req.Comment)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "invalid review submission", http.StatusBadRequest)
 		return
 	}
 
@@ -110,7 +110,7 @@ func (s *HTTPServer) handleDeleteReview(w http.ResponseWriter, r *http.Request) 
 
 	agentID := r.PathValue("id")
 	if err := s.reviewService.DeleteReview(r.Context(), agentID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -126,7 +126,7 @@ func (s *HTTPServer) handleListCategories(w http.ResponseWriter, r *http.Request
 
 	categories, err := s.reviewService.ListCategories(r.Context())
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list categories", err)
 		return
 	}
 	if categories == nil {
@@ -161,7 +161,7 @@ func (s *HTTPServer) handleSubmitReport(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := s.reviewService.SubmitReport(r.Context(), userID, req.TargetType, req.TargetID, req.Reason, req.Details); err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "invalid report submission", http.StatusBadRequest)
 		return
 	}
 

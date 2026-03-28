@@ -50,7 +50,7 @@ func (s *HTTPServer) handleListNotifications(w http.ResponseWriter, r *http.Requ
 
 	notifications, total, err := s.notificationSvc.List(r.Context(), userID, unreadOnly, limit, offset)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list notifications", err)
 		return
 	}
 	if notifications == nil {
@@ -76,7 +76,7 @@ func (s *HTTPServer) handleNotificationCount(w http.ResponseWriter, r *http.Requ
 
 	count, err := s.notificationSvc.CountUnread(r.Context(), userID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "count notifications", err)
 		return
 	}
 
@@ -93,7 +93,7 @@ func (s *HTTPServer) handleMarkNotificationRead(w http.ResponseWriter, r *http.R
 
 	notifID := r.PathValue("id")
 	if err := s.notificationSvc.MarkRead(r.Context(), notifID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "mark notification read", err)
 		return
 	}
 
@@ -109,7 +109,7 @@ func (s *HTTPServer) handleMarkAllNotificationsRead(w http.ResponseWriter, r *ht
 	}
 
 	if err := s.notificationSvc.MarkAllRead(r.Context(), userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "mark all notifications read", err)
 		return
 	}
 

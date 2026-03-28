@@ -97,7 +97,7 @@ func (s *HTTPServer) handleAdminListUsers(w http.ResponseWriter, r *http.Request
 
 	users, total, err := s.userAuth.ListUsers(r.Context(), search, role, sortBy, limit, offset)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list users", err)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (s *HTTPServer) handleAdminUpdateUserRole(w http.ResponseWriter, r *http.Re
 
 	user, err := s.userAuth.UpdateRole(r.Context(), id, req.Role)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "invalid role update", http.StatusBadRequest)
 		return
 	}
 
@@ -172,7 +172,7 @@ func (s *HTTPServer) handleAdminDeleteUser(w http.ResponseWriter, r *http.Reques
 
 	id := r.PathValue("id")
 	if err := s.userAuth.DeleteUser(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -198,7 +198,7 @@ func (s *HTTPServer) handleAdminListAgents(w http.ResponseWriter, r *http.Reques
 
 	result, err := s.registry.ListAgents(r.Context(), filter)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list agents", err)
 		return
 	}
 
@@ -259,7 +259,7 @@ func (s *HTTPServer) handleAdminGetAgent(w http.ResponseWriter, r *http.Request)
 func (s *HTTPServer) handleAdminDeleteAgent(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if err := s.registry.Deregister(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 	s.engine.RemoveAgent(id)
@@ -276,7 +276,7 @@ func (s *HTTPServer) handleAdminVerifyAgent(w http.ResponseWriter, r *http.Reque
 
 	id := r.PathValue("id")
 	if err := s.reputation.SetVerified(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "verify agent", err)
 		return
 	}
 
@@ -293,7 +293,7 @@ func (s *HTTPServer) handleAdminUnverifyAgent(w http.ResponseWriter, r *http.Req
 
 	id := r.PathValue("id")
 	if err := s.reputation.UnsetVerified(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "unverify agent", err)
 		return
 	}
 
@@ -318,7 +318,7 @@ func (s *HTTPServer) handleAdminListReports(w http.ResponseWriter, r *http.Reque
 
 	reports, total, err := s.reviewService.ListReports(r.Context(), status, search, sortBy, limit, offset)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list reports", err)
 		return
 	}
 
@@ -362,7 +362,7 @@ func (s *HTTPServer) handleAdminUpdateReport(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := s.reviewService.UpdateReportStatus(r.Context(), id, req.Status); err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "invalid report status update", http.StatusBadRequest)
 		return
 	}
 
@@ -379,7 +379,7 @@ func (s *HTTPServer) handleAdminDeleteReport(w http.ResponseWriter, r *http.Requ
 
 	id := r.PathValue("id")
 	if err := s.reviewService.DeleteReport(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -407,7 +407,7 @@ func (s *HTTPServer) handleAdminCreateCategory(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := s.reviewService.CreateCategory(r.Context(), &cat); err != nil {
-		s.jsonError(w, err.Error(), http.StatusBadRequest)
+		s.jsonError(w, "failed to create category", http.StatusBadRequest)
 		return
 	}
 
@@ -431,7 +431,7 @@ func (s *HTTPServer) handleAdminUpdateCategory(w http.ResponseWriter, r *http.Re
 	cat.ID = id
 
 	if err := s.reviewService.UpdateCategory(r.Context(), &cat); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -448,7 +448,7 @@ func (s *HTTPServer) handleAdminDeleteCategory(w http.ResponseWriter, r *http.Re
 
 	id := r.PathValue("id")
 	if err := s.reviewService.DeleteCategory(r.Context(), id); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -520,7 +520,7 @@ func (s *HTTPServer) handleAdminListInvocations(w http.ResponseWriter, r *http.R
 
 	records, total, err := s.invocation.ListAll(r.Context(), agentID, userID, sortBy, since, limit, offset)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list invocations", err)
 		return
 	}
 
@@ -730,7 +730,7 @@ func (s *HTTPServer) handleAdminListAudit(w http.ResponseWriter, r *http.Request
 
 	events, total, err := s.adminAudit.List(r.Context(), adminUserID, action, targetType, since, limit, offset)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list audit events", err)
 		return
 	}
 

@@ -45,10 +45,7 @@ func (s *HTTPServer) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ipAddress := r.RemoteAddr
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		ipAddress = fwd
-	}
+	ipAddress := BridgeClientIP(r)
 	userAgent := r.Header.Get("User-Agent")
 
 	user, tokens, err := s.userAuth.Login(r.Context(), req, ipAddress, userAgent)
@@ -207,7 +204,7 @@ func (s *HTTPServer) handleAuthListAPIKeys(w http.ResponseWriter, r *http.Reques
 
 	keys, err := s.userAuth.ListAPIKeys(r.Context(), userID)
 	if err != nil {
-		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		s.internalError(w, r, "list API keys", err)
 		return
 	}
 
@@ -233,7 +230,7 @@ func (s *HTTPServer) handleAuthRevokeAPIKey(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := s.userAuth.RevokeAPIKey(r.Context(), keyID, userID); err != nil {
-		s.jsonError(w, err.Error(), http.StatusNotFound)
+		s.jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -248,10 +245,7 @@ func (s *HTTPServer) handleAuthVerifyEmail(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ipAddress := r.RemoteAddr
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		ipAddress = fwd
-	}
+	ipAddress := BridgeClientIP(r)
 	userAgent := r.Header.Get("User-Agent")
 
 	user, tokens, err := s.userAuth.VerifyEmail(r.Context(), req, ipAddress, userAgent)
