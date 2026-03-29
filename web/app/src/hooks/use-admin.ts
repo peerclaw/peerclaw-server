@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/hooks/use-auth"
 import * as adminAPI from "@/api/admin"
 import type {
@@ -14,55 +14,15 @@ import type {
   AdminAuditListResponse,
 } from "@/api/types"
 
-// ----- Generic query hook -----
-
-interface UseQueryResult<T> {
-  data: T | null
-  loading: boolean
-  error: string | null
-  refetch: () => void
-}
-
-function useAdminQuery<T>(
-  fetcher: (token: string) => Promise<T>,
-  skip = false
-): UseQueryResult<T> {
-  const { accessToken } = useAuth()
-  const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(!skip)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    if (!accessToken) return
-    try {
-      setLoading(true)
-      setError(null)
-      const result = await fetcher(accessToken)
-      setData(result)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed")
-    } finally {
-      setLoading(false)
-    }
-  }, [accessToken, fetcher])
-
-  useEffect(() => {
-    if (!skip) {
-      load()
-    }
-  }, [load, skip])
-
-  return { data, loading, error, refetch: load }
-}
-
 // ----- Dashboard -----
 
-export function useAdminDashboard(): UseQueryResult<AdminDashboardStats> {
-  const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminDashboard(token),
-    []
-  )
-  return useAdminQuery(fetcher)
+export function useAdminDashboard() {
+  const { accessToken } = useAuth()
+  return useQuery<AdminDashboardStats>({
+    queryKey: ["admin", "dashboard"],
+    queryFn: () => adminAPI.fetchAdminDashboard(accessToken!),
+    enabled: !!accessToken,
+  })
 }
 
 // ----- Users -----
@@ -73,12 +33,14 @@ export function useAdminUsers(
   sort?: string,
   limit = 50,
   offset = 0
-): UseQueryResult<AdminUserListResponse> {
-  const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminUsers(token, { search, role, sort, limit, offset }),
-    [search, role, sort, limit, offset]
-  )
-  return useAdminQuery(fetcher)
+) {
+  const { accessToken } = useAuth()
+  return useQuery<AdminUserListResponse>({
+    queryKey: ["admin", "users", { search, role, sort, limit, offset }],
+    queryFn: () =>
+      adminAPI.fetchAdminUsers(accessToken!, { search, role, sort, limit, offset }),
+    enabled: !!accessToken,
+  })
 }
 
 // ----- Agents -----
@@ -90,20 +52,23 @@ export function useAdminAgents(
   sort?: string,
   limit = 50,
   offset = 0
-): UseQueryResult<AgentListResponse> {
-  const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminAgents(token, { search, protocol, status, sort, limit, offset }),
-    [search, protocol, status, sort, limit, offset]
-  )
-  return useAdminQuery(fetcher)
+) {
+  const { accessToken } = useAuth()
+  return useQuery<AgentListResponse>({
+    queryKey: ["admin", "agents", { search, protocol, status, sort, limit, offset }],
+    queryFn: () =>
+      adminAPI.fetchAdminAgents(accessToken!, { search, protocol, status, sort, limit, offset }),
+    enabled: !!accessToken,
+  })
 }
 
-export function useAdminAgent(id: string | undefined): UseQueryResult<AdminAgentDetail> {
-  const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminAgent(token, id!),
-    [id]
-  )
-  return useAdminQuery(fetcher, !id)
+export function useAdminAgent(id: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery<AdminAgentDetail>({
+    queryKey: ["admin", "agent", id],
+    queryFn: () => adminAPI.fetchAdminAgent(accessToken!, id!),
+    enabled: !!accessToken && !!id,
+  })
 }
 
 // ----- Reports -----
@@ -114,26 +79,26 @@ export function useAdminReports(
   sort?: string,
   limit = 50,
   offset = 0
-): UseQueryResult<AdminReportListResponse> {
-  const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminReports(token, { status, search, sort, limit, offset }),
-    [status, search, sort, limit, offset]
-  )
-  return useAdminQuery(fetcher)
+) {
+  const { accessToken } = useAuth()
+  return useQuery<AdminReportListResponse>({
+    queryKey: ["admin", "reports", { status, search, sort, limit, offset }],
+    queryFn: () =>
+      adminAPI.fetchAdminReports(accessToken!, { status, search, sort, limit, offset }),
+    enabled: !!accessToken,
+  })
 }
 
 // ----- Analytics -----
 
-export function useAdminAnalytics(
-  since?: string,
-  bucketMinutes?: number
-): UseQueryResult<GlobalAnalytics> {
-  const fetcher = useCallback(
-    (token: string) =>
-      adminAPI.fetchAdminAnalytics(token, { since, bucket_minutes: bucketMinutes }),
-    [since, bucketMinutes]
-  )
-  return useAdminQuery(fetcher)
+export function useAdminAnalytics(since?: string, bucketMinutes?: number) {
+  const { accessToken } = useAuth()
+  return useQuery<GlobalAnalytics>({
+    queryKey: ["admin", "analytics", { since, bucketMinutes }],
+    queryFn: () =>
+      adminAPI.fetchAdminAnalytics(accessToken!, { since, bucket_minutes: bucketMinutes }),
+    enabled: !!accessToken,
+  })
 }
 
 // ----- Invocations -----
@@ -145,10 +110,12 @@ export function useAdminInvocations(
   since?: string,
   limit = 50,
   offset = 0
-): UseQueryResult<AdminInvocationListResponse> {
-  const fetcher = useCallback(
-    (token: string) =>
-      adminAPI.fetchAdminInvocations(token, {
+) {
+  const { accessToken } = useAuth()
+  return useQuery<AdminInvocationListResponse>({
+    queryKey: ["admin", "invocations", { agentId, userId, sort, since, limit, offset }],
+    queryFn: () =>
+      adminAPI.fetchAdminInvocations(accessToken!, {
         agent_id: agentId,
         user_id: userId,
         sort,
@@ -156,17 +123,17 @@ export function useAdminInvocations(
         limit,
         offset,
       }),
-    [agentId, userId, sort, since, limit, offset]
-  )
-  return useAdminQuery(fetcher)
+    enabled: !!accessToken,
+  })
 }
 
-export function useAdminInvocation(id: string | undefined): UseQueryResult<InvocationRecord> {
-  const fetcher = useCallback(
-    (token: string) => adminAPI.fetchAdminInvocation(token, id!),
-    [id]
-  )
-  return useAdminQuery(fetcher, !id)
+export function useAdminInvocation(id: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery<InvocationRecord>({
+    queryKey: ["admin", "invocation", id],
+    queryFn: () => adminAPI.fetchAdminInvocation(accessToken!, id!),
+    enabled: !!accessToken && !!id,
+  })
 }
 
 // ----- Audit Log -----
@@ -178,10 +145,12 @@ export function useAdminAudit(
   since?: string,
   limit = 50,
   offset = 0
-): UseQueryResult<AdminAuditListResponse> {
-  const fetcher = useCallback(
-    (token: string) =>
-      adminAPI.fetchAdminAudit(token, {
+) {
+  const { accessToken } = useAuth()
+  return useQuery<AdminAuditListResponse>({
+    queryKey: ["admin", "audit", { adminUserID, action, targetType, since, limit, offset }],
+    queryFn: () =>
+      adminAPI.fetchAdminAudit(accessToken!, {
         admin_user_id: adminUserID,
         action,
         target_type: targetType,
@@ -189,152 +158,110 @@ export function useAdminAudit(
         limit,
         offset,
       }),
-    [adminUserID, action, targetType, since, limit, offset]
-  )
-  return useAdminQuery(fetcher)
+    enabled: !!accessToken,
+  })
 }
 
-// ----- Categories (uses existing public endpoint + admin mutations) -----
+// ----- Categories (public endpoint + admin mutations) -----
 
-export function useAdminCategories(): UseQueryResult<{ categories: Category[] }> {
-  const [data, setData] = useState<{ categories: Category[] } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
+export function useAdminCategories() {
+  return useQuery<{ categories: Category[] }>({
+    queryKey: ["categories"],
+    queryFn: async () => {
       const res = await fetch("/api/v1/categories")
       if (!res.ok) throw new Error("Failed to fetch categories")
-      const result = await res.json()
-      setData(result)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  return { data, loading, error, refetch: load }
+      return res.json() as Promise<{ categories: Category[] }>
+    },
+  })
 }
 
 // ----- Mutations -----
 
 export function useAdminMutations() {
   const { accessToken } = useAuth()
+  const qc = useQueryClient()
 
-  const updateUserRole = useCallback(
-    async (id: string, role: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.updateAdminUserRole(accessToken, id, role)
-    },
-    [accessToken]
-  )
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => adminAPI.deleteAdminUser(accessToken!, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
 
-  const deleteUser = useCallback(
-    async (id: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.deleteAdminUser(accessToken, id)
-    },
-    [accessToken]
-  )
+  const updateUserRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) =>
+      adminAPI.updateAdminUserRole(accessToken!, id, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
 
-  const deleteAgent = useCallback(
-    async (id: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.deleteAdminAgent(accessToken, id)
-    },
-    [accessToken]
-  )
+  const deleteAgent = useMutation({
+    mutationFn: (id: string) => adminAPI.deleteAdminAgent(accessToken!, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "agents"] }),
+  })
 
-  const verifyAgent = useCallback(
-    async (id: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.verifyAdminAgent(accessToken, id)
+  const verifyAgent = useMutation({
+    mutationFn: (id: string) => adminAPI.verifyAdminAgent(accessToken!, id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "agents"] })
+      qc.invalidateQueries({ queryKey: ["admin", "agent"] })
     },
-    [accessToken]
-  )
+  })
 
-  const unverifyAgent = useCallback(
-    async (id: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.unverifyAdminAgent(accessToken, id)
+  const unverifyAgent = useMutation({
+    mutationFn: (id: string) => adminAPI.unverifyAdminAgent(accessToken!, id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "agents"] })
+      qc.invalidateQueries({ queryKey: ["admin", "agent"] })
     },
-    [accessToken]
-  )
+  })
 
-  const updateReport = useCallback(
-    async (id: string, status: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.updateAdminReport(accessToken, id, status)
-    },
-    [accessToken]
-  )
+  const updateReport = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      adminAPI.updateAdminReport(accessToken!, id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "reports"] }),
+  })
 
-  const deleteReport = useCallback(
-    async (id: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.deleteAdminReport(accessToken, id)
-    },
-    [accessToken]
-  )
+  const deleteReport = useMutation({
+    mutationFn: (id: string) => adminAPI.deleteAdminReport(accessToken!, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "reports"] }),
+  })
 
-  const createCategory = useCallback(
-    async (data: Omit<Category, "id"> & { id?: string }) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.createAdminCategory(accessToken, data)
-    },
-    [accessToken]
-  )
+  const createCategory = useMutation({
+    mutationFn: (data: Omit<Category, "id"> & { id?: string }) =>
+      adminAPI.createAdminCategory(accessToken!, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["categories"] }),
+  })
 
-  const updateCategory = useCallback(
-    async (id: string, data: Partial<Category>) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.updateAdminCategory(accessToken, id, data)
-    },
-    [accessToken]
-  )
+  const updateCategory = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Category> }) =>
+      adminAPI.updateAdminCategory(accessToken!, id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["categories"] }),
+  })
 
-  const deleteCategory = useCallback(
-    async (id: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.deleteAdminCategory(accessToken, id)
-    },
-    [accessToken]
-  )
+  const deleteCategory = useMutation({
+    mutationFn: (id: string) => adminAPI.deleteAdminCategory(accessToken!, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["categories"] }),
+  })
 
-  const bulkAgentsAction = useCallback(
-    async (action: string, ids: string[]) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.bulkAgents(accessToken, action, ids)
-    },
-    [accessToken]
-  )
+  const bulkAgentsAction = useMutation({
+    mutationFn: ({ action, ids }: { action: string; ids: string[] }) =>
+      adminAPI.bulkAgents(accessToken!, action, ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "agents"] }),
+  })
 
-  const bulkReportsAction = useCallback(
-    async (action: string, ids: string[]) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.bulkReports(accessToken, action, ids)
-    },
-    [accessToken]
-  )
+  const bulkReportsAction = useMutation({
+    mutationFn: ({ action, ids }: { action: string; ids: string[] }) =>
+      adminAPI.bulkReports(accessToken!, action, ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "reports"] }),
+  })
 
-  const bulkUsersAction = useCallback(
-    async (action: string, ids: string[], role?: string) => {
-      if (!accessToken) throw new Error("Not authenticated")
-      return adminAPI.bulkUsers(accessToken, action, ids, role)
-    },
-    [accessToken]
-  )
+  const bulkUsersAction = useMutation({
+    mutationFn: ({ action, ids, role }: { action: string; ids: string[]; role?: string }) =>
+      adminAPI.bulkUsers(accessToken!, action, ids, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
 
   return {
-    updateUserRole,
     deleteUser,
+    updateUserRole,
     deleteAgent,
     verifyAgent,
     unverifyAgent,

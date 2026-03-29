@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/card"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 
-const PAGE_SIZE = 20
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 const DATE_RANGES = [
   { label: "Today", value: () => new Date(new Date().setHours(0, 0, 0, 0)).toISOString() },
@@ -35,7 +37,7 @@ export function AuditLogPage() {
   const [sinceFilter, setSinceFilter] = useState("")
   const [page, setPage] = useState(0)
 
-  const { data, loading, error } = useAdminAudit(
+  const { data, isLoading, error } = useAdminAudit(
     adminFilter || undefined,
     actionFilter || undefined,
     targetTypeFilter || undefined,
@@ -112,7 +114,7 @@ export function AuditLogPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Card>
           <CardContent className="p-0">
             <TableSkeleton rows={5} cols={6} />
@@ -120,7 +122,7 @@ export function AuditLogPage() {
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error?.message}</p>
         </div>
       ) : (
         <>

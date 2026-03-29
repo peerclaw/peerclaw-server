@@ -25,7 +25,9 @@ import { SortableHeader } from "@/components/ui/sortable-header"
 import { SelectableTable } from "@/components/ui/selectable-table"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 
-const PAGE_SIZE = 20
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export function UsersPage() {
   const { t } = useTranslation()
@@ -36,7 +38,7 @@ export function UsersPage() {
   const [editingUser, setEditingUser] = useState<{ id: string; role: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
-  const { data, loading, error, refetch } = useAdminUsers(
+  const { data, isLoading, error } = useAdminUsers(
     search || undefined,
     roleFilter || undefined,
     sort || undefined,
@@ -48,42 +50,39 @@ export function UsersPage() {
   const handleRoleChange = useCallback(
     async (id: string, role: string) => {
       try {
-        await updateUserRole(id, role)
+        await updateUserRole.mutateAsync({ id, role })
         setEditingUser(null)
         toast.success(t('toast.roleUpdated'))
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [updateUserRole, refetch]
+    [updateUserRole, t]
   )
 
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await deleteUser(id)
+        await deleteUser.mutateAsync(id)
         setConfirmDelete(null)
         toast.success(t('toast.userDeleted'))
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [deleteUser, refetch]
+    [deleteUser, t]
   )
 
   const handleBulkAction = useCallback(
     async (action: string, ids: string[]) => {
       try {
-        const result = await bulkUsersAction(action, ids)
+        const result = await bulkUsersAction.mutateAsync({ action, ids })
         toast.success(t("common.bulkActions") + `: ${result.success} success, ${result.errors} errors`)
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("toast.operationFailed"))
       }
     },
-    [bulkUsersAction, refetch, t]
+    [bulkUsersAction, t]
   )
 
   const userBulkActions = [
@@ -168,7 +167,7 @@ export function UsersPage() {
         </select>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Card>
           <CardContent className="p-0">
             <div aria-live="polite"><TableSkeleton rows={5} cols={5} /></div>
@@ -176,7 +175,7 @@ export function UsersPage() {
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive" role="alert">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error?.message}</p>
         </div>
       ) : (
         <>

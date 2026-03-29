@@ -18,7 +18,9 @@ import { SortableHeader } from "@/components/ui/sortable-header"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
-const PAGE_SIZE = 20
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export function ReportsPage() {
   const { t } = useTranslation()
@@ -36,7 +38,7 @@ export function ReportsPage() {
     { label: t('adminReports.actioned'), value: "actioned" },
   ]
 
-  const { data, loading, error, refetch } = useAdminReports(
+  const { data, isLoading, error } = useAdminReports(
     statusFilter || undefined,
     search || undefined,
     sort || undefined,
@@ -48,42 +50,39 @@ export function ReportsPage() {
   const handleStatusChange = useCallback(
     async (id: string, newStatus: string) => {
       try {
-        await updateReport(id, newStatus)
+        await updateReport.mutateAsync({ id, status: newStatus })
         toast.success(t('toast.reportUpdated'))
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [updateReport, refetch]
+    [updateReport, t]
   )
 
   const handleDelete = useCallback(
     async () => {
       if (!deleteTarget) return
       try {
-        await deleteReport(deleteTarget)
+        await deleteReport.mutateAsync(deleteTarget)
         setDeleteTarget(null)
         toast.success(t('toast.reportDeleted'))
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [deleteTarget, deleteReport, refetch]
+    [deleteTarget, deleteReport, t]
   )
 
   const handleBulkAction = useCallback(
     async (action: string, ids: string[]) => {
       try {
-        const result = await bulkReportsAction(action, ids)
+        const result = await bulkReportsAction.mutateAsync({ action, ids })
         toast.success(t("common.bulkActions") + `: ${result.success} success, ${result.errors} errors`)
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("toast.operationFailed"))
       }
     },
-    [bulkReportsAction, refetch, t]
+    [bulkReportsAction, t]
   )
 
   const reportBulkActions = [
@@ -150,7 +149,7 @@ export function ReportsPage() {
         ))}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Card>
           <CardContent className="p-0">
             <TableSkeleton rows={5} cols={7} />
@@ -158,7 +157,7 @@ export function ReportsPage() {
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error?.message}</p>
         </div>
       ) : (
         <>

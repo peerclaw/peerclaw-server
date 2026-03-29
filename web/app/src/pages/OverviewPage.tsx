@@ -37,7 +37,7 @@ function useCssColor(varName: string): string {
 export function OverviewPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { data, loading, error } = useAdminDashboard()
+  const { data, isLoading, error } = useAdminDashboard()
   // Fetch agents for protocol distribution (first page only, small page size)
   const { data: agentsData } = useAdminAgents(undefined, undefined, undefined, undefined, 200, 0)
   // Fetch recent audit events for activity feed
@@ -66,7 +66,7 @@ export function OverviewPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }))
   }, [agentsData])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
@@ -83,7 +83,7 @@ export function OverviewPage() {
   if (error) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive">{error?.message}</p>
       </div>
     )
   }

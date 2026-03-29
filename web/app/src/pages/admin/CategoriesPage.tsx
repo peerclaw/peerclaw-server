@@ -39,7 +39,7 @@ const emptyForm: CategoryFormData = {
 
 export function CategoriesPage() {
   const { t } = useTranslation()
-  const { data, loading, error, refetch } = useAdminCategories()
+  const { data, isLoading, error } = useAdminCategories()
   const { createCategory, updateCategory, deleteCategory } = useAdminMutations()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -49,19 +49,18 @@ export function CategoriesPage() {
   const handleSubmit = useCallback(async () => {
     try {
       if (editingId) {
-        await updateCategory(editingId, form)
+        await updateCategory.mutateAsync({ id: editingId, data: form })
       } else {
-        await createCategory(form)
+        await createCategory.mutateAsync(form)
       }
       setShowForm(false)
       setEditingId(null)
       setForm(emptyForm)
       toast.success(t('toast.categorySaved'))
-      refetch()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     }
-  }, [editingId, form, createCategory, updateCategory, refetch])
+  }, [editingId, form, createCategory, updateCategory, t])
 
   const handleEdit = useCallback((cat: Category) => {
     setEditingId(cat.id)
@@ -79,15 +78,14 @@ export function CategoriesPage() {
     async () => {
       if (!deleteTarget) return
       try {
-        await deleteCategory(deleteTarget)
+        await deleteCategory.mutateAsync(deleteTarget)
         setDeleteTarget(null)
         toast.success(t('toast.categoryDeleted'))
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [deleteTarget, deleteCategory, refetch]
+    [deleteTarget, deleteCategory, t]
   )
 
   const categories = data?.categories ?? []
@@ -183,13 +181,13 @@ export function CategoriesPage() {
         </Card>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex h-40 items-center justify-center">
           <p className="text-sm text-muted-foreground">{t('adminCategories.loadingCategories')}</p>
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error?.message}</p>
         </div>
       ) : (
         <Card>

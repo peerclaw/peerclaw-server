@@ -16,7 +16,7 @@ export function AgentEditPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: agent, loading, error } = useProviderAgent(id)
+  const { data: agent, isLoading: loading, error } = useProviderAgent(id)
   const { updateAgent } = useProviderMutations()
 
   const [submitting, setSubmitting] = useState(false)
@@ -76,7 +76,7 @@ export function AgentEditPage() {
   if (error) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive">{error?.message}</p>
       </div>
     )
   }

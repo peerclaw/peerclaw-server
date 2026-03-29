@@ -26,7 +26,9 @@ import {
 import { SortableHeader } from "@/components/ui/sortable-header"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 
-const PAGE_SIZE = 20
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export function AgentsPage() {
   const { t } = useTranslation()
@@ -38,7 +40,7 @@ export function AgentsPage() {
   const [page, setPage] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
-  const { data, loading, error, refetch } = useAdminAgents(
+  const { data, isLoading, error } = useAdminAgents(
     search || undefined,
     protocol || undefined,
     status || undefined,
@@ -51,29 +53,27 @@ export function AgentsPage() {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await deleteAgent(id)
+        await deleteAgent.mutateAsync(id)
         setConfirmDelete(null)
         toast.success(t('toast.agentDeleted'))
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
       }
     },
-    [deleteAgent, refetch]
+    [deleteAgent, t]
   )
 
 
   const handleBulkAction = useCallback(
     async (action: string, ids: string[]) => {
       try {
-        const result = await bulkAgentsAction(action, ids)
+        const result = await bulkAgentsAction.mutateAsync({ action, ids })
         toast.success(t("common.bulkActions") + `: ${result.success} success, ${result.errors} errors`)
-        refetch()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("toast.operationFailed"))
       }
     },
-    [bulkAgentsAction, refetch, t]
+    [bulkAgentsAction, t]
   )
 
   const agentBulkActions = [
@@ -175,7 +175,7 @@ export function AgentsPage() {
         </select>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Card>
           <CardContent className="p-0">
             <div aria-live="polite"><TableSkeleton rows={5} cols={6} /></div>
@@ -183,7 +183,7 @@ export function AgentsPage() {
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive" role="alert">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error?.message}</p>
         </div>
       ) : (
         <>

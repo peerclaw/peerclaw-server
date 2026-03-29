@@ -21,7 +21,9 @@ import { SortableHeader } from "@/components/ui/sortable-header"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { Bot, PlusCircle, ChevronDown, ChevronUp } from "lucide-react"
 
-const PAGE_SIZE = 20
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export function ProviderAgentsPage() {
   const { t } = useTranslation()
@@ -31,7 +33,7 @@ export function ProviderAgentsPage() {
   const [page, setPage] = useState(0)
   const [showRegister, setShowRegister] = useState(false)
 
-  const { data, loading, error } = useProviderAgents(
+  const { data, isLoading, error } = useProviderAgents(
     search || undefined,
     status || undefined,
     sort || undefined,
@@ -104,7 +106,7 @@ export function ProviderAgentsPage() {
         </select>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Card>
           <CardContent className="p-0">
             <div aria-live="polite">
@@ -114,7 +116,7 @@ export function ProviderAgentsPage() {
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive" role="alert">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error?.message}</p>
         </div>
       ) : agents.length === 0 && !search && !status ? (
         <div className="flex flex-col items-center justify-center h-40 rounded-lg border border-dashed border-border">

@@ -35,7 +35,9 @@ import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { CopyButton } from "@/components/ui/copy-button"
 import type { InvocationRecord } from "@/api/types"
 
-const PAGE_SIZE = 50
+import { ADMIN_PAGE_SIZE } from "@/lib/constants"
+
+const PAGE_SIZE = ADMIN_PAGE_SIZE
 
 type TimeRange = "today" | "7d" | "30d" | "all"
 
@@ -65,7 +67,7 @@ export function InvocationsPage() {
 
   const since = useMemo(() => getSinceISO(timeRange), [timeRange])
 
-  const { data, loading, error } = useAdminInvocations(
+  const { data, isLoading, error } = useAdminInvocations(
     agentFilter || undefined,
     userFilter || undefined,
     sort || undefined,
@@ -185,7 +187,7 @@ export function InvocationsPage() {
       </div>
 
       {/* Status summary bar */}
-      {statusSummary && !loading && (
+      {statusSummary && !isLoading && (
         <div className="text-sm text-muted-foreground">
           {t('invocations.statusSummary', {
             total,
@@ -196,7 +198,7 @@ export function InvocationsPage() {
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <Card>
           <CardContent className="p-0">
             <div aria-live="polite"><TableSkeleton rows={5} cols={8} /></div>
@@ -204,7 +206,7 @@ export function InvocationsPage() {
         </Card>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive" role="alert">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error?.message}</p>
         </div>
       ) : (
         <>

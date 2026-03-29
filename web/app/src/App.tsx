@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react"
 import { Routes, Route } from "react-router-dom"
 import { Toaster } from "sonner"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { ConsoleLayout } from "@/components/layout/ConsoleLayout"
@@ -40,9 +41,20 @@ const AnalyticsPage = lazy(() => import("@/pages/admin/AnalyticsPage").then(m =>
 const InvocationsPage = lazy(() => import("@/pages/admin/InvocationsPage").then(m => ({ default: m.InvocationsPage })))
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage").then(m => ({ default: m.AuditLogPage })))
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
+
 export function App() {
   return (
     <div className="dark">
+      <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Routes>
           {/* Public routes */}
@@ -119,6 +131,7 @@ export function App() {
           }}
         />
       </AuthProvider>
+      </QueryClientProvider>
     </div>
   )
 }

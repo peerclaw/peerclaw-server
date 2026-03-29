@@ -25,36 +25,34 @@ export function AgentDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data, loading, error, refetch } = useAdminAgent(id)
+  const { data, isLoading, error } = useAdminAgent(id)
   const { verifyAgent, unverifyAgent, deleteAgent } = useAdminMutations()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleVerify = useCallback(async () => {
     if (!id) return
     try {
-      await verifyAgent(id)
+      await verifyAgent.mutateAsync(id)
       toast.success(t('toast.agentVerified'))
-      refetch()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     }
-  }, [id, verifyAgent, refetch, t])
+  }, [id, verifyAgent, t])
 
   const handleUnverify = useCallback(async () => {
     if (!id) return
     try {
-      await unverifyAgent(id)
+      await unverifyAgent.mutateAsync(id)
       toast.success(t('toast.agentUnverified'))
-      refetch()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('toast.operationFailed'))
     }
-  }, [id, unverifyAgent, refetch, t])
+  }, [id, unverifyAgent, t])
 
   const handleDelete = useCallback(async () => {
     if (!id) return
     try {
-      await deleteAgent(id)
+      await deleteAgent.mutateAsync(id)
       toast.success(t('toast.agentDeleted'))
       navigate("/admin/agents")
     } catch (e) {
@@ -62,7 +60,7 @@ export function AgentDetailPage() {
     }
   }, [id, deleteAgent, navigate, t])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <p className="text-sm text-muted-foreground">{t('adminDetail.loadingDetails')}</p>
@@ -73,7 +71,7 @@ export function AgentDetailPage() {
   if (error) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive">{error?.message}</p>
       </div>
     )
   }

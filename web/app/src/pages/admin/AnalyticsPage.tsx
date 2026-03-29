@@ -76,7 +76,7 @@ export function AnalyticsPage() {
     [range.hours]
   )
 
-  const { data, loading, error } = useAdminAnalytics(since, range.bucket)
+  const { data, isLoading, error } = useAdminAnalytics(since, range.bucket)
 
   const stats = data?.stats
   const topAgents = data?.top_agents ?? []
@@ -195,7 +195,7 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
@@ -204,7 +204,7 @@ export function AnalyticsPage() {
         </div>
       ) : error ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-destructive" role="alert">{error}</p>
+          <p className="text-sm text-destructive" role="alert">{error?.message}</p>
         </div>
       ) : (
         <>

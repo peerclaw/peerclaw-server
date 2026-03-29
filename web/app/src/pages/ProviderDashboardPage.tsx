@@ -31,9 +31,9 @@ export function ProviderDashboardPage() {
   const since = timeRange > 0
     ? new Date(Date.now() - timeRange * 86400000).toISOString()
     : undefined
-  const { data, loading, error } = useProviderDashboard(since)
+  const { data, isLoading, error } = useProviderDashboard(since)
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
@@ -51,7 +51,7 @@ export function ProviderDashboardPage() {
   if (error) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive">{error?.message}</p>
       </div>
     )
   }

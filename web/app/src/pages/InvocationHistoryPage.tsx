@@ -14,7 +14,9 @@ import {
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 
-const PAGE_SIZE = 20
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 type TimeRange = "today" | "7d" | "30d" | "all"
 
@@ -35,7 +37,7 @@ export function InvocationHistoryPage() {
   const { t } = useTranslation()
   const [page, setPage] = useState(1)
   const [timeRange, setTimeRange] = useState<TimeRange>("all")
-  const { data, loading, error, refetch } = useProviderInvocations(page, PAGE_SIZE)
+  const { data, isLoading, error, refetch } = useProviderInvocations(page, PAGE_SIZE)
 
   const cutoff = useMemo(() => getSinceCutoff(timeRange), [timeRange])
 
@@ -87,8 +89,8 @@ export function InvocationHistoryPage() {
             {t('invocations.description')}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
-          <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+          <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
           {t('common.refresh')}
         </Button>
       </div>
@@ -107,13 +109,13 @@ export function InvocationHistoryPage() {
         ))}
       </div>
 
-      {loading && !data && (
+      {isLoading && !data && (
         <TableSkeleton rows={8} cols={5} />
       )}
 
       {error && (
         <div className="flex h-64 items-center justify-center">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error?.message}</p>
         </div>
       )}
 

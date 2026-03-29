@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react"
+import { useCallback } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetchWithAuth, fetchSDKVersion, type SDKVersionResponse } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { generateClaimToken, listClaimTokens } from "@/api/claim"
@@ -97,42 +98,15 @@ export interface InvocationListResponse {
   total: number
 }
 
-// ----- Hook helpers -----
+// ----- Generic query helper -----
 
-interface UseQueryResult<T> {
-  data: T | null
-  loading: boolean
-  error: string | null
-  refetch: () => void
-}
-
-function useProviderQuery<T>(path: string, skip = false): UseQueryResult<T> {
+function useProviderQuery<T>(path: string, skip = false) {
   const { accessToken } = useAuth()
-  const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(!skip)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    if (!accessToken) return
-    try {
-      setLoading(true)
-      setError(null)
-      const result = await fetchWithAuth<T>(path, accessToken)
-      setData(result)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed")
-    } finally {
-      setLoading(false)
-    }
-  }, [path, accessToken])
-
-  useEffect(() => {
-    if (!skip) {
-      load()
-    }
-  }, [load, skip])
-
-  return { data, loading, error, refetch: load }
+  return useQuery<T>({
+    queryKey: ["provider", path],
+    queryFn: () => fetchWithAuth<T>(path, accessToken!),
+    enabled: !!accessToken && !skip,
+  })
 }
 
 // ----- Hooks -----
@@ -143,7 +117,7 @@ export function useProviderAgents(
   sort?: string,
   limit = 50,
   offset = 0
-): UseQueryResult<{ agents: ProviderAgent[]; total_count: number }> {
+) {
   const params = new URLSearchParams()
   if (search) params.set("search", search)
   if (status) params.set("status", status)
@@ -156,63 +130,63 @@ export function useProviderAgents(
   )
 }
 
-export function useProviderAgent(id: string | undefined): UseQueryResult<ProviderAgent> {
+export function useProviderAgent(id: string | undefined) {
   return useProviderQuery<ProviderAgent>(
     `/provider/agents/${id}`,
     !id
   )
 }
 
-export function useProviderDashboard(since?: string): UseQueryResult<ProviderDashboardData> {
+export function useProviderDashboard(since?: string) {
   const qs = since ? `?since=${encodeURIComponent(since)}` : ""
   return useProviderQuery<ProviderDashboardData>(`/provider/dashboard${qs}`)
 }
 
-export function useAgentAnalytics(agentId: string | undefined): UseQueryResult<AgentAnalytics> {
+export function useAgentAnalytics(agentId: string | undefined) {
   return useProviderQuery<AgentAnalytics>(
     `/provider/agents/${agentId}/analytics`,
     !agentId
   )
 }
 
-export function useProviderInvocations(
-  page = 1,
-  pageSize = 20
-): UseQueryResult<InvocationListResponse> {
+export function useProviderInvocations(page = 1, pageSize = 20) {
   const query = new URLSearchParams()
   query.set("limit", String(pageSize))
   query.set("offset", String((page - 1) * pageSize))
   const qs = query.toString()
-  return useProviderQuery<InvocationListResponse>(
-    `/invocations?${qs}`
-  )
+  return useProviderQuery<InvocationListResponse>(`/invocations?${qs}`)
 }
 
 // ----- Mutations -----
 
 export function useProviderMutations() {
   const { accessToken } = useAuth()
+  const qc = useQueryClient()
 
   const registerAgent = useCallback(
     async (data: RegisterAgentData): Promise<ProviderAgent> => {
       if (!accessToken) throw new Error("Not authenticated")
-      return fetchWithAuth<ProviderAgent>("/provider/agents", accessToken, {
+      const result = await fetchWithAuth<ProviderAgent>("/provider/agents", accessToken, {
         method: "POST",
         body: JSON.stringify(data),
       })
+      qc.invalidateQueries({ queryKey: ["provider"] })
+      return result
     },
-    [accessToken]
+    [accessToken, qc]
   )
 
   const updateAgent = useCallback(
     async (id: string, data: Partial<RegisterAgentData>): Promise<ProviderAgent> => {
       if (!accessToken) throw new Error("Not authenticated")
-      return fetchWithAuth<ProviderAgent>(`/provider/agents/${id}`, accessToken, {
+      const result = await fetchWithAuth<ProviderAgent>(`/provider/agents/${id}`, accessToken, {
         method: "PUT",
         body: JSON.stringify(data),
       })
+      qc.invalidateQueries({ queryKey: ["provider"] })
+      return result
     },
-    [accessToken]
+    [accessToken, qc]
   )
 
   const deleteAgent = useCallback(
@@ -221,8 +195,9 @@ export function useProviderMutations() {
       await fetchWithAuth<void>(`/provider/agents/${id}`, accessToken, {
         method: "DELETE",
       })
+      qc.invalidateQueries({ queryKey: ["provider"] })
     },
-    [accessToken]
+    [accessToken, qc]
   )
 
   return { registerAgent, updateAgent, deleteAgent }
@@ -230,9 +205,7 @@ export function useProviderMutations() {
 
 // ----- Agent Contacts Hooks -----
 
-export function useAgentContacts(
-  agentId: string | undefined
-): UseQueryResult<{ contacts: AgentContact[] }> {
+export function useAgentContacts(agentId: string | undefined) {
   return useProviderQuery<{ contacts: AgentContact[] }>(
     `/provider/agents/${agentId}/contacts`,
     !agentId
@@ -241,12 +214,13 @@ export function useAgentContacts(
 
 export function useAgentContactMutations(agentId: string | undefined) {
   const { accessToken } = useAuth()
+  const qc = useQueryClient()
 
   const addContact = useCallback(
     async (contactAgentId: string, alias = ""): Promise<AgentContact> => {
       if (!accessToken) throw new Error("Not authenticated")
       if (!agentId) throw new Error("Agent ID required")
-      return fetchWithAuth<AgentContact>(
+      const result = await fetchWithAuth<AgentContact>(
         `/provider/agents/${agentId}/contacts`,
         accessToken,
         {
@@ -257,8 +231,10 @@ export function useAgentContactMutations(agentId: string | undefined) {
           }),
         }
       )
+      qc.invalidateQueries({ queryKey: ["provider", `/provider/agents/${agentId}/contacts`] })
+      return result
     },
-    [accessToken, agentId]
+    [accessToken, agentId, qc]
   )
 
   const removeContact = useCallback(
@@ -270,8 +246,9 @@ export function useAgentContactMutations(agentId: string | undefined) {
         accessToken,
         { method: "DELETE" }
       )
+      qc.invalidateQueries({ queryKey: ["provider", `/provider/agents/${agentId}/contacts`] })
     },
-    [accessToken, agentId]
+    [accessToken, agentId, qc]
   )
 
   return { addContact, removeContact }
@@ -279,44 +256,29 @@ export function useAgentContactMutations(agentId: string | undefined) {
 
 // ----- Claim Token Hooks -----
 
-export function useClaimTokens(): UseQueryResult<{ tokens: ClaimToken[] }> {
+export function useClaimTokens() {
   const { accessToken } = useAuth()
-  const [data, setData] = useState<{ tokens: ClaimToken[] } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    if (!accessToken) return
-    try {
-      setLoading(true)
-      setError(null)
-      const result = await listClaimTokens(accessToken)
-      setData(result)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed")
-    } finally {
-      setLoading(false)
-    }
-  }, [accessToken])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  return { data, loading, error, refetch: load }
+  return useQuery<{ tokens: ClaimToken[] }>({
+    queryKey: ["claimTokens"],
+    queryFn: () => listClaimTokens(accessToken!),
+    enabled: !!accessToken,
+  })
 }
 
 export function useGenerateClaimToken() {
   const { accessToken } = useAuth()
+  const qc = useQueryClient()
 
   const generate = useCallback(
     async (
       params: GenerateClaimTokenRequest
     ): Promise<GenerateClaimTokenResponse> => {
       if (!accessToken) throw new Error("Not authenticated")
-      return generateClaimToken(accessToken, params)
+      const result = await generateClaimToken(accessToken, params)
+      qc.invalidateQueries({ queryKey: ["claimTokens"] })
+      return result
     },
-    [accessToken]
+    [accessToken, qc]
   )
 
   return { generate }
@@ -324,9 +286,7 @@ export function useGenerateClaimToken() {
 
 // ----- Access Request Hooks -----
 
-export function useAgentAccessRequests(
-  agentId: string | undefined
-): UseQueryResult<{ requests: AccessRequest[] }> {
+export function useAgentAccessRequests(agentId: string | undefined) {
   return useProviderQuery<{ requests: AccessRequest[] }>(
     `/provider/agents/${agentId}/access-requests`,
     !agentId
@@ -335,6 +295,12 @@ export function useAgentAccessRequests(
 
 export function useAccessRequestMutations(agentId: string | undefined) {
   const { accessToken } = useAuth()
+  const qc = useQueryClient()
+
+  const invalidateRequests = () =>
+    qc.invalidateQueries({
+      queryKey: ["provider", `/provider/agents/${agentId}/access-requests`],
+    })
 
   const approve = useCallback(
     async (requestId: string, expiresAt?: string): Promise<void> => {
@@ -351,8 +317,9 @@ export function useAccessRequestMutations(agentId: string | undefined) {
           }),
         }
       )
+      invalidateRequests()
     },
-    [accessToken, agentId]
+    [accessToken, agentId, qc]
   )
 
   const reject = useCallback(
@@ -367,8 +334,9 @@ export function useAccessRequestMutations(agentId: string | undefined) {
           body: JSON.stringify({ action: "reject", reject_reason: reason }),
         }
       )
+      invalidateRequests()
     },
-    [accessToken, agentId]
+    [accessToken, agentId, qc]
   )
 
   const revoke = useCallback(
@@ -380,8 +348,9 @@ export function useAccessRequestMutations(agentId: string | undefined) {
         accessToken,
         { method: "DELETE" }
       )
+      invalidateRequests()
     },
-    [accessToken, agentId]
+    [accessToken, agentId, qc]
   )
 
   return { approve, reject, revoke }
@@ -391,19 +360,9 @@ export function useAccessRequestMutations(agentId: string | undefined) {
 
 export function useSDKVersion() {
   const { accessToken } = useAuth()
-  const [data, setData] = useState<SDKVersionResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!accessToken) {
-      setLoading(false)
-      return
-    }
-    fetchSDKVersion(accessToken)
-      .then(setData)
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [accessToken])
-
-  return { data, loading }
+  return useQuery<SDKVersionResponse>({
+    queryKey: ["sdkVersion"],
+    queryFn: () => fetchSDKVersion(accessToken!),
+    enabled: !!accessToken,
+  })
 }

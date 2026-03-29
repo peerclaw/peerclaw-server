@@ -50,7 +50,7 @@ export function ProviderAgentDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: agent, loading, error } = useProviderAgent(id)
+  const { data: agent, isLoading, error } = useProviderAgent(id)
   const { data: analytics } = useAgentAnalytics(id)
   const { data: accessRequestsData, refetch: refetchRequests } = useAgentAccessRequests(id)
   const { approve, reject, revoke } = useAccessRequestMutations(id)
@@ -90,7 +90,7 @@ export function ProviderAgentDetailPage() {
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
@@ -124,7 +124,7 @@ export function ProviderAgentDetailPage() {
   if (error) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive">{error?.message}</p>
       </div>
     )
   }

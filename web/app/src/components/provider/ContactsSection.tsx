@@ -23,7 +23,7 @@ interface ContactsSectionProps {
 
 export function ContactsSection({ agentId }: ContactsSectionProps) {
   const { t } = useTranslation()
-  const { data, loading, error, refetch } = useAgentContacts(agentId)
+  const { data, isLoading: loading, error, refetch } = useAgentContacts(agentId)
   const { addContact, removeContact } = useAgentContactMutations(agentId)
   const [contactId, setContactId] = useState("")
   const [alias, setAlias] = useState("")
@@ -93,7 +93,7 @@ export function ContactsSection({ agentId }: ContactsSectionProps) {
         </form>
 
         {formError && <p className="text-xs text-destructive">{formError}</p>}
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error?.message}</p>}
 
         {/* Contacts table */}
         {loading ? (

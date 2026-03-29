@@ -16,7 +16,7 @@ import { useClaimTokens, useGenerateClaimToken } from "@/hooks/use-provider"
 
 export function ClaimTokenSection() {
   const { t } = useTranslation()
-  const { data, loading, error, refetch } = useClaimTokens()
+  const { data, isLoading: loading, error, refetch } = useClaimTokens()
   const { generate } = useGenerateClaimToken()
 
   const [agentName, setAgentName] = useState("")
@@ -301,14 +301,14 @@ export function ClaimTokenSection() {
         {loading ? (
           <p className="text-sm text-muted-foreground">{t('claim.loadingTokens')}</p>
         ) : error ? (
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error?.message}</p>
         ) : data && data.tokens && data.tokens.filter((tk) => !(tk.status === "pending" && new Date(tk.expires_at) < new Date())).length > 0 ? (
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-medium text-muted-foreground">
                 {t('claim.tokenHistory')}
               </h4>
-              <Button variant="ghost" size="sm" onClick={refetch}>
+              <Button variant="ghost" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="size-3" />
               </Button>
             </div>
