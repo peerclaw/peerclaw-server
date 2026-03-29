@@ -15,6 +15,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// OTPConfig holds tuneable OTP rate-limiting and expiry parameters.
+type OTPConfig struct {
+	MaxFailedAttempts int           // max consecutive verification failures before blocking (default 5)
+	BlockDuration     time.Duration // how long a blocked email must wait (default 15 min)
+	CodeExpiry        time.Duration // OTP code validity window (default 10 min)
+	MaxPerHour        int           // max OTP sends per email per hour (default 5)
+}
+
+// DefaultOTPConfig returns production-safe OTP defaults.
+func DefaultOTPConfig() OTPConfig {
+	return OTPConfig{
+		MaxFailedAttempts: 5,
+		BlockDuration:     15 * time.Minute,
+		CodeExpiry:        10 * time.Minute,
+		MaxPerHour:        5,
+	}
+}
+
 // Service implements user authentication business logic.
 type Service struct {
 	store       Store
@@ -23,16 +41,21 @@ type Service struct {
 	adminEmails map[string]bool
 	emailSender EmailSender
 	logger      *slog.Logger
+	otpCfg      OTPConfig
 	otpFailures sync.Map // email -> *otpAttemptTracker
 }
 
 // NewService creates a new auth service.
-func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []string, emailSender EmailSender, logger *slog.Logger) *Service {
+// A zero-value otpCfg is replaced with DefaultOTPConfig().
+func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []string, emailSender EmailSender, logger *slog.Logger, otpCfg OTPConfig) *Service {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	if bcryptCost <= 0 {
 		bcryptCost = 12
+	}
+	if otpCfg == (OTPConfig{}) {
+		otpCfg = DefaultOTPConfig()
 	}
 	ae := make(map[string]bool, len(adminEmails))
 	for _, e := range adminEmails {
@@ -45,6 +68,7 @@ func NewService(store Store, jwt *JWTManager, bcryptCost int, adminEmails []stri
 		adminEmails: ae,
 		emailSender: emailSender,
 		logger:      logger,
+		otpCfg:      otpCfg,
 	}
 }
 
@@ -56,10 +80,10 @@ type otpAttemptTracker struct {
 func (s *Service) isOTPBlocked(email string) bool {
 	if v, ok := s.otpFailures.Load(email); ok {
 		tracker := v.(*otpAttemptTracker)
-		if tracker.count >= 5 && time.Since(tracker.lastFail) < 15*time.Minute {
+		if tracker.count >= s.otpCfg.MaxFailedAttempts && time.Since(tracker.lastFail) < s.otpCfg.BlockDuration {
 			return true
 		}
-		if time.Since(tracker.lastFail) >= 15*time.Minute {
+		if time.Since(tracker.lastFail) >= s.otpCfg.BlockDuration {
 			s.otpFailures.Delete(email)
 		}
 	}
@@ -536,12 +560,12 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordRequest) e
 
 // sendOTP generates an 8-digit OTP, checks rate limits, stores the hash, and sends the email.
 func (s *Service) sendOTP(ctx context.Context, email, purpose string) error {
-	// Rate limit: 5 per hour.
+	// Rate limit: max OTP sends per hour.
 	count, err := s.store.CountRecentVerifications(ctx, email, time.Now().Add(-1*time.Hour))
 	if err != nil {
 		return fmt.Errorf("count verifications: %w", err)
 	}
-	if count >= 5 {
+	if count >= s.otpCfg.MaxPerHour {
 		return fmt.Errorf("too many verification requests, please try again later")
 	}
 
@@ -558,7 +582,7 @@ func (s *Service) sendOTP(ctx context.Context, email, purpose string) error {
 		Email:     email,
 		CodeHash:  codeHash,
 		Purpose:   purpose,
-		ExpiresAt: now.Add(10 * time.Minute),
+		ExpiresAt: now.Add(s.otpCfg.CodeExpiry),
 		CreatedAt: now,
 	}
 	if err := s.store.CreateEmailVerification(ctx, ev); err != nil {

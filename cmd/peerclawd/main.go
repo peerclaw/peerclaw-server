@@ -152,7 +152,7 @@ func main() {
 
 		jwtMgr := userauth.NewJWTManager(jwtSecret, accessTTL, refreshTTL)
 		emailSender := userauth.NewEmailSender(cfg.SMTP, logger)
-		userAuthService = userauth.NewService(uaStore, jwtMgr, cfg.UserAuth.BcryptCost, cfg.UserAuth.AdminEmails, emailSender, logger)
+		userAuthService = userauth.NewService(uaStore, jwtMgr, cfg.UserAuth.BcryptCost, cfg.UserAuth.AdminEmails, emailSender, logger, userauth.DefaultOTPConfig())
 		logger.Info("user authentication initialized",
 			"access_ttl", accessTTL,
 			"refresh_ttl", refreshTTL,

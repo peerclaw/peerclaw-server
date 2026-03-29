@@ -33,7 +33,7 @@ func newTestServiceWithEmail(t *testing.T, emailSender EmailSender) *Service {
 	}
 	jwt := NewJWTManager("test-secret-key-for-tests", 15*time.Minute, 7*24*time.Hour)
 	// Use low bcrypt cost (4) to keep tests fast.
-	return NewService(store, jwt, 4, nil, emailSender, nil)
+	return NewService(store, jwt, 4, nil, emailSender, nil, DefaultOTPConfig())
 }
 
 // mockEmailSender captures sent codes for testing.
